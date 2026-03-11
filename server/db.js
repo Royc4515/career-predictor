@@ -43,12 +43,21 @@ async function initDB() {
       monday_vibe TEXT,
       coworker_desc TEXT,
       five_year_goal TEXT,
+      desired_field TEXT,
       career_result TEXT,
       image_url TEXT,
       completed_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
   console.log('[DB] Onboarding table ready');
+
+  // Add desired_field column to existing databases that predate this migration
+  try {
+    db.run('ALTER TABLE onboarding ADD COLUMN desired_field TEXT');
+    console.log('[DB] Migrated: added desired_field column');
+  } catch (_) {
+    // Column already exists — normal on fresh runs
+  }
 
   return db;
 }
@@ -110,16 +119,16 @@ function findUserById(id) {
  * Save onboarding answers + generated result for a user.
  * Replaces any previous onboarding record for this user.
  */
-function saveOnboarding({ userId, strength, mondayVibe, coworkerDesc, fiveYearGoal, careerResult, imageUrl }) {
+function saveOnboarding({ userId, strength, mondayVibe, coworkerDesc, fiveYearGoal, desiredField, careerResult, imageUrl }) {
   console.log('[DB] Saving onboarding for user ID:', userId);
 
   // Delete previous record if exists (one result per user)
   db.run('DELETE FROM onboarding WHERE user_id = ?', [userId]);
 
   db.run(
-    `INSERT INTO onboarding (user_id, strength, monday_vibe, coworker_desc, five_year_goal, career_result, image_url)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [userId, strength, mondayVibe, coworkerDesc, fiveYearGoal, careerResult, imageUrl]
+    `INSERT INTO onboarding (user_id, strength, monday_vibe, coworker_desc, five_year_goal, desired_field, career_result, image_url)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [userId, strength, mondayVibe, coworkerDesc, fiveYearGoal, desiredField || null, careerResult, imageUrl]
   );
 
   saveDB();

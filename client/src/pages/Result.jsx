@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -6,8 +6,11 @@ export default function Result() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const MAX_RETRIES = 3;
 
   useEffect(() => {
     // Try sessionStorage first (fresh from onboarding), then fall back to API
@@ -23,6 +26,27 @@ export default function Result() {
       .then((data) => { setResult(data); setLoading(false); })
       .catch(() => { setLoading(false); navigate('/onboarding'); });
   }, [navigate]);
+
+  // Retry image on error, up to MAX_RETRIES times with 5s intervals
+  const retryTimer = useRef(null);
+  function handleImageError() {
+    if (retryCount < MAX_RETRIES) {
+      retryTimer.current = setTimeout(() => {
+        setRetryCount((n) => n + 1);
+      }, 5000);
+    } else {
+      setImageFailed(true);
+      setImageLoaded(true);
+    }
+  }
+  useEffect(() => () => clearTimeout(retryTimer.current), []);
+
+  // Build image URL with cache-bust on retry
+  const imageUrlWithRetry = result?.imageUrl
+    ? retryCount > 0
+      ? `${result.imageUrl}&_r=${retryCount}`
+      : result.imageUrl
+    : null;
 
   function handleTryAgain() {
     sessionStorage.removeItem('career_result');
@@ -50,7 +74,7 @@ export default function Result() {
 
   if (!result) return null;
 
-  const { careerTitle, imageUrl, stats } = result;
+  const { careerTitle, stats } = result;
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -88,16 +112,27 @@ export default function Result() {
           {!imageLoaded && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <div className="w-8 h-8 border-2 border-slate-700 border-t-indigo-500 rounded-full animate-spin"></div>
-              <span className="text-slate-500 text-xs">Rendering AI visualization...</span>
+              <span className="text-slate-500 text-xs">
+                {retryCount > 0 ? `Retrying visualization... (${retryCount}/${MAX_RETRIES})` : 'Rendering AI visualization...'}
+              </span>
             </div>
           )}
-          <img
-            src={imageUrl}
-            alt={careerTitle}
-            className={`w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-            onLoad={() => setImageLoaded(true)}
-            onError={() => setImageLoaded(true)}
-          />
+          {imageFailed ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
+              <div className="text-5xl mb-2">🤖</div>
+              <p className="text-slate-400 text-sm">AI visualization temporarily unavailable</p>
+              <p className="text-slate-500 text-xs">The neural rendering engine is overloaded.<br/>Your career destiny remains unchanged.</p>
+            </div>
+          ) : (
+            <img
+              key={retryCount}
+              src={imageUrlWithRetry}
+              alt={careerTitle}
+              className={`w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              onLoad={() => setImageLoaded(true)}
+              onError={handleImageError}
+            />
+          )}
         </div>
 
         {/* Stats */}

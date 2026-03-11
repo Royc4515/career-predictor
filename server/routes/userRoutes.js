@@ -9,12 +9,13 @@ function requireAuth(req, res, next) {
 }
 
 // --- Career mapping logic ---
-function mapCareer(strength, mondayVibe, coworkerDesc, fiveYearGoal) {
+function mapCareer(strength, mondayVibe, coworkerDesc, fiveYearGoal, desiredField) {
   // Normalize inputs to lowercase keys
   const s = strength || '';
   const m = mondayVibe || '';
   const c = coworkerDesc || '';
   const g = fiveYearGoal || '';
+  const f = desiredField || '';
 
   // Helper checks
   const isLeader     = s.includes('Strategic');
@@ -36,6 +37,44 @@ function mapCareer(strength, mondayVibe, coworkerDesc, fiveYearGoal) {
   const wantsBeach   = g.includes('beach');
   const wantsSurvive = g.includes('employed');
   const noPlan       = g.includes('social construct');
+
+  const isTech     = f.includes('Tech');
+  const isCreativeField = f.includes('Creative');
+  const isFinance  = f.includes('Finance');
+  const wantsViral = f.includes('viral');
+
+  // --- Field-aware careers (checked first) ---
+  if (isTech && wantsCEO) return {
+    title: 'Founder Waiting for Series A That Will Never Come',
+    prompt: 'portrait of a person in a hoodie staring at a pitch deck on a laptop in a WeWork, surrounded by empty coffee cups and a whiteboard that says "10x disruption", dim startup lighting, tech photography style',
+    happiness: 18,
+    salary: '$0 (pre-revenue)',
+    outlook: 'Pivoting to B2B SaaS',
+  };
+
+  if (isCreativeField) return {
+    title: 'UX Designer for an App That Will Be Deprecated',
+    prompt: 'portrait of a person presenting a beautiful app mockup on a giant screen to a bored executive who is clearly looking at his phone, modern office, frustrated designer expression, tech photography style',
+    happiness: 45,
+    salary: 'Enough for Figma Pro',
+    outlook: 'Figma will fix it',
+  };
+
+  if (isFinance && wantsCEO) return {
+    title: 'Crypto Hedge Fund Manager (Funds: $847)',
+    prompt: 'portrait of a confident person in a suit sitting at a desk with 8 monitors all showing red graphs, holding a printout that says portfolio value: $847, trying to look serious, dramatic financial photography',
+    happiness: 11,
+    salary: '$847 AUM',
+    outlook: 'Waiting for the dip to recover',
+  };
+
+  if (wantsViral) return {
+    title: 'Content Creator, Currently at 23 Followers',
+    prompt: 'portrait of a person filming themselves on a ring light in a bedroom, phone showing 23 followers, very professional setup for very modest audience, influencer photography style, hopeful expression',
+    happiness: 62,
+    salary: '$0.04 in ad revenue',
+    outlook: 'The algorithm will come around',
+  };
 
   // --- Mapping table: priority order ---
   if (isLeader && wantsCEO) return {
@@ -162,23 +201,26 @@ function mapCareer(strength, mondayVibe, coworkerDesc, fiveYearGoal) {
 
 // POST /api/user/onboarding — save answers, generate image, return result
 router.post('/onboarding', requireAuth, async (req, res) => {
-  const { strength, monday_vibe, coworker_desc, five_year_goal } = req.body;
+  const { strength, monday_vibe, coworker_desc, five_year_goal, desired_field } = req.body;
   const userId = req.user.id;
 
   console.log('[ROUTE] POST /api/user/onboarding — user:', req.user.name);
-  console.log('[ROUTE] Answers:', { strength, monday_vibe, coworker_desc, five_year_goal });
+  console.log('[ROUTE] Answers:', { strength, monday_vibe, coworker_desc, five_year_goal, desired_field });
 
   if (!strength || !monday_vibe || !coworker_desc || !five_year_goal) {
     return res.status(400).json({ error: 'All four answers are required' });
   }
 
   // Map answers → career
-  const career = mapCareer(strength, monday_vibe, coworker_desc, five_year_goal);
+  const career = mapCareer(strength, monday_vibe, coworker_desc, five_year_goal, desired_field);
   console.log('[ROUTE] Career mapped:', career.title);
 
-  // Build Pollinations.ai image URL (no API key needed)
-  const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(career.prompt)}?width=512&height=512&nologo=true&seed=${userId}`;
-  console.log('[ROUTE] Image URL generated');
+  // Build Pollinations.ai image URL — flux-schnell generates in 1-5s vs 15-30s
+  const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(career.prompt)}?width=512&height=512&nologo=true&seed=${userId}&model=flux-schnell`;
+  console.log('[ROUTE] Image URL generated, pre-warming...');
+
+  // Fire-and-forget: kick off image generation immediately so it's ready by the time the user arrives
+  fetch(imageUrl).catch(() => {});
 
   // Save to DB
   saveOnboarding({
@@ -187,6 +229,7 @@ router.post('/onboarding', requireAuth, async (req, res) => {
     mondayVibe: monday_vibe,
     coworkerDesc: coworker_desc,
     fiveYearGoal: five_year_goal,
+    desiredField: desired_field,
     careerResult: JSON.stringify({ title: career.title, happiness: career.happiness, salary: career.salary, outlook: career.outlook }),
     imageUrl,
   });

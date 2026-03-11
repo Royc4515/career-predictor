@@ -43,6 +43,16 @@ const questions = [
       'Plans are a social construct',
     ],
   },
+  {
+    id: 'desired_field',
+    question: 'What field are you actually targeting?',
+    options: [
+      'Tech & Startups',
+      'Creative Arts & Media',
+      'Finance & Business',
+      'I just want to go viral',
+    ],
+  },
 ];
 
 export default function Onboarding() {
