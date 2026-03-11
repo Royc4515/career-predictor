@@ -48,8 +48,11 @@ initDB().then(() => {
   console.log('[SERVER] Passport initialized');
 
   // --- Routes ---
+  const userRoutes = require('./routes/userRoutes');
   app.use('/auth', authRoutes);
+  app.use('/api/user', userRoutes);
   console.log('[SERVER] Auth routes mounted at /auth');
+  console.log('[SERVER] User routes mounted at /api/user');
 
   // Health check
   app.get('/api/health', (req, res) => {

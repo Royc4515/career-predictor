@@ -106,4 +106,38 @@ function findUserById(id) {
   return user;
 }
 
-module.exports = { initDB, upsertUser, findUserById, saveDB };
+/**
+ * Save onboarding answers + generated result for a user.
+ * Replaces any previous onboarding record for this user.
+ */
+function saveOnboarding({ userId, strength, mondayVibe, coworkerDesc, fiveYearGoal, careerResult, imageUrl }) {
+  console.log('[DB] Saving onboarding for user ID:', userId);
+
+  // Delete previous record if exists (one result per user)
+  db.run('DELETE FROM onboarding WHERE user_id = ?', [userId]);
+
+  db.run(
+    `INSERT INTO onboarding (user_id, strength, monday_vibe, coworker_desc, five_year_goal, career_result, image_url)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [userId, strength, mondayVibe, coworkerDesc, fiveYearGoal, careerResult, imageUrl]
+  );
+
+  saveDB();
+  console.log('[DB] Onboarding saved');
+}
+
+/**
+ * Get the onboarding result for a user.
+ */
+function getOnboardingByUserId(userId) {
+  const stmt = db.prepare('SELECT * FROM onboarding WHERE user_id = ? ORDER BY completed_at DESC LIMIT 1');
+  stmt.bind([userId]);
+  let row = null;
+  if (stmt.step()) {
+    row = stmt.getAsObject();
+  }
+  stmt.free();
+  return row;
+}
+
+module.exports = { initDB, upsertUser, findUserById, saveDB, saveOnboarding, getOnboardingByUserId };

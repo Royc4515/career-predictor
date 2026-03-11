@@ -1,60 +1,28 @@
-import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Landing from './pages/Landing';
+import Onboarding from './pages/Onboarding';
+import Loading from './pages/Loading';
+import Result from './pages/Result';
 
-function App() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch('/auth/me', { credentials: 'include' })
-      .then((res) => {
-        if (res.ok) return res.json();
-        throw new Error('Not authenticated');
-      })
-      .then((data) => setUser(data.user))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) {
-    return <p>Checking authentication...</p>;
-  }
-
-  if (!user) {
-    return (
-      <div style={{ textAlign: 'center', marginTop: '4rem' }}>
-        <h1>AI Career Predictor</h1>
-        <p>Discover your true career destiny.</p>
-        <a
-          href="/auth/google"
-          style={{
-            display: 'inline-block',
-            marginTop: '1rem',
-            padding: '0.75rem 1.5rem',
-            background: '#4285F4',
-            color: 'white',
-            borderRadius: '4px',
-            textDecoration: 'none',
-            fontSize: '1rem',
-          }}
-        >
-          Login with Google
-        </a>
-      </div>
-    );
-  }
-
+export default function App() {
   return (
-    <div style={{ textAlign: 'center', marginTop: '4rem' }}>
-      <h1>Welcome, {user.name}!</h1>
-      <img
-        src={user.avatar_url}
-        alt="avatar"
-        style={{ borderRadius: '50%', width: '80px', height: '80px' }}
-      />
-      <p>{user.email}</p>
-      <a href="/auth/logout">Logout</a>
-    </div>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/onboarding" element={
+            <ProtectedRoute><Onboarding /></ProtectedRoute>
+          } />
+          <Route path="/loading" element={
+            <ProtectedRoute><Loading /></ProtectedRoute>
+          } />
+          <Route path="/result" element={
+            <ProtectedRoute><Result /></ProtectedRoute>
+          } />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
-
-export default App;
