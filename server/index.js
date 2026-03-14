@@ -1,5 +1,6 @@
 // Load environment variables FIRST — before anything else reads process.env
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 console.log('[SERVER] Environment loaded');
 console.log('[SERVER] CLIENT_URL:', process.env.CLIENT_URL);
 console.log('[SERVER] SERVER_URL:', process.env.SERVER_URL);
@@ -30,8 +31,8 @@ app.use(session({
   cookie: {
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     httpOnly: true,
-    secure: false,    // false for localhost (HTTP)
-    sameSite: 'lax',  // 'lax' allows cookies on OAuth redirect flow
+    secure: process.env.NODE_ENV === 'production', // true for HTTPS in prod
+    sameSite: 'lax',
   },
 }));
 console.log('[SERVER] Session middleware configured (memory store)');
@@ -57,6 +58,14 @@ initDB().then(() => {
   // Health check
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok' });
+  });
+
+  // --- Serve React frontend (production) ---
+  const clientDist = path.join(__dirname, '../client/dist');
+  app.use(express.static(clientDist));
+  // React Router catch-all — must come last
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(clientDist, 'index.html'));
   });
 
   // --- Start server ---
