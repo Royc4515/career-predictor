@@ -14,8 +14,10 @@ export default function Loading() {
   const [stepIndex, setStepIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
   const submitted = useRef(false);
+  const apiDone = useRef(false);
 
   // Submit onboarding answers to backend
   useEffect(() => {
@@ -30,12 +32,15 @@ export default function Loading() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(answers),
     })
-      .then((res) => res.json())
-      .then((data) => {
-        // Store result for Result page
-        sessionStorage.setItem('career_result', JSON.stringify(data));
+      .then((res) => {
+        if (!res.ok) throw new Error('Server error');
+        return res.json();
       })
-      .catch(console.error);
+      .then((data) => {
+        sessionStorage.setItem('career_result', JSON.stringify(data));
+        apiDone.current = true;
+      })
+      .catch(() => setError('Something went wrong analyzing your career. Please try again.'));
   }, []);
 
   // Animate the progress bar over ~7 seconds
@@ -67,12 +72,33 @@ export default function Loading() {
     return () => clearInterval(timer);
   }, []);
 
-  // Navigate to result once done
+  // Navigate to result once animation is done AND API has responded
   useEffect(() => {
-    if (done) {
-      setTimeout(() => navigate('/result'), 600);
-    }
-  }, [done, navigate]);
+    if (!done || error) return;
+    const check = setInterval(() => {
+      if (apiDone.current) {
+        clearInterval(check);
+        setTimeout(() => navigate('/result'), 400);
+      }
+    }, 200);
+    return () => clearInterval(check);
+  }, [done, error, navigate]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center px-6">
+        <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center font-bold text-sm mb-6">!</div>
+        <h2 className="text-xl font-semibold mb-2">Analysis Failed</h2>
+        <p className="text-slate-400 text-sm mb-8 text-center max-w-md">{error}</p>
+        <button
+          onClick={() => navigate('/onboarding')}
+          className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl text-sm font-medium transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center px-6">

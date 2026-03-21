@@ -21,7 +21,7 @@ export default function Landing() {
 
   // If already logged in, redirect to onboarding
   useEffect(() => {
-    if (!loading && user) navigate('/onboarding');
+    if (!loading && user) navigate('/result');
   }, [user, loading, navigate]);
 
   return (
@@ -95,7 +95,7 @@ export default function Landing() {
         <h2 className="text-2xl font-bold text-center mb-12">How CareerPredict Works</h2>
         <div className="grid sm:grid-cols-3 gap-8">
           {[
-            { step: '01', title: 'Answer 4 Questions', desc: 'Our AI asks targeted questions to map your professional DNA across key dimensions.' },
+            { step: '01', title: 'Answer 5 Questions', desc: 'Our AI asks targeted questions to map your professional DNA across key dimensions.' },
             { step: '02', title: 'Neural Analysis', desc: 'Our quantum personality matrix cross-references 847 career trajectories in real time.' },
             { step: '03', title: 'Your Destiny Revealed', desc: 'Receive a hyper-personalized AI-generated portrait of your true career path.' },
           ].map((item) => (
@@ -160,7 +160,7 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="border-t border-slate-800 py-8 text-center text-slate-600 text-xs">
-        © 2024 CareerPredict Inc. · AI predictions are for entertainment purposes. Results may vary. By "vary" we mean they are made up.
+        © 2025 CareerPredict Inc. · AI predictions are for entertainment purposes. Results may vary. By "vary" we mean they are made up.
       </footer>
     </div>
   );

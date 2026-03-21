@@ -55,12 +55,31 @@ export default function Result() {
   }
 
   function handleShare() {
-    const text = `The AI figured me out. Apparently my true career destiny is: "${result?.careerTitle}" 😂 Try it yourself →`;
+    const url = window.location.origin;
+    const text = `The AI figured me out. Apparently my true career destiny is: "${result?.careerTitle}" 😂 Try it yourself → ${url}`;
     if (navigator.share) {
-      navigator.share({ text });
+      navigator.share({ text, url });
     } else {
       navigator.clipboard.writeText(text);
       alert('Copied to clipboard!');
+    }
+  }
+
+  async function handleDownload() {
+    if (!result?.imageUrl) return;
+    try {
+      const res = await fetch(result.imageUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `career-predict-${result.careerTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Could not download image. Try right-clicking the image instead.');
     }
   }
 
@@ -84,8 +103,9 @@ export default function Result() {
           <div className="w-7 h-7 bg-indigo-500 rounded-lg flex items-center justify-center font-bold text-xs">AI</div>
           <span className="font-semibold text-sm">CareerPredict</span>
         </div>
-        <div className="text-sm text-slate-500">
-          Report for <span className="text-slate-300">{user?.name}</span>
+        <div className="flex items-center gap-4 text-sm text-slate-500">
+          <span>Report for <span className="text-slate-300">{user?.name}</span></span>
+          <a href="/auth/logout" className="text-slate-500 hover:text-slate-300 transition-colors">Sign Out</a>
         </div>
       </div>
 
@@ -102,10 +122,15 @@ export default function Result() {
         <p className="text-slate-400 mb-10 text-sm">Based on your professional DNA profile</p>
 
         {/* Career title */}
-        <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-5 mb-8">
+        <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-5 mb-4">
           <div className="text-xs text-indigo-400 font-mono uppercase tracking-widest mb-2">Optimal Career Path</div>
           <h2 className="text-2xl font-bold text-white">{careerTitle}</h2>
         </div>
+
+        {/* AI caption */}
+        {result.caption && (
+          <p className="text-slate-400 text-sm italic mb-8 px-1">"{result.caption}"</p>
+        )}
 
         {/* AI-generated image */}
         <div className="relative bg-slate-900 border border-slate-800 rounded-xl overflow-hidden mb-8 aspect-square">
@@ -184,6 +209,12 @@ export default function Result() {
             className="flex-1 border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white py-3 rounded-xl text-sm font-medium transition-colors"
           >
             Share Result
+          </button>
+          <button
+            onClick={handleDownload}
+            className="flex-1 border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white py-3 rounded-xl text-sm font-medium transition-colors"
+          >
+            Download Image
           </button>
           <button
             onClick={handleTryAgain}
