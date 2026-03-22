@@ -19,34 +19,39 @@ passport.deserializeUser((id, done) => {
   }
 });
 
-// --- Google OAuth 2.0 Strategy ---
-passport.use(
-  new GoogleStrategy(
-    {
-      clientID: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: `${process.env.SERVER_URL}/auth/google/callback`,
-    },
-    (accessToken, refreshToken, profile, done) => {
-      console.log('[AUTH] Google OAuth callback triggered');
-      console.log('[AUTH] Google profile received:', profile.displayName, profile.emails[0].value);
+// --- Google OAuth 2.0 Strategy (only if credentials are configured) ---
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  passport.use(
+    new GoogleStrategy(
+      {
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        callbackURL: `${process.env.SERVER_URL}/auth/google/callback`,
+      },
+      (accessToken, refreshToken, profile, done) => {
+        console.log('[AUTH] Google OAuth callback triggered');
+        console.log('[AUTH] Google profile received:', profile.displayName, profile.emails[0].value);
 
-      try {
-        const user = upsertUser({
-          googleId: profile.id,
-          email: profile.emails[0].value,
-          name: profile.displayName,
-          avatarUrl: profile.photos[0]?.value || null,
-        });
+        try {
+          const user = upsertUser({
+            googleId: profile.id,
+            email: profile.emails[0].value,
+            name: profile.displayName,
+            avatarUrl: profile.photos[0]?.value || null,
+          });
 
-        console.log('[AUTH] User upserted in DB, ID:', user.id);
-        done(null, user);
-      } catch (err) {
-        console.error('[AUTH] Error in Google strategy callback:', err);
-        done(err, null);
+          console.log('[AUTH] User upserted in DB, ID:', user.id);
+          done(null, user);
+        } catch (err) {
+          console.error('[AUTH] Error in Google strategy callback:', err);
+          done(err, null);
+        }
       }
-    }
-  )
-);
+    )
+  );
+  console.log('[AUTH] Google OAuth strategy configured');
+} else {
+  console.warn('[AUTH] Google OAuth credentials not found — skipping OAuth setup');
+}
 
 module.exports = passport;
