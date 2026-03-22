@@ -9,8 +9,9 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-<!-- Replace with your deployed URL -->
-<!-- [Try it live](https://your-app.up.railway.app) -->
+[**Try it live**](https://career-predictor-production-a8bd.up.railway.app/)
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/project/79ba114a-7b32-4b29-917a-83bdc13d1323?environmentId=31991df1-970e-4f34-b702-92e1d58ab386)
 
 </div>
 
@@ -141,8 +142,8 @@ Set these in Railway → your service → **Variables**:
 |----------|-------|
 | `NODE_ENV` | `production` |
 | `SESSION_SECRET` | *random secret string* |
-| `CLIENT_URL` | `https://your-app.up.railway.app` |
-| `SERVER_URL` | `https://your-app.up.railway.app` |
+| `CLIENT_URL` | `https://career-predictor-production-a8bd.up.railway.app` |
+| `SERVER_URL` | `https://career-predictor-production-a8bd.up.railway.app` |
 | `GOOGLE_CLIENT_ID` | *from Google Cloud Console* |
 | `GOOGLE_CLIENT_SECRET` | *from Google Cloud Console* |
 
@@ -151,8 +152,8 @@ Set these in Railway → your service → **Variables**:
 ### Google OAuth Setup for Production
 
 In [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
-1. Add your Railway URL to **Authorized JavaScript origins**
-2. Add `https://your-app.up.railway.app/auth/google/callback` to **Authorized redirect URIs**
+1. Add `https://career-predictor-production-a8bd.up.railway.app` to **Authorized JavaScript origins**
+2. Add `https://career-predictor-production-a8bd.up.railway.app/auth/google/callback` to **Authorized redirect URIs**
 
 ## API Endpoints
 
