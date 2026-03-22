@@ -12,6 +12,11 @@ const { initDB } = require('./db');
 
 const app = express();
 
+// Trust first proxy (Railway, Render, etc.) so secure cookies work behind HTTPS reverse proxy
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // --- CORS (must be before routes) ---
 app.use(cors({
   origin: process.env.CLIENT_URL,
