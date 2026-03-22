@@ -1,54 +1,123 @@
+<div align="center">
+
 # CareerPredict AI
 
-A satirical AI-powered career predictor that analyzes your "professional DNA" and reveals your true career destiny with 99.7% accuracy (completely made up).
+### Your true career destiny, revealed by an AI that's 99.7% accurate (and completely made up).
 
-## What It Does
+[![Node.js](https://img.shields.io/badge/Node.js-20+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-1. **Sign in** with your Google account
-2. **Answer 5 absurdly specific questions** about your work style, strengths, and ambitions
-3. **Get matched** to a hilariously specific career path (e.g. "Founder Waiting for Series A That Will Never Come")
-4. **View an AI-generated portrait** of your career destiny, complete with stats and a sardonic caption
-5. **Share your result** with friends or download the image
+<!-- Replace with your deployed URL -->
+<!-- [Try it live](https://your-app.up.railway.app) -->
+
+</div>
+
+---
+
+## What is this?
+
+CareerPredict AI is a satirical web app that analyzes your "professional DNA" through 5 absurdly specific questions and matches you to a hilariously niche career — complete with an AI-generated portrait, a sardonic caption, and totally real stats.
+
+> *"Apparently my true career destiny is Founder Waiting for Series A That Will Never Come"* — a real result
+
+## How it works
+
+```
+Sign in with Google  →  Answer 5 questions  →  Get your career destiny
+```
+
+1. **Sign in** with Google OAuth
+2. **Answer 5 questions** — your biggest strength, how you handle Mondays, what coworkers think of you, your 5-year plan, and your target field
+3. **Watch the "analysis"** — a fake loading screen with made-up metrics like "847 Career Trajectories Analyzed"
+4. **Get your result** — a unique career title, AI-generated portrait, happiness score, salary potential, and career outlook
+5. **Share or download** — native share or copy-to-clipboard, plus image download
+
+## Screenshots
+
+<!-- Add your own screenshots to a screenshots/ directory -->
+<!-- Uncomment the lines below once you have them -->
+
+<!-- ![Landing Page](screenshots/landing.png) -->
+<!-- ![Onboarding Quiz](screenshots/onboarding.png) -->
+<!-- ![Career Result](screenshots/result.png) -->
+
+*Screenshots coming soon — deploy the app and add your own!*
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 19, Vite 6, Tailwind CSS 4, React Router 7 |
-| Backend | Node.js, Express 4, Passport.js (Google OAuth 2.0) |
-| Database | SQLite via sql.js (in-memory with file persistence) |
-| Image Generation | Pollinations.ai (free, no API key required) |
-| Deployment | Vercel (frontend) + Railway (backend) |
+| Layer | Tech | Why |
+|-------|------|-----|
+| **Frontend** | React 19, Vite 6, Tailwind CSS 4, React Router 7 | Fast dev, modern styling, SPA routing |
+| **Backend** | Node.js, Express 4, Passport.js | Google OAuth 2.0 authentication |
+| **Database** | SQLite via sql.js | Zero-config, file-based persistence |
+| **AI Images** | [Pollinations.ai](https://pollinations.ai) | Free image generation, no API key needed |
+| **Deployment** | Railway | Full-stack monolith, single service |
 
-## Local Development
+## Project Structure
+
+```
+career-predictor/
+├── client/                  # React frontend
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── Landing.jsx      # Marketing page with fake stats
+│   │   │   ├── Onboarding.jsx   # 5-step career quiz
+│   │   │   ├── Loading.jsx      # Fake analysis screen
+│   │   │   └── Result.jsx       # Career result + AI portrait
+│   │   ├── components/
+│   │   │   ├── AuthContext.jsx   # Auth state provider
+│   │   │   └── ProtectedRoute.jsx
+│   │   ├── App.jsx
+│   │   └── config.js
+│   └── package.json
+├── server/                  # Express backend
+│   ├── index.js             # Server entry, middleware, static serving
+│   ├── auth.js              # Passport + Google OAuth strategy
+│   ├── db.js                # SQLite setup (users + onboarding tables)
+│   ├── routes/
+│   │   ├── authRoutes.js    # /auth/google, /auth/me, /auth/logout
+│   │   └── userRoutes.js    # /api/user/onboarding, /api/user/result
+│   └── .env.example
+└── package.json             # Root build + start scripts
+```
+
+## Getting Started
 
 ### Prerequisites
 
-- Node.js >= 20
-- A Google OAuth app ([create one here](https://console.cloud.google.com/apis/credentials))
-  - Authorized redirect URI: `http://localhost:5000/auth/google/callback`
+- **Node.js 20+**
+- **Google OAuth credentials** — [create them here](https://console.cloud.google.com/apis/credentials)
+  - Add `http://localhost:5000/auth/google/callback` as an authorized redirect URI
 
 ### Setup
 
 ```bash
-# Clone the repo
+# Clone
 git clone https://github.com/Royc4515/career-predictor.git
 cd career-predictor
 
-# Create your environment file
+# Configure environment
 cp server/.env.example server/.env
-# Edit server/.env with your Google OAuth credentials:
-#   GOOGLE_CLIENT_ID=your_client_id
-#   GOOGLE_CLIENT_SECRET=your_client_secret
-#   SESSION_SECRET=any_random_string
-#   CLIENT_URL=http://localhost:3000
-#   SERVER_URL=http://localhost:5000
+```
 
-# Install all dependencies
+Edit `server/.env`:
+
+```env
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+SESSION_SECRET=any_random_string_here
+CLIENT_URL=http://localhost:3000
+SERVER_URL=http://localhost:5000
+```
+
+```bash
+# Install everything
 npm run build
 ```
 
-### Run
+### Run locally
 
 ```bash
 # Terminal 1 — backend
@@ -58,29 +127,55 @@ cd server && npm run dev
 cd client && npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) and sign in with Google.
+Open [http://localhost:3000](http://localhost:3000) and sign in with Google.
 
-## Screenshots
+## Deployment (Railway)
 
-<!-- Add screenshots here -->
-![Landing Page](screenshots/landing.png)
-![Result Page](screenshots/result.png)
+This app runs as a **single service** on Railway — the Express server builds the React frontend and serves it as static files.
 
-## Deployment
+### Environment Variables
 
-### Frontend (Vercel)
+Set these in Railway → your service → **Variables**:
 
-- Framework: Vite
-- Root directory: `client`
-- Build command: `npm run build`
-- Output directory: `dist`
-- Environment variable: `VITE_API_URL` = your Railway backend URL
+| Variable | Value |
+|----------|-------|
+| `NODE_ENV` | `production` |
+| `SESSION_SECRET` | *random secret string* |
+| `CLIENT_URL` | `https://your-app.up.railway.app` |
+| `SERVER_URL` | `https://your-app.up.railway.app` |
+| `GOOGLE_CLIENT_ID` | *from Google Cloud Console* |
+| `GOOGLE_CLIENT_SECRET` | *from Google Cloud Console* |
 
-### Backend (Railway)
+> **Note:** The app starts without Google OAuth credentials — it just won't have login functionality until they're configured.
 
-- Start command: `node server/index.js`
-- Root directory: `/`
-- Environment variables: same as `server/.env` but with production URLs
+### Google OAuth Setup for Production
+
+In [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
+1. Add your Railway URL to **Authorized JavaScript origins**
+2. Add `https://your-app.up.railway.app/auth/google/callback` to **Authorized redirect URIs**
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/auth/google` | Start Google OAuth flow |
+| `GET` | `/auth/google/callback` | OAuth callback |
+| `GET` | `/auth/me` | Get current user (or 401) |
+| `GET` | `/auth/logout` | Destroy session |
+| `POST` | `/api/user/onboarding` | Submit quiz answers, get career result |
+| `GET` | `/api/user/result` | Fetch saved career result |
+| `GET` | `/api/health` | Health check |
+
+## Example Career Results
+
+| Career Title | Happiness | Salary |
+|-------------|-----------|--------|
+| Founder Waiting for Series A That Will Never Come | 18% | $0 (pre-revenue) |
+| UX Designer Who Only Designs for Themselves | 72% | $95K |
+| LinkedIn Influencer With 47 Followers | 55% | Paid in exposure |
+| Professional Human Being (Specialization Pending) | 50% | TBD |
+
+*100+ unique career results mapped from quiz answer combinations.*
 
 ## License
 
