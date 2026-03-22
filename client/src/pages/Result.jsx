@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config';
 
 export default function Result() {
   const [result, setResult] = useState(null);
@@ -21,7 +22,7 @@ export default function Result() {
       return;
     }
 
-    fetch('/api/user/result', { credentials: 'include' })
+    fetch(`${API_URL}/api/user/result`, { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data) => { setResult(data); setLoading(false); })
       .catch(() => { setLoading(false); navigate('/onboarding'); });
@@ -105,7 +106,7 @@ export default function Result() {
         </div>
         <div className="flex items-center gap-4 text-sm text-slate-500">
           <span>Report for <span className="text-slate-300">{user?.name}</span></span>
-          <a href="/auth/logout" className="text-slate-500 hover:text-slate-300 transition-colors">Sign Out</a>
+          <a href={`${API_URL}/auth/logout`} className="text-slate-500 hover:text-slate-300 transition-colors">Sign Out</a>
         </div>
       </div>
 

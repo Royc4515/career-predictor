@@ -20,7 +20,7 @@ router.get('/google/callback',
   (req, res) => {
     console.log('[ROUTE] Auth successful, session created for user:', req.user.name);
     console.log('[ROUTE] Session ID:', req.sessionID);
-    res.redirect(`${process.env.CLIENT_URL}/onboarding`);
+    res.redirect(`${process.env.CLIENT_URL}/result`);
   }
 );
 

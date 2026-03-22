@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../config';
 
 const steps = [
   'Connecting to career neural network...',
@@ -26,7 +27,7 @@ export default function Loading() {
 
     const answers = JSON.parse(sessionStorage.getItem('onboarding_answers') || '{}');
 
-    fetch('/api/user/onboarding', {
+    fetch(`${API_URL}/api/user/onboarding`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
