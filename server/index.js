@@ -30,7 +30,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // --- Session middleware (must be before Passport) ---
 app.use(session({
-  secret: process.env.SESSION_SECRET,
+  secret: process.env.SESSION_SECRET || 'dev-fallback-secret-change-me',
   resave: false,
   saveUninitialized: false,
   cookie: {
