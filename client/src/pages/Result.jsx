@@ -11,7 +11,7 @@ export default function Result() {
   const [retryCount, setRetryCount] = useState(0);
   const navigate = useNavigate();
   const { user } = useAuth();
-  const MAX_RETRIES = 3;
+  const MAX_RETRIES = 5;
 
   useEffect(() => {
     // Try sessionStorage first (fresh from onboarding), then fall back to API
@@ -34,7 +34,7 @@ export default function Result() {
     if (retryCount < MAX_RETRIES) {
       retryTimer.current = setTimeout(() => {
         setRetryCount((n) => n + 1);
-      }, 5000);
+      }, 8000);
     } else {
       setImageFailed(true);
       setImageLoaded(true);
