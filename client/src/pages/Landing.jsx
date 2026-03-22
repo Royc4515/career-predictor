@@ -1,6 +1,7 @@
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { API_URL } from '../config';
 
 const testimonials = [
   { name: 'Sarah K., MBA', text: 'The accuracy was uncanny. I didn\'t believe AI could know me this well.', role: 'Former Director of Something' },
@@ -37,7 +38,7 @@ export default function Landing() {
           <span className="hidden sm:block">Features</span>
           <span className="hidden sm:block">Pricing</span>
           <span className="hidden sm:block">Enterprise</span>
-          <a href="/auth/google" className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium">
+          <a href={`${API_URL}/auth/google`} className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium">
             Get Started
           </a>
         </div>
@@ -63,7 +64,7 @@ export default function Landing() {
         <p className="text-sm text-slate-500 mb-10">Used by 50,000+ professionals worldwide. No credit card required.</p>
 
         <a
-          href="/auth/google"
+          href={`${API_URL}/auth/google`}
           className="inline-flex items-center gap-3 bg-white text-slate-900 font-semibold px-8 py-4 rounded-xl text-lg hover:bg-slate-100 transition-colors shadow-lg"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -151,7 +152,7 @@ export default function Landing() {
         <h2 className="text-3xl font-bold mb-4">Ready to Know Your Destiny?</h2>
         <p className="text-slate-400 mb-8">Join 50,000+ professionals who have unlocked their true potential.</p>
         <a
-          href="/auth/google"
+          href={`${API_URL}/auth/google`}
           className="inline-flex items-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-8 py-4 rounded-xl text-lg transition-colors"
         >
           Start Free Analysis →
