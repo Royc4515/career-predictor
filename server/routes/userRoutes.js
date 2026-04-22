@@ -396,7 +396,7 @@ router.post('/onboarding', requireAuth, async (req, res) => {
   fetch(imageUrl).catch(() => {});
 
   // Save to DB
-  saveOnboarding({
+  await saveOnboarding({
     userId,
     strength,
     mondayVibe: monday_vibe,
@@ -420,10 +420,10 @@ router.post('/onboarding', requireAuth, async (req, res) => {
 });
 
 // GET /api/user/result — fetch saved result for current user
-router.get('/result', requireAuth, (req, res) => {
+router.get('/result', requireAuth, async (req, res) => {
   console.log('[ROUTE] GET /api/user/result — user:', req.user.name);
 
-  const row = getOnboardingByUserId(req.user.id);
+  const row = await getOnboardingByUserId(req.user.id);
   if (!row) {
     return res.status(404).json({ error: 'No result found' });
   }
