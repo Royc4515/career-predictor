@@ -35,6 +35,14 @@ async function initDB() {
     )
   `);
   console.log('[DB] Onboarding table ready');
+
+  // Add desired_field to any existing DB that was created before this column existed
+  try {
+    await client.execute('ALTER TABLE onboarding ADD COLUMN desired_field TEXT');
+    console.log('[DB] desired_field column added');
+  } catch (_) {
+    // Column already exists — safe to ignore
+  }
 }
 
 async function upsertUser({ googleId, email, name, avatarUrl }) {

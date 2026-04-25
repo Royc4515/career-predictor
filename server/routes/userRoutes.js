@@ -395,17 +395,22 @@ router.post('/onboarding', requireAuth, async (req, res) => {
   // Fire-and-forget: kick off image generation immediately so it's ready by the time the user arrives
   fetch(imageUrl).catch(() => {});
 
-  // Save to DB
-  await saveOnboarding({
-    userId,
-    strength,
-    mondayVibe: monday_vibe,
-    coworkerDesc: coworker_desc,
-    fiveYearGoal: five_year_goal,
-    desiredField: desired_field,
-    careerResult: JSON.stringify({ title: career.title, caption: career.caption, happiness: career.happiness, salary: career.salary, outlook: career.outlook }),
-    imageUrl,
-  });
+  try {
+    // Save to DB
+    await saveOnboarding({
+      userId,
+      strength,
+      mondayVibe: monday_vibe,
+      coworkerDesc: coworker_desc,
+      fiveYearGoal: five_year_goal,
+      desiredField: desired_field,
+      careerResult: JSON.stringify({ title: career.title, caption: career.caption, happiness: career.happiness, salary: career.salary, outlook: career.outlook }),
+      imageUrl,
+    });
+  } catch (err) {
+    console.error('[ROUTE] DB error in POST /api/user/onboarding:', err);
+    return res.status(500).json({ error: 'Failed to save results. Please try again.' });
+  }
 
   res.json({
     careerTitle: career.title,
@@ -423,22 +428,27 @@ router.post('/onboarding', requireAuth, async (req, res) => {
 router.get('/result', requireAuth, async (req, res) => {
   console.log('[ROUTE] GET /api/user/result — user:', req.user.name);
 
-  const row = await getOnboardingByUserId(req.user.id);
-  if (!row) {
-    return res.status(404).json({ error: 'No result found' });
-  }
+  try {
+    const row = await getOnboardingByUserId(req.user.id);
+    if (!row) {
+      return res.status(404).json({ error: 'No result found' });
+    }
 
-  const parsed = JSON.parse(row.career_result);
-  res.json({
-    careerTitle: parsed.title,
-    caption: parsed.caption || 'Your career destiny has been sealed by the algorithm.',
-    imageUrl: row.image_url,
-    stats: {
-      happiness: parsed.happiness,
-      salary: parsed.salary,
-      outlook: parsed.outlook,
-    },
-  });
+    const parsed = JSON.parse(row.career_result);
+    res.json({
+      careerTitle: parsed.title,
+      caption: parsed.caption || 'Your career destiny has been sealed by the algorithm.',
+      imageUrl: row.image_url,
+      stats: {
+        happiness: parsed.happiness,
+        salary: parsed.salary,
+        outlook: parsed.outlook,
+      },
+    });
+  } catch (err) {
+    console.error('[ROUTE] DB error in GET /api/user/result:', err);
+    res.status(500).json({ error: 'Failed to fetch result. Please try again.' });
+  }
 });
 
 module.exports = router;
