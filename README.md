@@ -165,9 +165,154 @@ Built by **Roy Carmelli** — reach out if you have questions, want to collabora
 
 ---
 
+## Quantum Architecture
+
+> *How we achieve 99.7% accuracy while knowing absolutely nothing about you.*
+
+The system is a classic **full-stack monolith** — React on the front, Express on the back, one Render service holding it all together with duct tape and optimism.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        BROWSER                              │
+│                                                             │
+│   React 19 + React Router 7                                 │
+│   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
+│   │ Landing  │→ │  Quiz    │→ │ Loading  │→ │  Result  │  │
+│   │  Page    │  │ (5 Qs)  │  │ (fake AI)│  │  Page    │  │
+│   └──────────┘  └──────────┘  └──────────┘  └──────────┘  │
+│        │               │                          ↑        │
+└────────┼───────────────┼──────────────────────────┼────────┘
+         │               │                          │
+         ▼               ▼                          │
+┌─────────────────────────────────────────────────────────────┐
+│                   EXPRESS SERVER (Node.js)                   │
+│                                                             │
+│   Auth Routes              API Routes                       │
+│   /auth/google      ──→    /api/user/onboarding  (POST)     │
+│   /auth/callback    ──→    /api/user/result       (GET)     │
+│   /auth/me          ──→    /api/health            (GET)     │
+│   /auth/logout                                              │
+│         │                          │                        │
+│         ▼                          ▼                        │
+│   Passport.js               SQLite (sql.js)                 │
+│   Session Store             users + results table           │
+└─────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────┐        ┌──────────────────────┐
+│  Google OAuth   │        │   Pollinations.ai     │
+│  (the real AI)  │        │   (generates portrait │
+│                 │        │    from career title)  │
+└─────────────────┘        └──────────────────────┘
+```
+
+### Auth Flow
+
+The authentication is standard **OAuth 2.0 Authorization Code** flow, handled by [Passport.js](https://www.passportjs.org/):
+
+1. User clicks **"Analyze My Career Potential →"** → redirected to `GET /auth/google`
+2. Passport redirects to Google's consent screen, requesting `profile` + `email` scopes
+3. Google redirects back to `/auth/google/callback` with an authorization code
+4. Passport exchanges the code for an access token, fetches the user profile, and upserts the user record into SQLite
+5. Express creates a **server-side session** (express-session) and sends a session cookie
+6. All subsequent API calls include the cookie; `req.isAuthenticated()` guards every protected route
+
+### Data Flow: Quiz → Result
+
+```
+User answers 5 questions
+        │
+        ▼
+POST /api/user/onboarding
+{ answers: [...] }
+        │
+        ▼
+Server maps answers → deterministic career result
+(lookup table: answer combo → careerTitle + stats)
+        │
+        ├─→ Saves result to SQLite users table
+        │
+        └─→ Builds Pollinations.ai image URL
+            https://image.pollinations.ai/prompt/{career+style}
+            (no API key — public endpoint, image generated on first load)
+        │
+        ▼
+Returns { careerTitle, caption, stats, imageUrl }
+        │
+        ▼
+React caches result in sessionStorage
+(so page refresh doesn't re-fetch and re-render the portrait)
+        │
+        ▼
+Result page renders — image retries up to 5× with 8s backoff
+if Pollinations is slow (it sometimes is)
+```
+
+### Database Schema
+
+SQLite via `sql.js` — zero-dependency, file-based, runs entirely in-process on Render's free tier without needing a managed database.
+
+```sql
+CREATE TABLE users (
+  id          TEXT PRIMARY KEY,   -- Google sub (stable user ID)
+  email       TEXT,
+  name        TEXT,
+  avatar      TEXT,
+  career      TEXT,               -- Stored career title
+  result_json TEXT,               -- Full result blob (JSON)
+  created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+Results are **deterministic per session** — same answers always produce the same destiny. You can't escape it.
+
+### Why This Stack
+
+| Decision | Reason |
+|----------|--------|
+| React 19 + Vite | Fast HMR in dev, optimized static build in prod |
+| Express monolith | Serves both API and static files — one Render service, one bill ($0) |
+| SQLite (sql.js) | No managed DB needed; data survives restarts via Render's disk |
+| Passport.js | Battle-tested OAuth middleware; session handled server-side, not JWT |
+| Pollinations.ai | Free AI image generation API — no key, no quota, no cost |
+
+---
+
 ## License
 
-MIT — use it freely. Just don't use it for actual career counseling.
+## License
+
+```
+MIT License
+
+Copyright (c) 2025 Roy Carmelli
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
+> **Additional Clause (Non-Binding, Obviously):** The Quantum Personality Matrix™, the 99.7% accuracy figure,
+> the happiness scores, the salary projections, and every career title generated by this software are
+> fictional. Any resemblance to your actual life trajectory is either a hilarious coincidence or deeply
+> concerning. The author assumes no liability for existential crises, career pivots, or LinkedIn profile
+> updates made as a direct result of using this application. By running this software you acknowledge
+> that *COBOL never dies* and neither does your career destiny.
 
 ---
 
