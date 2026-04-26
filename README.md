@@ -2,11 +2,16 @@
 
 > *Results are 99.7% accurate and completely made up.*
 
-**CareerPredict AI** analyzes your professional DNA across 847 career trajectories using our proprietary Quantum Personality Matrix™ — then tells you you're destined to be a *JIRA Ticket Archaeologist, Legacy Systems Division.*
+**CareerPredict AI** runs your professional DNA through 847 career trajectories, cross-references the Quantum Personality Matrix™, and delivers the career destiny you truly deserve — complete with a fake happiness score, a dubious salary projection, and an AI-generated portrait of your future self.
 
-It takes 2 minutes. Results are permanent. Used by 50,000+ professionals worldwide.
+Answer 5 questions. Watch the analysis. Discover you're a *JIRA Ticket Archaeologist, Legacy Systems Division.*
 
-**[→ Discover Your Career Destiny](https://career-predictor-cnvg.onrender.com)**
+---
+
+[![Live Demo](https://img.shields.io/badge/Try%20It%20Live-%E2%86%92-6366f1?style=for-the-badge&logo=vercel&logoColor=white)](https://career-predictor-cnvg.onrender.com)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Roy%20Carmelli-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/roy-carmelli/)
+[![GitHub](https://img.shields.io/badge/GitHub-Royc4515-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Royc4515)
+[![Portfolio](https://img.shields.io/badge/Portfolio-roy--carmelli-black?style=for-the-badge&logo=vercel&logoColor=white)](https://roy-carmelli-portfolio.vercel.app/)
 
 ---
 
@@ -14,23 +19,23 @@ It takes 2 minutes. Results are permanent. Used by 50,000+ professionals worldwi
 
 <table>
   <tr>
-    <td><img src="screenshots/landing.png" alt="Landing Page" /></td>
-    <td><img src="screenshots/quiz.png" alt="Quiz" /></td>
+    <td width="50%"><img src="screenshots/landing.png" alt="Landing Page" /></td>
+    <td width="50%"><img src="screenshots/quiz.png" alt="Quiz" /></td>
   </tr>
   <tr>
-    <td align="center"><em>Discover Your True Career Destiny™</em></td>
-    <td align="center"><em>The questions are hard. The answers are harder.</em></td>
+    <td align="center"><sub><em>Discover Your True Career Destiny™</em></sub></td>
+    <td align="center"><sub><em>The questions are hard. The answers are harder.</em></sub></td>
   </tr>
   <tr>
-    <td><img src="screenshots/loading.png" alt="AI Analysis in Progress" /></td>
-    <td>
-      <img src="screenshots/result.png" alt="Career Result — top" /><br/>
-      <img src="screenshots/result-stats.png" alt="Career Result — stats" />
+    <td width="50%"><img src="screenshots/loading.png" alt="AI Analysis in Progress" /></td>
+    <td width="50%">
+      <img src="screenshots/result.png" alt="Career Result" />
+      <img src="screenshots/result-stats.png" alt="Career Stats" />
     </td>
   </tr>
   <tr>
-    <td align="center"><em>823 trajectories. 13,911 data points. Please do not close this window.</em></td>
-    <td align="center"><em>JIRA Ticket Archaeologist · 34/100 happiness · Stable but soul-crushing.</em></td>
+    <td align="center"><sub><em>823 trajectories · 13,911 data points · Please do not close this window.</em></sub></td>
+    <td align="center"><sub><em>JIRA Ticket Archaeologist · 34/100 happiness · Stable but soul-crushing.</em></sub></td>
   </tr>
 </table>
 
@@ -38,27 +43,29 @@ It takes 2 minutes. Results are permanent. Used by 50,000+ professionals worldwi
 
 ## How It Works
 
-1. **Sign in with Google** — your data is safe (we just save your result)
-2. **Answer 5 questions** — covering your strengths, your Mondays, and your general relationship with suffering
-3. **Watch the analysis** — 97% confidence, 100% fabricated metrics, maximum suspense
-4. **Receive your destiny** — one of 100+ hilariously niche careers, a happiness score, and an AI-generated portrait of your future self
-5. **Share the verdict** — via native share, clipboard, or image download
+| Step | What Happens |
+|------|-------------|
+| 1 | Sign in with Google |
+| 2 | Answer 5 personality questions |
+| 3 | Watch the AI "analyze" you (97% confidence, 100% fiction) |
+| 4 | Receive your career destiny + AI-generated portrait |
+| 5 | Share it, download it, or try again in denial |
 
-Sample results include:
+**Sample career results:**
 - *Founder Waiting for Series A That Will Never Come*
 - *JIRA Ticket Archaeologist, Legacy Systems Division*
-- *Professional LinkedIn Thought Leader (No One Reads)*
 - *Chief Vibes Officer at Startup with 6 Months of Runway*
+- *Professional LinkedIn Thought Leader (No One Reads)*
 
 ---
 
 ## Features
 
-- **Google OAuth** — one click, no passwords, no excuses
-- **5-question personality quiz** — Quantum Personality Matrix™ certified
-- **Fake AI loading screen** — 823 trajectories analyzed in real time (not really)
+- **Google OAuth** — one-click sign in, no passwords
+- **5-question quiz** — powered by Quantum Personality Matrix™ v3.2
+- **Fake AI loading screen** — 823+ trajectories analyzed in real time (trust us)
 - **AI-generated portrait** via [Pollinations.ai](https://pollinations.ai) — free, no API key required
-- **Career stats** — happiness score, salary potential, career outlook, detailed DNA match breakdown
+- **Career stats** — happiness score, salary potential, career outlook, DNA match breakdown
 - **Shareable results** — native share API, clipboard copy, and image download
 
 ---
@@ -71,30 +78,30 @@ Sample results include:
 | Backend | Node.js · Express 4 · Passport.js |
 | Database | SQLite (sql.js) |
 | Auth | Google OAuth 2.0 |
-| Image gen | Pollinations.ai (free, no key) |
+| Image Gen | Pollinations.ai |
 | Hosting | Render |
 
 ---
 
 ## Local Setup
 
-### Prerequisites
-
-- Node.js 20+
-- A Google Cloud project with OAuth 2.0 credentials
-
-### 1. Clone
+**Prerequisites:** Node.js 20+, Google OAuth credentials
 
 ```bash
+# 1. Clone
 git clone https://github.com/Royc4515/career-predictor.git
 cd career-predictor
-```
 
-### 2. Configure environment
+# 2. Install
+npm install && cd client && npm install && cd ..
+
+# 3. Run
+npm run dev
+```
 
 Create `server/.env`:
 
-```env
+```
 GOOGLE_CLIENT_ID=your_client_id
 GOOGLE_CLIENT_SECRET=your_client_secret
 GOOGLE_CALLBACK_URL=http://localhost:5000/auth/google/callback
@@ -103,29 +110,13 @@ CLIENT_URL=http://localhost:3000
 NODE_ENV=development
 ```
 
-In Google Cloud Console → **Authorized redirect URIs**, add:
-```
-http://localhost:5000/auth/google/callback
-```
-
-### 3. Install & run
-
-```bash
-npm install
-cd client && npm install && cd ..
-npm run dev
-```
-
-Frontend → [http://localhost:3000](http://localhost:3000)  
-Backend → [http://localhost:5000](http://localhost:5000)
+In Google Cloud Console → **Authorized redirect URIs**, add `http://localhost:5000/auth/google/callback`
 
 ---
 
 ## Deployment (Render)
 
-The app runs as a single Render service. Express builds the React frontend and serves it as static files.
-
-### Environment variables
+Express builds the React frontend and serves it as static files — single service, zero config.
 
 | Variable | Value |
 |----------|-------|
@@ -136,39 +127,15 @@ The app runs as a single Render service. Express builds the React frontend and s
 | `CLIENT_URL` | `https://your-app.onrender.com` |
 | `NODE_ENV` | `production` |
 
-### Google Cloud Console
-
-Add your Render URL under:
-- **Authorized JavaScript origins** → `https://your-app.onrender.com`
-- **Authorized redirect URIs** → `https://your-app.onrender.com/auth/google/callback`
-
 ---
 
-## Project Structure
-
-```
-career-predictor/
-├── client/               # React frontend (Vite)
-│   └── src/
-│       ├── pages/        # Landing, Quiz, Loading, Result
-│       └── components/
-├── server/               # Express backend
-│   ├── routes/
-│   │   ├── authRoutes.js
-│   │   └── userRoutes.js
-│   └── index.js
-└── screenshots/          # README assets
-```
-
----
-
-## API
+## API Reference
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/auth/google` | Start Google OAuth flow |
+| `GET` | `/auth/google` | Start OAuth flow |
 | `GET` | `/auth/google/callback` | OAuth callback |
-| `GET` | `/auth/me` | Get current user session |
+| `GET` | `/auth/me` | Current session user |
 | `GET` | `/auth/logout` | Log out |
 | `POST` | `/api/user/onboarding` | Save quiz answers + result |
 | `GET` | `/api/user/result` | Fetch saved result |
@@ -178,7 +145,7 @@ career-predictor/
 
 ## Contributing
 
-Have a funnier career title? Found a bug in our Quantum Personality Matrix™? PRs are welcome.
+Have a funnier career title? Found a bug in the Quantum Personality Matrix™? PRs are welcome.
 
 ```bash
 git checkout -b feat/funnier-careers
@@ -186,14 +153,22 @@ git commit -m "feat: add 'Chief Remote Work Evangelist (Has Never Met Teammates)
 git push origin feat/funnier-careers
 ```
 
-Open a PR. Results are permanent.
+---
+
+## Contact
+
+Built by **Roy Carmelli** — reach out if you have questions, want to collaborate, or just discovered you're a *Professional Deck-Slide Archaeologist*.
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0077B5?style=flat&logo=linkedin)](https://www.linkedin.com/in/roy-carmelli/)
+[![GitHub](https://img.shields.io/badge/GitHub-Follow-181717?style=flat&logo=github)](https://github.com/Royc4515)
+[![Portfolio](https://img.shields.io/badge/Portfolio-Visit-black?style=flat&logo=vercel)](https://roy-carmelli-portfolio.vercel.app/)
 
 ---
 
 ## License
 
-MIT — use it freely, but please don't use it for actual career counseling.
+MIT — use it freely. Just don't use it for actual career counseling.
 
 ---
 
-*CareerPredict Neural Engine v4.2.1 · Quantum Matrix Active*
+*CareerPredict Neural Engine v4.2.1 · Quantum Matrix Active · Results are 99.7% accurate and completely made up.*
