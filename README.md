@@ -23,17 +23,14 @@ It takes 2 minutes. Results are permanent. Used by 50,000+ professionals worldwi
   </tr>
   <tr>
     <td><img src="screenshots/loading.png" alt="AI Analysis in Progress" /></td>
-    <td><img src="screenshots/result.png" alt="Career Result" /></td>
+    <td>
+      <img src="screenshots/result.png" alt="Career Result — top" /><br/>
+      <img src="screenshots/result-stats.png" alt="Career Result — stats" />
+    </td>
   </tr>
   <tr>
     <td align="center"><em>823 trajectories. 13,911 data points. Please do not close this window.</em></td>
-    <td align="center"><em>COBOL never dies. Neither does your destiny.</em></td>
-  </tr>
-  <tr>
-    <td colspan="2"><img src="screenshots/result-stats.png" alt="Career Stats" style="width:100%" /></td>
-  </tr>
-  <tr>
-    <td colspan="2" align="center"><em>34/100 happiness score. Salary potential: Stable but soul-crushing.</em></td>
+    <td align="center"><em>JIRA Ticket Archaeologist · 34/100 happiness · Stable but soul-crushing.</em></td>
   </tr>
 </table>
 
