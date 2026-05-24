@@ -12,5 +12,10 @@ jobs:
     steps:
       - name: Ping Render
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://career-predictor-cnvg.onrender.com/auth/me)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 https://career-predictor-cnvg.onrender.com/auth/me)
           echo "Response status: $STATUS"
+          if [ "$STATUS" -eq 200 ]; then
+            echo "Service is healthy"
+          else
+            echo "Warning: Unexpected status code $STATUS"
+          fi
