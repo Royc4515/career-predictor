@@ -1,8 +1,10 @@
 class ImageService {
   constructor({ providers, blobStore, promptBuilder, logger = console }) {
-    if (!providers || providers.length === 0) throw new Error('providers chain is empty');
+    if (!Array.isArray(providers)) throw new Error('providers must be an array');
     if (!blobStore) throw new Error('blobStore required');
     if (!promptBuilder) throw new Error('promptBuilder required');
+    // An empty providers list is allowed: only kickoff fails (caught in the
+    // wrapper); fetchIfReady remains usable as a pure BlobStore reader.
     this.providers = providers;
     this.blobStore = blobStore;
     this.promptBuilder = promptBuilder;

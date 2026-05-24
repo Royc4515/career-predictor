@@ -2,6 +2,11 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { PollinationsProvider } = require('../providers/pollinationsProvider');
 
+// Buffer.from('...').buffer returns the *pool* ArrayBuffer, often 8KB. Slice
+// to the actual byte range so consumers' Buffer.from(arrayBuffer) sees only
+// the relevant bytes — matches what fetch() returns from a real HTTP response.
+const arrayBufferOf = (buf) => buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+
 test('exposes name=pollinations and dialect=flux', () => {
   const p = new PollinationsProvider();
   assert.equal(p.name, 'pollinations');
@@ -14,7 +19,7 @@ test('generate(): GETs image.pollinations.ai with URL-encoded prompt and the exp
     calls.push(url);
     return {
       ok: true, status: 200,
-      arrayBuffer: async () => Buffer.from('poll-bytes').buffer,
+      arrayBuffer: async () => arrayBufferOf(Buffer.from('poll-bytes')),
       headers: { get: () => 'image/png' },
     };
   };

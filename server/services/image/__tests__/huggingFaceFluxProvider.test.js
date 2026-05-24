@@ -2,6 +2,9 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { HuggingFaceFluxProvider } = require('../providers/huggingFaceFluxProvider');
 
+// Slice to actual byte range — see note in pollinationsProvider.test.js.
+const arrayBufferOf = (buf) => buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+
 test('constructor throws when token is missing', () => {
   assert.throws(() => new HuggingFaceFluxProvider({}), /HUGGINGFACE_API_TOKEN/);
 });
@@ -18,7 +21,7 @@ test('generate(): POSTs to HF FLUX.1-schnell endpoint with Bearer auth and x-wai
     calls.push({ url, opts });
     return {
       ok: true, status: 200,
-      arrayBuffer: async () => Buffer.from('flux-bytes').buffer,
+      arrayBuffer: async () => arrayBufferOf(Buffer.from('flux-bytes')),
       headers: { get: (h) => (h.toLowerCase() === 'content-type' ? 'image/png' : null) },
       text: async () => '',
     };
@@ -39,7 +42,7 @@ test('generate(): POSTs to HF FLUX.1-schnell endpoint with Bearer auth and x-wai
 test('generate(): returns Buffer + mime + providerName=huggingface_flux', async () => {
   const fetchImpl = async () => ({
     ok: true, status: 200,
-    arrayBuffer: async () => Buffer.from('hf-bytes').buffer,
+    arrayBuffer: async () => arrayBufferOf(Buffer.from('hf-bytes')),
     headers: { get: () => 'image/jpeg' }, text: async () => '',
   });
   const p = new HuggingFaceFluxProvider({ token: 't', fetchImpl });

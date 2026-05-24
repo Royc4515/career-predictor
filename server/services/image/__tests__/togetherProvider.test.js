@@ -2,6 +2,9 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { TogetherProvider } = require('../providers/togetherProvider');
 
+// Slice to actual byte range — see note in pollinationsProvider.test.js.
+const arrayBufferOf = (buf) => buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+
 test('constructor throws when apiKey is missing', () => {
   assert.throws(() => new TogetherProvider({}), /TOGETHER_API_KEY/);
 });
@@ -27,7 +30,7 @@ test('generate(): POSTs to /v1/images/generations with FLUX.1-schnell-Free model
     // Second call: byte fetch
     return {
       ok: true, status: 200,
-      arrayBuffer: async () => Buffer.from('together-bytes').buffer,
+      arrayBuffer: async () => arrayBufferOf(Buffer.from('together-bytes')),
       headers: { get: () => 'image/png' },
       text: async () => '',
     };
