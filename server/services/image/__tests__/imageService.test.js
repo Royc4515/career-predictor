@@ -174,9 +174,8 @@ test('dialect routing: SDXL provider receives enrichForSDXL + NEGATIVE_PROMPT_SD
   const sdxl = fakeProvider('sdxl', 'sdxl', { ok: { buffer: Buffer.from('x'), mimeType: 'image/png' } });
   const blobStore = inMemoryBlobStore();
   const svc = new ImageService({ providers: [sdxl], blobStore, promptBuilder: fakePromptBuilder(), logger: silentLogger() });
-  svc.kickoff({ scenePrompt: 'a portrait', title: 't' });
-  await waitForBlob(blobStore, sdxl.calls[0] ? Object.keys(blobStore.map)[0] || '' : '').catch(() => {});
-  await new Promise((r) => setTimeout(r, 20));
+  const { id } = svc.kickoff({ scenePrompt: 'a portrait', title: 't' });
+  await waitForBlob(blobStore, id);
   assert.equal(sdxl.calls[0].prompt, 'SDXL:a portrait');
   assert.equal(sdxl.calls[0].negativePrompt, 'sdxl-neg');
 });
@@ -185,8 +184,8 @@ test('dialect routing: FLUX provider receives enrichForFLUX + NEGATIVE_PROMPT_FL
   const flux = fakeProvider('flux', 'flux', { ok: { buffer: Buffer.from('x'), mimeType: 'image/png' } });
   const blobStore = inMemoryBlobStore();
   const svc = new ImageService({ providers: [flux], blobStore, promptBuilder: fakePromptBuilder(), logger: silentLogger() });
-  svc.kickoff({ scenePrompt: 'a portrait', title: 't' });
-  await new Promise((r) => setTimeout(r, 20));
+  const { id } = svc.kickoff({ scenePrompt: 'a portrait', title: 't' });
+  await waitForBlob(blobStore, id);
   assert.equal(flux.calls[0].prompt, 'FLUX:a portrait');
   assert.equal(flux.calls[0].negativePrompt, 'flux-neg');
 });
@@ -194,9 +193,10 @@ test('dialect routing: FLUX provider receives enrichForFLUX + NEGATIVE_PROMPT_FL
 test('dialect routing across fallback: SDXL primary → FLUX fallback re-enriches the prompt', async () => {
   const sdxl = fakeProvider('sdxl', 'sdxl', { error: new Error('sdxl-down') });
   const flux = fakeProvider('flux', 'flux', { ok: { buffer: Buffer.from('x'), mimeType: 'image/png' } });
-  const svc = new ImageService({ providers: [sdxl, flux], blobStore: inMemoryBlobStore(), promptBuilder: fakePromptBuilder(), logger: silentLogger() });
-  svc.kickoff({ scenePrompt: 'a portrait', title: 't' });
-  await new Promise((r) => setTimeout(r, 20));
+  const blobStore = inMemoryBlobStore();
+  const svc = new ImageService({ providers: [sdxl, flux], blobStore, promptBuilder: fakePromptBuilder(), logger: silentLogger() });
+  const { id } = svc.kickoff({ scenePrompt: 'a portrait', title: 't' });
+  await waitForBlob(blobStore, id);
   assert.equal(sdxl.calls[0].prompt, 'SDXL:a portrait');
   assert.equal(flux.calls[0].prompt, 'FLUX:a portrait');
 });
@@ -205,9 +205,10 @@ test('dialect routing across fallback: SDXL primary → FLUX fallback re-enriche
 
 test('orchestrator sends 768x768 dimensions to providers by default', async () => {
   const p = fakeProvider('p', 'flux', { ok: { buffer: Buffer.from('x'), mimeType: 'image/png' } });
-  const svc = new ImageService({ providers: [p], blobStore: inMemoryBlobStore(), promptBuilder: fakePromptBuilder(), logger: silentLogger() });
-  svc.kickoff({ scenePrompt: 'a', title: 't' });
-  await new Promise((r) => setTimeout(r, 20));
+  const blobStore = inMemoryBlobStore();
+  const svc = new ImageService({ providers: [p], blobStore, promptBuilder: fakePromptBuilder(), logger: silentLogger() });
+  const { id } = svc.kickoff({ scenePrompt: 'a', title: 't' });
+  await waitForBlob(blobStore, id);
   assert.equal(p.calls[0].width, 768);
   assert.equal(p.calls[0].height, 768);
 });
