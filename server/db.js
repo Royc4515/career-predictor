@@ -59,6 +59,16 @@ async function initDB() {
     // Column already exists — normal on fresh runs
   }
 
+  // Additive migration: image_id (16-hex content hash) for new rows.
+  // image_url is kept for legacy rows pointing at Pollinations CDN URLs;
+  // reads prefer image_id and fall back to image_url.
+  try {
+    db.run('ALTER TABLE onboarding ADD COLUMN image_id TEXT');
+    console.log('[DB] Migrated: added image_id column');
+  } catch (_) {
+    // Column already exists — normal on fresh runs
+  }
+
   return db;
 }
 
@@ -119,16 +129,16 @@ function findUserById(id) {
  * Save onboarding answers + generated result for a user.
  * Replaces any previous onboarding record for this user.
  */
-function saveOnboarding({ userId, strength, mondayVibe, coworkerDesc, fiveYearGoal, desiredField, careerResult, imageUrl }) {
+function saveOnboarding({ userId, strength, mondayVibe, coworkerDesc, fiveYearGoal, desiredField, careerResult, imageUrl, imageId }) {
   console.log('[DB] Saving onboarding for user ID:', userId);
 
   // Delete previous record if exists (one result per user)
   db.run('DELETE FROM onboarding WHERE user_id = ?', [userId]);
 
   db.run(
-    `INSERT INTO onboarding (user_id, strength, monday_vibe, coworker_desc, five_year_goal, desired_field, career_result, image_url)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [userId, strength, mondayVibe, coworkerDesc, fiveYearGoal, desiredField || null, careerResult, imageUrl]
+    `INSERT INTO onboarding (user_id, strength, monday_vibe, coworker_desc, five_year_goal, desired_field, career_result, image_url, image_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [userId, strength, mondayVibe, coworkerDesc, fiveYearGoal, desiredField || null, careerResult, imageUrl || null, imageId || null]
   );
 
   saveDB();

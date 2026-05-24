@@ -1,5 +1,3 @@
-// Phase 3 stub.
-
 class CloudflareProvider {
   constructor({ accountId, token, fetchImpl }) {
     if (!accountId || !token) {
@@ -11,7 +9,27 @@ class CloudflareProvider {
     this.name = 'cloudflare';
     this.dialect = 'flux';
   }
-  async generate(_input) { throw new Error('not implemented'); }
+
+  async generate({ prompt, seed, width, height, negativePrompt }) {
+    const url = `https://api.cloudflare.com/client/v4/accounts/${this.accountId}/ai/run/@cf/black-forest-labs/flux-1-schnell`;
+    const res = await this.fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt, seed, width, height,
+        negative_prompt: negativePrompt,
+        num_steps: 8,
+      }),
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`Cloudflare ${res.status}: ${detail}`);
+    }
+    const json = await res.json();
+    // CF Workers AI returns the PNG as base64 in result.image
+    const buffer = Buffer.from(json.result.image, 'base64');
+    return { buffer, mimeType: 'image/png', providerName: this.name };
+  }
 }
 
 module.exports = { CloudflareProvider };

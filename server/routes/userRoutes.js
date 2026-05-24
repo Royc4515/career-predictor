@@ -1,58 +1,12 @@
 const express = require('express');
 const { saveOnboarding, getOnboardingByUserId } = require('../db');
+const { getImageService } = require('../services/image/instance');
 const router = express.Router();
 
 // --- Auth guard ---
 function requireAuth(req, res, next) {
   if (req.isAuthenticated()) return next();
   res.status(401).json({ error: 'Not authenticated' });
-}
-
-// ---------------------------------------------------------------------------
-// IMAGE GENERATION — Pollinations.ai (flux-realism model)
-// ---------------------------------------------------------------------------
-
-// Deterministic integer seed from career title.
-// Same title always produces the same image — consistent across page reloads.
-function titleToSeed(title) {
-  return Math.abs(
-    title.split('').reduce((acc, c) => (Math.imul(acc, 31) + c.charCodeAt(0)) | 0, 0)
-  ) % 2_147_483_647;
-}
-
-// Wraps a raw scene description with professional cinematography directives.
-// Scene stays career-specific; suffix handles lighting, lens, and fidelity uniformly.
-function enrichPrompt(scene) {
-  return (
-    scene + ', ' +
-    'cinematic composition, dramatic chiaroscuro lighting, shallow depth of field, ' +
-    'Canon EOS R5 85mm f/1.4 lens, photorealistic, 8K UHD, hyperdetailed textures, ' +
-    'subsurface skin scattering, volumetric light rays, film grain, professionally color graded, ' +
-    'editorial photography, award-winning shot'
-  );
-}
-
-// Negative prompt — suppresses common AI artifacts across all generated images.
-const NEGATIVE_PROMPT = [
-  'ugly', 'deformed', 'noisy', 'blurry', 'low quality', 'worst quality',
-  'bad anatomy', 'bad hands', 'extra limbs', 'missing limbs', 'fused fingers',
-  'watermark', 'text overlay', 'signature', 'logo',
-  'cartoon', 'anime', 'illustration', 'painting', 'sketch', '3D render',
-  'plastic skin', 'overexposed', 'underexposed', 'washed out', 'flat lighting',
-  'disfigured', 'mutated', 'duplicate', 'jpeg artifacts', 'cross-eyed',
-].join(', ');
-
-function buildImageUrl(prompt, title) {
-  const seed = titleToSeed(title);
-  return (
-    'https://image.pollinations.ai/prompt/' +
-    encodeURIComponent(enrichPrompt(prompt)) +
-    '?model=flux-realism' +
-    '&width=768&height=768' +
-    '&nologo=true' +
-    `&seed=${seed}` +
-    `&negative_prompt=${encodeURIComponent(NEGATIVE_PROMPT)}`
-  );
 }
 
 // --- Career mapping logic ---
@@ -435,13 +389,17 @@ router.post('/onboarding', requireAuth, async (req, res) => {
   const career = mapCareer(strength, monday_vibe, coworker_desc, five_year_goal, desired_field);
   console.log('[ROUTE] Career mapped:', career.title);
 
-  // Build Pollinations.ai image URL
-  const imageUrl = buildImageUrl(career.prompt, career.title);
-  console.log('[ROUTE] Image URL built — model=flux-realism, seed=' + titleToSeed(career.title));
-  console.log('[ROUTE] Image URL generated, pre-warming...');
-
-  // Fire-and-forget: kick off image generation immediately so it's ready by the time the user arrives
-  fetch(imageUrl).catch(() => {});
+  // Kick off image generation in the background. kickoff() returns
+  // synchronously with the deterministic id; the orchestrator's fallback
+  // chain + BlobStore cache run async. The /api/image/:id route serves
+  // bytes when ready and returns 404 (with Retry-After) while generating —
+  // the client's existing retry-with-backoff loop drives the polling.
+  const { id: imageId } = getImageService().kickoff({
+    scenePrompt: career.prompt,
+    title: career.title,
+  });
+  const imageUrl = `/api/image/${imageId}`;
+  console.log('[ROUTE] Image generation kicked off, id=' + imageId);
 
   // Save to DB
   saveOnboarding({
@@ -452,7 +410,7 @@ router.post('/onboarding', requireAuth, async (req, res) => {
     fiveYearGoal: five_year_goal,
     desiredField: desired_field,
     careerResult: JSON.stringify({ title: career.title, caption: career.caption, happiness: career.happiness, salary: career.salary, outlook: career.outlook }),
-    imageUrl,
+    imageId,
   });
 
   res.json({
@@ -477,10 +435,13 @@ router.get('/result', requireAuth, (req, res) => {
   }
 
   const parsed = JSON.parse(row.career_result);
+  // Prefer the new image_id route; fall back to legacy image_url for
+  // historical rows generated before the provider abstraction landed.
+  const imageUrl = row.image_id ? `/api/image/${row.image_id}` : row.image_url;
   res.json({
     careerTitle: parsed.title,
     caption: parsed.caption || 'Your career destiny has been sealed by the algorithm.',
-    imageUrl: row.image_url,
+    imageUrl,
     stats: {
       happiness: parsed.happiness,
       salary: parsed.salary,
