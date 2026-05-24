@@ -18,4 +18,24 @@ jobs:
         with:
           node-version: '20'
       - run: npm install --no-audit --no-fund
-      - run: npm test
+      - name: Run tests (capture output, emit failures as annotations)
+        shell: bash
+        run: |
+          set +e
+          npm test > /tmp/test.log 2>&1
+          EXIT_CODE=$?
+          cat /tmp/test.log
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "::group::Failure annotations"
+            # Emit the first ~80 lines that look like failures so they show up
+            # via the GitHub annotations API (readable without auth).
+            grep -E '✖|not ok|AssertionError|Error:|at .+\.test\.js|fail |TAP version' /tmp/test.log \
+              | head -80 \
+              | while IFS= read -r line; do
+                # ::error:: is one-line; escape % and newlines per GH actions spec
+                escaped=$(printf '%s' "$line" | sed 's/%/%25/g; s/\r/%0D/g')
+                echo "::error::$escaped"
+              done
+            echo "::endgroup::"
+          fi
+          exit $EXIT_CODE
