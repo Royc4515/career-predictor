@@ -3,3 +3,9 @@ server/.env
 server/*.db
 .DS_Store
 dist/
+
+# Generated image bytes cache (LocalDiskStore).
+server/data/
+
+# Claude Code local settings (per-user, not for repo).
+.claude/
