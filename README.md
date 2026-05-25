@@ -64,7 +64,7 @@ Answer 5 questions. Watch the analysis. Discover you're a *JIRA Ticket Archaeolo
 - **Google OAuth** — one-click sign in, no passwords
 - **5-question quiz** — powered by Quantum Personality Matrix™ v3.2
 - **Fake AI loading screen** — 823+ trajectories analyzed in real time (trust us)
-- **AI-generated portrait** via [Pollinations.ai](https://pollinations.ai) — `flux-realism` model, professional cinematic prompts, negative prompt artifact suppression, deterministic seed per career title
+- **AI-generated portrait** via a **swappable provider chain** — primary is HuggingFace [RealVisXL V4.0](https://huggingface.co/SG161222/RealVisXL_V4.0) (a portrait-tuned SDXL fine-tune), fallbacks cascade through Cloudflare Workers AI, HuggingFace FLUX.1-schnell, Together.ai, and [Pollinations.ai](https://pollinations.ai). All fully free. Deterministic seed per career title, dialect-aware prompt engineering (SDXL tags vs FLUX prose), negative-prompt artifact suppression. Switch providers via one env var.
 - **Career stats** — happiness score, salary potential, career outlook, DNA match breakdown
 - **Shareable results** — native share API, clipboard copy, and image download
 
@@ -78,7 +78,8 @@ Answer 5 questions. Watch the analysis. Discover you're a *JIRA Ticket Archaeolo
 | Backend | Node.js · Express 4 · Passport.js |
 | Database | SQLite (sql.js) |
 | Auth | Google OAuth 2.0 |
-| Image Gen | Pollinations.ai |
+| Image Gen | Provider chain: RealVisXL → CF Workers AI → HF FLUX → Together → Pollinations |
+| Image Storage | Pluggable `BlobStore` — local disk (dev) or Cloudflare R2 (prod, free 10 GB) |
 | Hosting | Render |
 
 ---
@@ -107,10 +108,28 @@ GOOGLE_CLIENT_SECRET=your_client_secret
 GOOGLE_CALLBACK_URL=http://localhost:5000/auth/google/callback
 SESSION_SECRET=anything_long_and_random
 CLIENT_URL=http://localhost:3000
+SERVER_URL=http://localhost:5000
 NODE_ENV=development
 ```
 
 In Google Cloud Console → **Authorized redirect URIs**, add `http://localhost:5000/auth/google/callback`
+
+### Image generation (optional)
+
+The app works zero-config with Pollinations alone. To activate the full quality+reliability chain, add the providers you have keys for:
+
+```
+IMAGE_PROVIDER_CHAIN=realvisxl,cloudflare,huggingface_flux,together,pollinations
+HUGGINGFACE_API_TOKEN=hf_xxx          # used by realvisxl AND huggingface_flux
+CLOUDFLARE_ACCOUNT_ID=
+CLOUDFLARE_API_TOKEN=
+TOGETHER_API_KEY=
+
+IMAGE_STORE=disk                       # or 'r2' for durable Cloudflare R2 storage
+# R2_ACCOUNT_ID= / R2_ACCESS_KEY_ID= / R2_SECRET_ACCESS_KEY= / R2_BUCKET=
+```
+
+Providers are tried left to right. Missing keys for any provider in the chain cause a fail-fast at startup — set keys for every name you list. See [`docs/image-service-spec.md`](docs/image-service-spec.md) for the full contract.
 
 ---
 
@@ -125,7 +144,12 @@ Express builds the React frontend and serves it as static files — single servi
 | `GOOGLE_CALLBACK_URL` | `https://your-app.onrender.com/auth/google/callback` |
 | `SESSION_SECRET` | any long random string |
 | `CLIENT_URL` | `https://your-app.onrender.com` |
+| `SERVER_URL` | `https://your-app.onrender.com` |
 | `NODE_ENV` | `production` |
+| `IMAGE_PROVIDER_CHAIN` | *(optional)* e.g. `realvisxl,cloudflare,huggingface_flux,together,pollinations` |
+| `HUGGINGFACE_API_TOKEN` / `CLOUDFLARE_*` / `TOGETHER_API_KEY` | *(optional)* keys for the providers in your chain |
+| `IMAGE_STORE` | *(optional)* `disk` (default) or `r2` |
+| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` | *(when `IMAGE_STORE=r2`)* |
 
 ---
 
@@ -137,8 +161,9 @@ Express builds the React frontend and serves it as static files — single servi
 | `GET` | `/auth/google/callback` | OAuth callback |
 | `GET` | `/auth/me` | Current session user |
 | `GET` | `/auth/logout` | Log out |
-| `POST` | `/api/user/onboarding` | Save quiz answers + result |
+| `POST` | `/api/user/onboarding` | Save quiz answers + result (kicks off image generation in background) |
 | `GET` | `/api/user/result` | Fetch saved result |
+| `GET` | `/api/image/:id` | Stream the generated portrait by 16-hex content id (404 + `Retry-After: 8` while generating) |
 | `GET` | `/api/health` | Health check |
 
 ---
@@ -199,11 +224,15 @@ The system is a classic **full-stack monolith** — React on the front, Express 
 └─────────────────────────────────────────────────────────────┘
          │
          ▼
-┌─────────────────┐        ┌──────────────────────┐
-│  Google OAuth   │        │   Pollinations.ai     │
-│  (the real AI)  │        │   (generates portrait │
-│                 │        │    from career title)  │
-└─────────────────┘        └──────────────────────┘
+┌─────────────────┐        ┌──────────────────────────────────────────┐
+│  Google OAuth   │        │   ImageService (provider chain)           │
+│  (the real AI)  │        │                                           │
+│                 │        │   RealVisXL → CF → HF FLUX →              │
+│                 │        │   Together → Pollinations                 │
+│                 │        │   (per-dialect prompts, in-flight dedup,  │
+│                 │        │    BlobStore-cached bytes served at       │
+│                 │        │    /api/image/:id)                        │
+└─────────────────┘        └──────────────────────────────────────────┘
 ```
 
 ### Auth Flow
@@ -230,22 +259,25 @@ POST /api/user/onboarding
 Server maps answers → deterministic career result
 (lookup table: answer combo → careerTitle + stats)
         │
-        ├─→ Saves result to SQLite users table
+        ├─→ Saves result to SQLite users table (with content-hash image_id)
         │
-        └─→ Builds Pollinations.ai image URL
-            https://image.pollinations.ai/prompt/{career+style}
-            (no API key — public endpoint, image generated on first load)
+        └─→ imageService.kickoff({ scenePrompt, title })
+            ├─ returns { id } synchronously (~100ms response)
+            └─ background: cascade through provider chain, write bytes
+               to BlobStore (disk or R2) keyed by sha256(prompt+seed)
         │
         ▼
-Returns { careerTitle, caption, stats, imageUrl }
+Returns { careerTitle, caption, stats, imageUrl: /api/image/<id> }
         │
         ▼
 React caches result in sessionStorage
 (so page refresh doesn't re-fetch and re-render the portrait)
         │
         ▼
-Result page renders — image retries up to 5× with 8s backoff
-if Pollinations is slow (it sometimes is)
+Result page renders — <img src="/api/image/<id>">
+  ├─ 200 + bytes if generation finished → cached for a year
+  └─ 404 "generating" + Retry-After:8 if still in flight
+     → client retries up to 5× with 8s backoff (same UX as before)
 ```
 
 ### Database Schema
@@ -254,16 +286,30 @@ SQLite via `sql.js` — zero-dependency, file-based, runs entirely in-process on
 
 ```sql
 CREATE TABLE users (
-  id          TEXT PRIMARY KEY,   -- Google sub (stable user ID)
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  google_id   TEXT UNIQUE NOT NULL,
   email       TEXT,
   name        TEXT,
-  avatar      TEXT,
-  career      TEXT,               -- Stored career title
-  result_json TEXT,               -- Full result blob (JSON)
-  created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+  avatar_url  TEXT,
+  created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE onboarding (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id       INTEGER REFERENCES users(id),
+  strength      TEXT,
+  monday_vibe   TEXT,
+  coworker_desc TEXT,
+  five_year_goal TEXT,
+  desired_field TEXT,
+  career_result TEXT,              -- Full result blob (JSON)
+  image_url     TEXT,              -- Legacy: third-party Pollinations URL (pre-refactor rows)
+  image_id      TEXT,              -- New: 16-hex content hash → /api/image/:id
+  completed_at  DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 ```
+
+The `image_id` column was added as an **additive** migration — historical rows keep `image_url` populated and the read path falls back to it. New rows populate `image_id` only.
 
 Results are **deterministic per session** — same answers always produce the same destiny. You can't escape it.
 
@@ -275,7 +321,8 @@ Results are **deterministic per session** — same answers always produce the sa
 | Express monolith | Serves both API and static files — one Render service, one bill ($0) |
 | SQLite (sql.js) | No managed DB needed; data survives restarts via Render's disk |
 | Passport.js | Battle-tested OAuth middleware; session handled server-side, not JWT |
-| Pollinations.ai | Free image gen — `flux-realism` model, cinematic prompt engineering, negative prompt, deterministic seed |
+| Provider abstraction | One `ImageProvider` interface, five concrete impls (RealVisXL, CF Workers AI, HF FLUX-schnell, Together, Pollinations), env-driven fallback chain. Adding a sixth provider is one new file + one factory entry — no edits to the route handler or orchestrator. |
+| `BlobStore` interface | Decouples bytes from the third-party CDN. `LocalDiskStore` in dev, `R2Store` in prod (free 10 GB), same interface. Historical user portraits survive provider rotations. |
 
 ---
 
