@@ -18,7 +18,8 @@ class CloudflareProvider {
       body: JSON.stringify({
         prompt, seed, width, height,
         negative_prompt: negativePrompt,
-        num_steps: 8,
+        // CF Workers AI flux-1-schnell schema field is `steps`, not `num_steps`.
+        steps: 8,
       }),
     });
     if (!res.ok) {
