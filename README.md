@@ -235,6 +235,42 @@ The system is a classic **full-stack monolith** — React on the front, Express 
 └─────────────────┘        └──────────────────────────────────────────┘
 ```
 
+### Project Structure (image pipeline)
+
+The image-generation pipeline lives behind two abstractions — `ImageProvider` (talks to an upstream API) and `BlobStore` (persists bytes). Adding a sixth provider or a new storage backend is a single new file plus one factory entry. No edits to the route handler or the orchestrator.
+
+```
+server/services/image/
+├── imageService.js             ← orchestrator: kickoff() / fetchIfReady()
+│                                  in-flight dedup, fallback cascade,
+│                                  per-dialect prompt routing, telemetry
+├── instance.js                 ← lazy singleton (composition root)
+├── promptBuilder.js            ← seed hashing, SDXL/FLUX prompt dialects,
+│                                  negative prompts, content-hash id
+│
+├── providers/                  ← ImageProvider implementations
+│   ├── index.js                ← env-driven factory (resolveProviders)
+│   ├── realVisXLProvider.js    ← HF · SDXL · primary (portrait-tuned)
+│   ├── cloudflareProvider.js   ← CF Workers AI · FLUX-schnell
+│   ├── huggingFaceFluxProvider.js  ← HF · FLUX-schnell
+│   ├── togetherProvider.js     ← Together.ai · FLUX-schnell-Free
+│   └── pollinationsProvider.js ← keyless safety net (legacy)
+│
+├── storage/                    ← BlobStore implementations
+│   ├── index.js                ← env-driven factory (resolveBlobStore)
+│   ├── localDiskStore.js       ← filesystem cache (dev)
+│   └── r2Store.js              ← Cloudflare R2 (prod, S3-compatible)
+│
+└── __tests__/                  ← node:test, zero new deps
+    ├── imageService.test.js    ← sync return <50ms, in-flight dedup,
+    │                             fallback cascade, dialect routing
+    ├── promptBuilder.test.js
+    ├── localDiskStore.test.js
+    └── <one file per provider>
+```
+
+Full interface contract: [`docs/image-service-spec.md`](docs/image-service-spec.md).
+
 ### Auth Flow
 
 The authentication is standard **OAuth 2.0 Authorization Code** flow, handled by [Passport.js](https://www.passportjs.org/):
