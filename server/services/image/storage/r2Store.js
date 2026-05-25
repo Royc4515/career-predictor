@@ -3,7 +3,18 @@
 
 let s3SdkCache;
 function loadS3Sdk() {
-  if (!s3SdkCache) s3SdkCache = require('@aws-sdk/client-s3');
+  if (s3SdkCache) return s3SdkCache;
+  try {
+    s3SdkCache = require('@aws-sdk/client-s3');
+  } catch (err) {
+    if (err.code === 'MODULE_NOT_FOUND') {
+      throw new Error(
+        "IMAGE_STORE=r2 requires @aws-sdk/client-s3, which is an optional " +
+        "dependency. Install with: npm install @aws-sdk/client-s3"
+      );
+    }
+    throw err;
+  }
   return s3SdkCache;
 }
 

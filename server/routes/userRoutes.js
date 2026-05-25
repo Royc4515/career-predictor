@@ -9,6 +9,16 @@ function requireAuth(req, res, next) {
   res.status(401).json({ error: 'Not authenticated' });
 }
 
+// Build the absolute image URL. In dev the client and API live on
+// different origins, so a relative path would resolve against the
+// frontend host and 404. SERVER_URL is the API origin (already used
+// elsewhere — see server/index.js). In prod both origins match so
+// prefixing is a no-op.
+function imageUrlFor(imageId) {
+  const base = (process.env.SERVER_URL || '').replace(/\/$/, '');
+  return `${base}/api/image/${imageId}`;
+}
+
 // --- Career mapping logic ---
 function mapCareer(strength, mondayVibe, coworkerDesc, fiveYearGoal, desiredField) {
   const s = strength || '';
@@ -398,7 +408,7 @@ router.post('/onboarding', requireAuth, async (req, res) => {
     scenePrompt: career.prompt,
     title: career.title,
   });
-  const imageUrl = `/api/image/${imageId}`;
+  const imageUrl = imageUrlFor(imageId);
   console.log('[ROUTE] Image generation kicked off, id=' + imageId);
 
   // Save to DB
@@ -437,7 +447,7 @@ router.get('/result', requireAuth, (req, res) => {
   const parsed = JSON.parse(row.career_result);
   // Prefer the new image_id route; fall back to legacy image_url for
   // historical rows generated before the provider abstraction landed.
-  const imageUrl = row.image_id ? `/api/image/${row.image_id}` : row.image_url;
+  const imageUrl = row.image_id ? imageUrlFor(row.image_id) : row.image_url;
   res.json({
     careerTitle: parsed.title,
     caption: parsed.caption || 'Your career destiny has been sealed by the algorithm.',

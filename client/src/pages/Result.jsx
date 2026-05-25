@@ -42,10 +42,11 @@ export default function Result() {
   }
   useEffect(() => () => clearTimeout(retryTimer.current), []);
 
-  // Build image URL with cache-bust on retry
+  // Build image URL with cache-bust on retry. Use the right query separator
+  // since the new /api/image/:id path has no existing query string.
   const imageUrlWithRetry = result?.imageUrl
     ? retryCount > 0
-      ? `${result.imageUrl}&_r=${retryCount}`
+      ? `${result.imageUrl}${result.imageUrl.includes('?') ? '&' : '?'}_r=${retryCount}`
       : result.imageUrl
     : null;
 
