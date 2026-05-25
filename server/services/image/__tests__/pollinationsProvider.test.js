@@ -41,7 +41,7 @@ test('generate(): GETs image.pollinations.ai with URL-encoded prompt and the exp
 test('generate(): returns Buffer + mime + providerName=pollinations', async () => {
   const fetchImpl = async () => ({
     ok: true, status: 200,
-    arrayBuffer: async () => Buffer.from('poll-bytes').buffer,
+    arrayBuffer: async () => arrayBufferOf(Buffer.from('poll-bytes')),
     headers: { get: () => 'image/png' },
   });
   const p = new PollinationsProvider({ fetchImpl });
