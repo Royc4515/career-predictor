@@ -2,7 +2,7 @@
 
 > *Results are 99.7% accurate and completely made up.*
 
-**CareerPredict AI** runs your professional DNA through 847 career trajectories, cross-references the Quantum Personality Matrix™, and delivers the career destiny you truly deserve — complete with a fake happiness score, a dubious salary projection, and an AI-generated portrait of your future self.
+**CareerPredict AI** runs your professional DNA through 847 career trajectories, cross-references the Quantum Personality Matrix™, and delivers the career destiny you truly deserve - complete with a fake happiness score, a dubious salary projection, and an AI-generated portrait of your future self.
 
 Answer 5 questions. Watch the analysis. Discover you're a *JIRA Ticket Archaeologist, Legacy Systems Division.*
 
@@ -61,12 +61,12 @@ Answer 5 questions. Watch the analysis. Discover you're a *JIRA Ticket Archaeolo
 
 ## Features
 
-- **Google OAuth** — one-click sign in, no passwords
-- **5-question quiz** — powered by Quantum Personality Matrix™ v3.2
-- **Fake AI loading screen** — 823+ trajectories analyzed in real time (trust us)
-- **AI-generated portrait** via a **swappable provider chain** — primary is HuggingFace [RealVisXL V4.0](https://huggingface.co/SG161222/RealVisXL_V4.0) (a portrait-tuned SDXL fine-tune), fallbacks cascade through Cloudflare Workers AI, HuggingFace FLUX.1-schnell, Together.ai, and [Pollinations.ai](https://pollinations.ai). All fully free. Deterministic seed per career title, dialect-aware prompt engineering (SDXL tags vs FLUX prose), negative-prompt artifact suppression. Switch providers via one env var.
-- **Career stats** — happiness score, salary potential, career outlook, DNA match breakdown
-- **Shareable results** — native share API, clipboard copy, and image download
+- **Google OAuth** - one-click sign in, no passwords
+- **5-question quiz** - powered by Quantum Personality Matrix™ v3.2
+- **Fake AI loading screen** - 823+ trajectories analyzed in real time (trust us)
+- **AI-generated portrait** via a **swappable provider chain** - primary is HuggingFace [RealVisXL V4.0](https://huggingface.co/SG161222/RealVisXL_V4.0) (a portrait-tuned SDXL fine-tune), fallbacks cascade through Cloudflare Workers AI, HuggingFace FLUX.1-schnell, Together.ai, and [Pollinations.ai](https://pollinations.ai). All fully free. Deterministic seed per career title, dialect-aware prompt engineering (SDXL tags vs FLUX prose), negative-prompt artifact suppression. Switch providers via one env var.
+- **Career stats** - happiness score, salary potential, career outlook, DNA match breakdown
+- **Shareable results** - native share API, clipboard copy, and image download
 
 ---
 
@@ -75,12 +75,13 @@ Answer 5 questions. Watch the analysis. Discover you're a *JIRA Ticket Archaeolo
 | Layer | Tech |
 |-------|------|
 | Frontend | React 19 · Vite 6 · Tailwind CSS 4 · React Router 7 |
-| Backend | Node.js · Express 4 · Passport.js |
-| Database | SQLite (sql.js) |
-| Auth | Google OAuth 2.0 |
-| Image Gen | Provider chain: RealVisXL → CF Workers AI → HF FLUX → Together → Pollinations |
-| Image Storage | Pluggable `BlobStore` — local disk (dev) or Cloudflare R2 (prod, free 10 GB) |
-| Hosting | Render |
+| Backend | Node.js 20+ · Express 4 (single monolith, serves API + built SPA) |
+| Auth | Google OAuth 2.0 via Passport.js · express-session (server-side sessions) |
+| Database | SQLite in-process via sql.js (WASM, file-backed) |
+| Image Gen | Env-driven fallback chain (`IMAGE_PROVIDER_CHAIN`): RealVisXL V4 (Hugging Face) → FLUX.1-schnell (Cloudflare Workers AI) → FLUX.1-schnell (Hugging Face) → FLUX.1-schnell (Together AI) → Pollinations `flux-realism`. Default: Pollinations only (no API key needed) |
+| Image Storage | Pluggable `BlobStore`: local disk (dev) or Cloudflare R2 via AWS S3 SDK (prod) |
+| Testing & CI | `node:test` (server image pipeline) · GitHub Actions on push/PR |
+| Hosting | Render (single web service) · GitHub Actions keep-alive ping every 14 min |
 
 ---
 
@@ -93,26 +94,32 @@ Answer 5 questions. Watch the analysis. Discover you're a *JIRA Ticket Archaeolo
 git clone https://github.com/Royc4515/career-predictor.git
 cd career-predictor
 
-# 2. Install
-npm install && cd client && npm install && cd ..
+# 2. Configure
+cp server/.env.example server/.env   # then fill in your Google OAuth credentials
 
-# 3. Run
-npm run dev
+# 3. Run the API (terminal 1, http://localhost:5000)
+cd server && npm install && npm run dev
+
+# 4. Run the frontend (terminal 2, http://localhost:3000)
+cd client && npm install && npm run dev
 ```
 
-Create `server/.env`:
+The Vite dev server proxies `/auth` and `/api` to `:5000`, so open `http://localhost:3000`.
+
+Minimum `server/.env`:
 
 ```
 GOOGLE_CLIENT_ID=your_client_id
 GOOGLE_CLIENT_SECRET=your_client_secret
-GOOGLE_CALLBACK_URL=http://localhost:5000/auth/google/callback
 SESSION_SECRET=anything_long_and_random
 CLIENT_URL=http://localhost:3000
 SERVER_URL=http://localhost:5000
 NODE_ENV=development
 ```
 
-In Google Cloud Console → **Authorized redirect URIs**, add `http://localhost:5000/auth/google/callback`
+The OAuth callback URL is built from `SERVER_URL` as `${SERVER_URL}/auth/google/callback`. In Google Cloud Console → **Authorized redirect URIs**, add `http://localhost:5000/auth/google/callback`.
+
+Run the server test suite with `cd server && npm test` (`node:test`, no extra deps).
 
 ### Image generation (optional)
 
@@ -129,20 +136,23 @@ IMAGE_STORE=disk                       # or 'r2' for durable Cloudflare R2 stora
 # R2_ACCOUNT_ID= / R2_ACCESS_KEY_ID= / R2_SECRET_ACCESS_KEY= / R2_BUCKET=
 ```
 
-Providers are tried left to right. Missing keys for any provider in the chain cause a fail-fast at startup — set keys for every name you list. See [`docs/image-service-spec.md`](docs/image-service-spec.md) for the full contract.
+Providers are tried left to right. Missing keys for any provider in the chain cause a fail-fast at startup - set keys for every name you list. See [`docs/image-service-spec.md`](docs/image-service-spec.md) for the full contract.
 
 ---
 
 ## Deployment (Render)
 
-Express builds the React frontend and serves it as static files — single service, zero config.
+Express builds the React frontend and serves it as static files - single service, zero config.
+
+- **Build command:** `npm run build` (installs server + client, builds `client/dist`)
+- **Start command:** `npm start` (`node server/index.js`)
+- Add `https://your-app.onrender.com/auth/google/callback` to the Google OAuth redirect URIs.
 
 | Variable | Value |
 |----------|-------|
 | `GOOGLE_CLIENT_ID` | from Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | from Google Cloud Console |
-| `GOOGLE_CALLBACK_URL` | `https://your-app.onrender.com/auth/google/callback` |
-| `SESSION_SECRET` | any long random string |
+| `SESSION_SECRET` | any long random string (required - the server falls back to an insecure dev value if unset) |
 | `CLIENT_URL` | `https://your-app.onrender.com` |
 | `SERVER_URL` | `https://your-app.onrender.com` |
 | `NODE_ENV` | `production` |
@@ -182,7 +192,7 @@ git push origin feat/funnier-careers
 
 ## Contact
 
-Built by **Roy Carmelli** — reach out if you have questions, want to collaborate, or just discovered you're a *Professional Deck-Slide Archaeologist*.
+Built by **Roy Carmelli** - reach out if you have questions, want to collaborate, or just discovered you're a *Professional Deck-Slide Archaeologist*.
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0077B5?style=flat&logo=linkedin)](https://www.linkedin.com/in/roy-carmelli/)
 [![GitHub](https://img.shields.io/badge/GitHub-Follow-181717?style=flat&logo=github)](https://github.com/Royc4515)
@@ -194,7 +204,7 @@ Built by **Roy Carmelli** — reach out if you have questions, want to collabora
 
 > *How we achieve 99.7% accuracy while knowing absolutely nothing about you.*
 
-The system is a classic **full-stack monolith** — React on the front, Express on the back, one Render service holding it all together with duct tape and optimism.
+The system is a classic **full-stack monolith** - React on the front, Express on the back, one Render service holding it all together with duct tape and optimism.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -237,7 +247,7 @@ The system is a classic **full-stack monolith** — React on the front, Express 
 
 ### Project Structure (image pipeline)
 
-The image-generation pipeline lives behind two abstractions — `ImageProvider` (talks to an upstream API) and `BlobStore` (persists bytes). Adding a sixth provider or a new storage backend is a single new file plus one factory entry. No edits to the route handler or the orchestrator.
+The image-generation pipeline lives behind two abstractions - `ImageProvider` (talks to an upstream API) and `BlobStore` (persists bytes). Adding a sixth provider or a new storage backend is a single new file plus one factory entry. No edits to the route handler or the orchestrator.
 
 ```
 server/services/image/
@@ -310,7 +320,7 @@ React caches result in sessionStorage
 (so page refresh doesn't re-fetch and re-render the portrait)
         │
         ▼
-Result page renders — <img src="/api/image/<id>">
+Result page renders - <img src="/api/image/<id>">
   ├─ 200 + bytes if generation finished → cached for a year
   └─ 404 "generating" + Retry-After:8 if still in flight
      → client retries up to 5× with 8s backoff (same UX as before)
@@ -318,7 +328,7 @@ Result page renders — <img src="/api/image/<id>">
 
 ### Database Schema
 
-SQLite via `sql.js` — zero-dependency, file-based, runs entirely in-process on Render's free tier without needing a managed database.
+SQLite via `sql.js` - zero-dependency, file-based, runs entirely in-process on Render's free tier without needing a managed database.
 
 ```sql
 CREATE TABLE users (
@@ -345,26 +355,26 @@ CREATE TABLE onboarding (
 );
 ```
 
-The `image_id` column was added as an **additive** migration — historical rows keep `image_url` populated and the read path falls back to it. New rows populate `image_id` only.
+The `image_id` column was added as an **additive** migration - historical rows keep `image_url` populated and the read path falls back to it. New rows populate `image_id` only.
 
-Results are **deterministic per session** — same answers always produce the same destiny. You can't escape it.
+Results are **deterministic per session** - same answers always produce the same destiny. You can't escape it.
 
 ### Why This Stack
 
 | Decision | Reason |
 |----------|--------|
 | React 19 + Vite | Fast HMR in dev, optimized static build in prod |
-| Express monolith | Serves both API and static files — one Render service, one bill ($0) |
-| SQLite (sql.js) | No managed DB needed; data survives restarts via Render's disk |
+| Express monolith | Serves both API and static files - one Render service, one bill ($0) |
+| SQLite (sql.js) | No managed DB needed and no native build step. Note: Render's free-tier disk is wiped on redeploy, so the DB file is not durable there |
 | Passport.js | Battle-tested OAuth middleware; session handled server-side, not JWT |
-| Provider abstraction | One `ImageProvider` interface, five concrete impls (RealVisXL, CF Workers AI, HF FLUX-schnell, Together, Pollinations), env-driven fallback chain. Adding a sixth provider is one new file + one factory entry — no edits to the route handler or orchestrator. |
+| Provider abstraction | One `ImageProvider` interface, five concrete impls (RealVisXL, CF Workers AI, HF FLUX-schnell, Together, Pollinations), env-driven fallback chain. Adding a sixth provider is one new file + one factory entry - no edits to the route handler or orchestrator. |
 | `BlobStore` interface | Decouples bytes from the third-party CDN. `LocalDiskStore` in dev, `R2Store` in prod (free 10 GB), same interface. Historical user portraits survive provider rotations. |
 
 ---
 
 ## License
 
-[MIT](./LICENSE) — use it freely.
+[MIT](./LICENSE) - use it freely.
 
 > **Non-Binding Additional Clause:** The Quantum Personality Matrix™, the 99.7% accuracy figure, the happiness scores, the salary projections, and every career title are fictional. Any resemblance to your actual life trajectory is either a hilarious coincidence or deeply concerning. The author assumes no liability for existential crises, career pivots, or LinkedIn profile updates. By running this software you acknowledge that *COBOL never dies* and neither does your destiny.
 
