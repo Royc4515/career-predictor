@@ -9,7 +9,8 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
 - `client/` - React 19, Vite 6, Tailwind 4, React Router 7. Pages: Landing, Onboarding (quiz), Loading, Result. Dev server on :3000 proxies `/auth` and `/api` to :5000 (`client/vite.config.js`).
 - `server/` - Express 4 monolith (CommonJS), Passport Google OAuth, express-session (memory store), SQLite via sql.js.
   - `index.js` - entry; waits for `initDB()`, then mounts routes and serves `client/dist` with an SPA catch-all.
-  - `db.js` - schema, additive `ALTER TABLE` migrations, whole-DB `saveDB()` to `server/career-predictor.db`.
+  - `db.js` - schema, additive migrations via `addColumnIfMissing` (checks `PRAGMA table_info`), whole-DB `saveDB()` to `server/career-predictor.db`.
+  - `userData.js` - pure edge helpers: `profileToUserFields` (Google profile in), `toPublicUser` (whitelist for `/auth/me`), `validateOnboardingAnswers`. Tested in `server/__tests__/`.
   - `routes/userRoutes.js` - `mapCareer` rule table + `/api/user/onboarding` and `/api/user/result`.
   - `routes/imageRoutes.js` - `GET /api/image/:id` (16-hex id; 404 + `Retry-After: 8` while generating).
   - `services/image/` - `ImageService` orchestrator (sync `kickoff`, in-flight dedup, fallback cascade), `promptBuilder` (seed, SDXL/FLUX dialects, content-hash id), `providers/` (realvisxl, cloudflare, huggingface_flux, together, pollinations), `storage/` (disk, r2), `__tests__/`.
@@ -18,7 +19,7 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
 - Deploy: Render single service, https://career-predictor-cnvg.onrender.com
 
 ## Commands
-- Server tests: `cd server && npm test` (node:test, no deps needed) - verified, 51/51 pass on Node 22.
+- Server tests: `cd server && npm test` (node:test; runs `server/__tests__/` and `services/image/__tests__/`) - verified, 66/66 pass on Node 22 after `npm install`.
 - Server dev: `cd server && npm install && npm run dev` (nodemon, :5000) - unverified.
 - Client dev: `cd client && npm install && npm run dev` (:3000) - unverified.
 - Prod build: `npm run build` at root (installs both, builds client) - unverified.
@@ -35,15 +36,11 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
 - `kickoff()` must stay synchronous (no `await` before return); spec section 2 and `imageService.test.js` enforce it.
 
 ## Gotchas
-- Quiz mapping is string-coupled: `mapCareer` matches substrings of the literal option text in `client/src/pages/Onboarding.jsx` (e.g. `'social construct'`, `'people who know'`). Editing option copy silently changes results. Server does not validate answers against the allowed options.
-- `getImageService()` runs inside `initDB().then(...)` in `server/index.js`. A provider missing its key throws at startup and is logged as "Failed to initialize database" - misleading.
-- `LocalDiskStore` default dir and `IMAGE_CACHE_DIR=./data/image-cache` resolve against `process.cwd()`. Root `npm start` writes to `<repo>/data/`, which `.gitignore` does not cover (only `server/data/`).
+- Quiz mapping is string-coupled: `mapCareer` matches substrings of the literal option text in `client/src/pages/Onboarding.jsx` (e.g. `'social construct'`, `'people who know'`). Editing option copy silently changes results. Server checks answers are non-empty strings of at most 200 chars (`validateOnboardingAnswers`), but not against the allowed options.
+- `getImageService()` runs inside `initDB().then(...)` in `server/index.js`, so a provider missing its key fails startup via the same catch (logged as "Startup failed ...").
+- `LocalDiskStore` default dir and `IMAGE_CACHE_DIR=./data/image-cache` resolve against `process.cwd()`. Root `npm start` writes to `<repo>/data/` (gitignored as `/data/`), not `server/data/`.
 - Persistence: Render free-tier disk is wiped on redeploy (per `.env.example`), so SQLite DB and disk image cache are lost. Sessions use the in-memory store and die on every restart. Use `IMAGE_STORE=r2` for durable images.
-- `SESSION_SECRET` falls back to a hardcoded dev string in `server/index.js` if unset. Set it in every deployed env.
-- `POST /api/user/onboarding` is async with no try/catch; a throw from `saveOnboarding` (Express 4) leaves the request hanging.
-- `db.js` migrations rely on `ALTER TABLE` throwing when the column exists; errors are swallowed. `saveDB()` rewrites the whole DB file synchronously on every write.
-- `auth.js` reads `profile.emails[0].value` unguarded; `/auth/me` returns the full user row incl. `google_id`.
-- `keep-alive.yml` pings `/auth/me`, which returns 401 when logged out, so it always logs "Unexpected status" (non-fatal).
-- Client image retry is 5 x 8s (`client/src/pages/Result.jsx`); the inline comment there says 5s.
+- `SESSION_SECRET` falls back to a hardcoded dev string in `server/index.js` if unset (production logs a warning but still starts). Set it in every deployed env.
+- `saveDB()` rewrites the whole DB file synchronously on every write.
 - `docs/image-service-spec.md` links to a `.claude/plans/...` file outside the repo (dead link).
 - No client tests; CI runs server tests only.

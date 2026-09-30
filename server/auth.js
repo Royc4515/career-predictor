@@ -1,6 +1,7 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { upsertUser, findUserById } = require('./db');
+const { profileToUserFields } = require('./userData');
 
 // --- Serialize: store only user.id in the session cookie ---
 passport.serializeUser((user, done) => {
@@ -30,15 +31,11 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       },
       (accessToken, refreshToken, profile, done) => {
         console.log('[AUTH] Google OAuth callback triggered');
-        console.log('[AUTH] Google profile received:', profile.displayName, profile.emails[0].value);
 
         try {
-          const user = upsertUser({
-            googleId: profile.id,
-            email: profile.emails[0].value,
-            name: profile.displayName,
-            avatarUrl: profile.photos[0]?.value || null,
-          });
+          const fields = profileToUserFields(profile);
+          console.log('[AUTH] Google profile received:', fields.name, fields.email);
+          const user = upsertUser(fields);
 
           console.log('[AUTH] User upserted in DB, ID:', user.id);
           done(null, user);

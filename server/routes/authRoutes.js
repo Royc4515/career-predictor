@@ -1,5 +1,6 @@
 const express = require('express');
 const passport = require('passport');
+const { toPublicUser } = require('../userData');
 const router = express.Router();
 
 // GET /auth/google — redirect to Google OAuth consent screen
@@ -43,7 +44,7 @@ router.get('/me', (req, res) => {
   console.log('[ROUTE] GET /auth/me - Checking auth state');
   if (req.isAuthenticated()) {
     console.log('[ROUTE] User is authenticated:', req.user.name);
-    res.json({ user: req.user });
+    res.json({ user: toPublicUser(req.user) });
   } else {
     console.log('[ROUTE] User is NOT authenticated');
     res.status(401).json({ user: null });

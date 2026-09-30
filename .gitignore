@@ -4,8 +4,10 @@ server/*.db
 .DS_Store
 dist/
 
-# Generated image bytes cache (LocalDiskStore).
+# Generated image bytes cache (LocalDiskStore). IMAGE_CACHE_DIR resolves
+# against process.cwd(), so root `npm start` writes to /data instead.
 server/data/
+/data/
 
 # Claude Code local settings (per-user, not for repo).
 .claude/
