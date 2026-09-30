@@ -52,24 +52,28 @@ async function initDB() {
   console.log('[DB] Onboarding table ready');
 
   // Add desired_field column to existing databases that predate this migration
-  try {
-    db.run('ALTER TABLE onboarding ADD COLUMN desired_field TEXT');
-    console.log('[DB] Migrated: added desired_field column');
-  } catch (_) {
-    // Column already exists — normal on fresh runs
-  }
+  addColumnIfMissing('onboarding', 'desired_field', 'TEXT');
 
   // Additive migration: image_id (16-hex content hash) for new rows.
   // image_url is kept for legacy rows pointing at Pollinations CDN URLs;
   // reads prefer image_id and fall back to image_url.
-  try {
-    db.run('ALTER TABLE onboarding ADD COLUMN image_id TEXT');
-    console.log('[DB] Migrated: added image_id column');
-  } catch (_) {
-    // Column already exists — normal on fresh runs
-  }
+  addColumnIfMissing('onboarding', 'image_id', 'TEXT');
 
   return db;
+}
+
+/**
+ * Additive migration helper. Checks the schema first instead of relying on
+ * ALTER TABLE throwing for an existing column, so any other failure (typo,
+ * corrupt file) surfaces at startup instead of being swallowed.
+ */
+function addColumnIfMissing(table, column, type) {
+  const result = db.exec(`PRAGMA table_info(${table})`);
+  const existing = result.length ? result[0].values.map((row) => row[1]) : [];
+  if (existing.includes(column)) return;
+
+  db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+  console.log(`[DB] Migrated: added ${table}.${column} column`);
 }
 
 /** Save the in-memory database to disk */

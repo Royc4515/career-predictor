@@ -29,6 +29,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- Session middleware (must be before Passport) ---
+if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
+  // Not fatal so a missing var can't take the live site down, but anyone who
+  // reads the source can forge session cookies until this is set.
+  console.warn('[SERVER] WARNING: SESSION_SECRET is not set; using the insecure dev fallback. Set it in the host environment.');
+}
 app.use(session({
   secret: process.env.SESSION_SECRET || 'dev-fallback-secret-change-me',
   resave: false,
@@ -84,6 +89,8 @@ initDB().then(() => {
     console.log(`[SERVER] Auth URL: ${process.env.SERVER_URL}/auth/google`);
   });
 }).catch((err) => {
-  console.error('[SERVER] Failed to initialize database:', err);
+  // This chain also builds the image service, so a provider missing its API
+  // key lands here too; don't blame the database for it.
+  console.error('[SERVER] Startup failed (database init or route/image service setup):', err);
   process.exit(1);
 });

@@ -28,7 +28,7 @@ export default function Result() {
       .catch(() => { setLoading(false); navigate('/onboarding'); });
   }, [navigate]);
 
-  // Retry image on error, up to MAX_RETRIES times with 5s intervals
+  // Retry image on error, up to MAX_RETRIES times with 8s intervals
   const retryTimer = useRef(null);
   function handleImageError() {
     if (retryCount < MAX_RETRIES) {

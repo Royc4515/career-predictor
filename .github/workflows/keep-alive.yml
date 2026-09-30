@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Ping Render
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 https://career-predictor-cnvg.onrender.com/auth/me)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 https://career-predictor-cnvg.onrender.com/api/health)
           echo "Response status: $STATUS"
           if [ "$STATUS" -eq 200 ]; then
             echo "Service is healthy"
