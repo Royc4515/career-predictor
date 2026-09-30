@@ -35,16 +35,14 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
 - `kickoff()` must stay synchronous (no `await` before return); spec section 2 and `imageService.test.js` enforce it.
 
 ## Gotchas
-- README "Local Setup" says `npm install && ... npm run dev` at root, but root `package.json` has no `dev` script and no deps. Run server and client separately (see Commands).
 - Quiz mapping is string-coupled: `mapCareer` matches substrings of the literal option text in `client/src/pages/Onboarding.jsx` (e.g. `'social construct'`, `'people who know'`). Editing option copy silently changes results. Server does not validate answers against the allowed options.
 - `getImageService()` runs inside `initDB().then(...)` in `server/index.js`. A provider missing its key throws at startup and is logged as "Failed to initialize database" - misleading.
 - `LocalDiskStore` default dir and `IMAGE_CACHE_DIR=./data/image-cache` resolve against `process.cwd()`. Root `npm start` writes to `<repo>/data/`, which `.gitignore` does not cover (only `server/data/`).
-- Persistence: Render free-tier disk is wiped on redeploy (per `.env.example`), so SQLite DB and disk image cache are lost; README "Why This Stack" claims data survives. Sessions use the in-memory store and die on every restart. Use `IMAGE_STORE=r2` for durable images.
+- Persistence: Render free-tier disk is wiped on redeploy (per `.env.example`), so SQLite DB and disk image cache are lost. Sessions use the in-memory store and die on every restart. Use `IMAGE_STORE=r2` for durable images.
 - `SESSION_SECRET` falls back to a hardcoded dev string in `server/index.js` if unset. Set it in every deployed env.
 - `POST /api/user/onboarding` is async with no try/catch; a throw from `saveOnboarding` (Express 4) leaves the request hanging.
 - `db.js` migrations rely on `ALTER TABLE` throwing when the column exists; errors are swallowed. `saveDB()` rewrites the whole DB file synchronously on every write.
 - `auth.js` reads `profile.emails[0].value` unguarded; `/auth/me` returns the full user row incl. `google_id`.
-- README lists `GOOGLE_CALLBACK_URL`, but code builds the callback from `SERVER_URL` + `/auth/google/callback`; the var is unused.
 - `keep-alive.yml` pings `/auth/me`, which returns 401 when logged out, so it always logs "Unexpected status" (non-fatal).
 - Client image retry is 5 x 8s (`client/src/pages/Result.jsx`); the inline comment there says 5s.
 - `docs/image-service-spec.md` links to a `.claude/plans/...` file outside the repo (dead link).
