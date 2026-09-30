@@ -75,12 +75,13 @@ Answer 5 questions. Watch the analysis. Discover you're a *JIRA Ticket Archaeolo
 | Layer | Tech |
 |-------|------|
 | Frontend | React 19 · Vite 6 · Tailwind CSS 4 · React Router 7 |
-| Backend | Node.js · Express 4 · Passport.js |
-| Database | SQLite (sql.js) |
-| Auth | Google OAuth 2.0 |
-| Image Gen | Provider chain: RealVisXL → CF Workers AI → HF FLUX → Together → Pollinations |
-| Image Storage | Pluggable `BlobStore` — local disk (dev) or Cloudflare R2 (prod, free 10 GB) |
-| Hosting | Render |
+| Backend | Node.js 20+ · Express 4 (single monolith, serves API + built SPA) |
+| Auth | Google OAuth 2.0 via Passport.js · express-session (server-side sessions) |
+| Database | SQLite in-process via sql.js (WASM, file-backed) |
+| Image Gen | Env-driven fallback chain (`IMAGE_PROVIDER_CHAIN`): RealVisXL V4 (Hugging Face) → FLUX.1-schnell (Cloudflare Workers AI) → FLUX.1-schnell (Hugging Face) → FLUX.1-schnell (Together AI) → Pollinations `flux-realism`. Default: Pollinations only (no API key needed) |
+| Image Storage | Pluggable `BlobStore`: local disk (dev) or Cloudflare R2 via AWS S3 SDK (prod) |
+| Testing & CI | `node:test` (server image pipeline) · GitHub Actions on push/PR |
+| Hosting | Render (single web service) · GitHub Actions keep-alive ping every 14 min |
 
 ---
 
@@ -355,7 +356,7 @@ Results are **deterministic per session** — same answers always produce the sa
 |----------|--------|
 | React 19 + Vite | Fast HMR in dev, optimized static build in prod |
 | Express monolith | Serves both API and static files — one Render service, one bill ($0) |
-| SQLite (sql.js) | No managed DB needed; data survives restarts via Render's disk |
+| SQLite (sql.js) | No managed DB needed and no native build step. Note: Render's free-tier disk is wiped on redeploy, so the DB file is not durable there |
 | Passport.js | Battle-tested OAuth middleware; session handled server-side, not JWT |
 | Provider abstraction | One `ImageProvider` interface, five concrete impls (RealVisXL, CF Workers AI, HF FLUX-schnell, Together, Pollinations), env-driven fallback chain. Adding a sixth provider is one new file + one factory entry — no edits to the route handler or orchestrator. |
 | `BlobStore` interface | Decouples bytes from the third-party CDN. `LocalDiskStore` in dev, `R2Store` in prod (free 10 GB), same interface. Historical user portraits survive provider rotations. |
