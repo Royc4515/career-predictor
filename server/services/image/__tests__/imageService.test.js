@@ -236,3 +236,22 @@ test('fetchIfReady(): returns null for missing id', async () => {
   const svc = new ImageService({ providers: [], blobStore: inMemoryBlobStore(), promptBuilder: fakePromptBuilder(), logger: silentLogger() });
   assert.equal(await svc.fetchIfReady('nonexistent'), null);
 });
+
+// ── Custom output size (cover layout) ───────────────────────────────────────
+
+test('orchestrator sends a custom size to providers when one is configured', async () => {
+  const p = fakeProvider('p', 'flux', { ok: { buffer: Buffer.from('x'), mimeType: 'image/png' } });
+  const blobStore = inMemoryBlobStore();
+  const svc = new ImageService({ providers: [p], blobStore, promptBuilder: fakePromptBuilder(), logger: silentLogger(), size: { width: 896, height: 1120 } });
+  const { id } = svc.kickoff({ scenePrompt: 'a', title: 't' });
+  await waitForBlob(blobStore, id);
+  assert.equal(p.calls[0].width, 896);
+  assert.equal(p.calls[0].height, 1120);
+});
+
+test('constructor rejects sizes not every provider can accept', () => {
+  const base = { providers: [], blobStore: inMemoryBlobStore(), promptBuilder: fakePromptBuilder(), logger: silentLogger() };
+  assert.throws(() => new ImageService({ ...base, size: { width: 900, height: 1120 } }), /divisible by 32/);
+  assert.throws(() => new ImageService({ ...base, size: { width: 2048, height: 2048 } }), /size/);
+  assert.throws(() => new ImageService({ ...base, size: { width: '896', height: 1120 } }), /size/);
+});

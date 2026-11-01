@@ -1,18 +1,11 @@
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../app/AuthContext';
 
 export default function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-slate-400 text-sm">Loading...</div>
-      </div>
-    );
-  }
-
+  // RootLayout already shows the splash while auth resolves; render nothing
+  // here so the two never stack.
+  if (loading) return null;
   if (!user) return <Navigate to="/" replace />;
-
   return children;
 }

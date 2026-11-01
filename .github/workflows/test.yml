@@ -39,3 +39,21 @@ jobs:
             echo "::endgroup::"
           fi
           exit $EXIT_CODE
+
+  client:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Unit tests (pure modules in src/lib)
+        run: npm test
+      # The build is the closest thing to a type check this project has:
+      # a bad import or JSX error fails here instead of on deploy.
+      - name: Production build
+        run: npm run build

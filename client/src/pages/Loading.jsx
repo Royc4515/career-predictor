@@ -1,169 +1,188 @@
-import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { API_URL } from '../config';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { m, useReducedMotion } from 'motion/react';
+import Masthead from '../components/Masthead';
+import { PRESS_STEPS, QUESTIONS } from '../content';
+import { submitAnswers } from '../lib/api';
+import { cachedResult, draftAnswers } from '../lib/storage';
 
-const steps = [
-  'Connecting to career neural network...',
-  'Analyzing your professional DNA...',
-  'Cross-referencing 847 career trajectories...',
-  'Applying quantum personality matrix...',
-  'Generating your destiny...',
-  'Finalizing report...',
-];
+// The server answers in milliseconds; the pause is part of the bit. It is
+// kept short enough that nobody waits on purpose for longer than a joke.
+const MIN_DURATION_MS = 5200;
+
+function hasRequiredAnswers(answers) {
+  // desired_field is optional server-side (validateOnboardingAnswers).
+  return QUESTIONS.filter((q) => q.id !== 'desired_field').every((q) => answers[q.id]);
+}
+
+function StepMark({ state }) {
+  if (state === 'done') {
+    return (
+      <svg viewBox="0 0 16 16" className="size-4 text-ink" aria-hidden="true">
+        <path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="square" />
+      </svg>
+    );
+  }
+  if (state === 'active') {
+    return <span className="block h-[2px] w-4 animate-pulse bg-ink" aria-hidden="true" />;
+  }
+  return <span className="block h-[1px] w-4 bg-rule" aria-hidden="true" />;
+}
 
 export default function Loading() {
-  const [stepIndex, setStepIndex] = useState(0);
-  const [progress, setProgress] = useState(0);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState(null);
   const navigate = useNavigate();
-  const submitted = useRef(false);
-  const apiDone = useRef(false);
+  const reduce = useReducedMotion();
+  const [elapsed, setElapsed] = useState(0);
+  const [apiDone, setApiDone] = useState(false);
+  const [error, setError] = useState(null);
+  const [attempt, setAttempt] = useState(0);
+  // Held in a ref so React StrictMode's dev double-mount reuses the same
+  // request instead of saving the result twice.
+  const request = useRef(null);
 
-  // Submit onboarding answers to backend
+  // don't touch / Snapshot once. Reading storage on every render let the
+  // draft being cleared on success flip `ready` to false while the deferred
+  // view-transition navigation was still pending, which bounced the reader
+  // back to /onboarding instead of /result.
+  const [answers] = useState(() => draftAnswers.get());
+  const ready = hasRequiredAnswers(answers);
+
   useEffect(() => {
-    if (submitted.current) return;
-    submitted.current = true;
+    if (!ready) navigate('/onboarding', { replace: true });
+  }, [ready, navigate]);
 
-    const answers = JSON.parse(sessionStorage.getItem('onboarding_answers') || '{}');
-
-    fetch(`${API_URL}/api/user/onboarding`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(answers),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Server error');
-        return res.json();
+  useEffect(() => {
+    if (!ready) return undefined;
+    let cancelled = false;
+    if (!request.current) request.current = submitAnswers(answers);
+    request.current
+      .then((result) => {
+        if (cancelled) return;
+        cachedResult.set(result);
+        // Saved server-side now; a later retake should start blank.
+        draftAnswers.clear();
+        setApiDone(true);
       })
-      .then((data) => {
-        sessionStorage.setItem('career_result', JSON.stringify(data));
-        apiDone.current = true;
-      })
-      .catch(() => setError('Something went wrong analyzing your career. Please try again.'));
-  }, []);
+      .catch((err) => {
+        if (cancelled) return;
+        request.current = null;
+        setError(err.message || 'Something went wrong at the printer.');
+      });
+    return () => {
+      cancelled = true;
+    };
+    // answers is read once per attempt on purpose; retry bumps attempt.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, attempt]);
 
-  // Animate the progress bar over ~7 seconds
   useEffect(() => {
-    const duration = 7000;
-    const interval = 50;
-    const increment = 100 / (duration / interval);
-    let current = 0;
+    if (error) return undefined;
+    const started = performance.now();
+    let frame;
+    // Stops itself at the minimum duration so a slow server doesn't keep a
+    // 60fps re-render loop running while we wait.
+    const tick = () => {
+      const now = performance.now() - started;
+      setElapsed(now);
+      if (now < MIN_DURATION_MS) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [error, attempt]);
 
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= 100) {
-        current = 100;
-        clearInterval(timer);
-        setDone(true);
-      }
-      setProgress(Math.min(current, 100));
-    }, interval);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  // Cycle through step labels
+  const timeDone = elapsed >= MIN_DURATION_MS;
   useEffect(() => {
-    const stepDuration = 7000 / steps.length;
-    const timer = setInterval(() => {
-      setStepIndex((i) => Math.min(i + 1, steps.length - 1));
-    }, stepDuration);
-    return () => clearInterval(timer);
-  }, []);
+    if (!timeDone || !apiDone) return undefined;
+    const t = setTimeout(() => {
+      navigate('/result', { replace: true, viewTransition: true });
+    }, 350);
+    return () => clearTimeout(t);
+  }, [timeDone, apiDone, navigate]);
 
-  // Navigate to result once animation is done AND API has responded
-  useEffect(() => {
-    if (!done || error) return;
-    const check = setInterval(() => {
-      if (apiDone.current) {
-        clearInterval(check);
-        setTimeout(() => navigate('/result'), 400);
-      }
-    }, 200);
-    return () => clearInterval(check);
-  }, [done, error, navigate]);
+  const retry = useCallback(() => {
+    setError(null);
+    setElapsed(0);
+    setApiDone(false);
+    setAttempt((n) => n + 1);
+  }, []);
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center px-6">
-        <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center font-bold text-sm mb-6">!</div>
-        <h2 className="text-xl font-semibold mb-2">Analysis Failed</h2>
-        <p className="text-slate-400 text-sm mb-8 text-center max-w-md">{error}</p>
-        <button
-          onClick={() => navigate('/onboarding')}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl text-sm font-medium transition-colors"
-        >
-          Try Again
-        </button>
+      <div className="flex min-h-dvh flex-col">
+        <Masthead />
+        <main id="main" className="flex flex-1 items-center px-4 sm:px-8">
+          <div className="mx-auto w-full max-w-[40rem] py-16" role="alert">
+            <h1 className="font-display text-[clamp(2.2rem,5vw,3.4rem)] leading-tight">
+              Your answers weren&rsquo;t sent
+            </h1>
+            <p className="mt-5 text-lg leading-relaxed text-ink-2">{error}</p>
+            <p className="mt-2 text-ink-2">
+              They are still saved on this device, so you won&rsquo;t need to answer again.
+            </p>
+            <div className="mt-10 flex flex-wrap items-center gap-6">
+              <button
+                type="button"
+                onClick={retry}
+                className="min-h-[52px] rounded-[3px] bg-ink px-6 text-paper transition-colors hover:bg-ink-2"
+              >
+                Send again
+              </button>
+              <Link to="/onboarding" viewTransition className="link-ink">
+                Review answers
+              </Link>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
 
+  const progress = Math.min(elapsed / MIN_DURATION_MS, 1);
+  // Hold short of the end until the server confirms, so the bar never
+  // claims a finished cover that has not actually been saved.
+  const shown = apiDone ? progress : Math.min(progress, 0.97);
+  const activeStep = Math.min(Math.floor(progress * PRESS_STEPS.length), PRESS_STEPS.length - 1);
+  const allDone = apiDone && progress >= 1;
+
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center px-6">
-      {/* Logo */}
-      <div className="flex items-center gap-2 mb-16">
-        <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center font-bold text-sm">AI</div>
-        <span className="font-semibold">CareerPredict</span>
-      </div>
-
-      <div className="w-full max-w-md text-center">
-        {/* Spinner */}
-        <div className="flex justify-center mb-10">
-          <div className="relative w-20 h-20">
-            <div className="absolute inset-0 rounded-full border-4 border-slate-800"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-500 animate-spin"></div>
-            <div className="absolute inset-0 flex items-center justify-center text-indigo-400">
-              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <h2 className="text-xl font-semibold mb-2">AI Analysis in Progress</h2>
-        <p className="text-slate-400 text-sm mb-8">Please do not close this window.</p>
-
-        {/* Step text */}
-        <div className="h-5 mb-6">
-          <p className="text-indigo-400 text-sm font-mono animate-pulse">
-            {steps[stepIndex]}
-          </p>
-        </div>
-
-        {/* Progress bar */}
-        <div className="bg-slate-800 rounded-full h-2 mb-3 overflow-hidden">
+    <div className="flex min-h-dvh flex-col">
+      <Masthead />
+      <main id="main" className="flex flex-1 items-center px-4 sm:px-8">
+        <div className="mx-auto w-full max-w-[40rem] py-16">
+          <h1 className="font-display text-[clamp(2.4rem,6vw,4.2rem)] leading-[1]">Printing your cover</h1>
           <div
-            className="h-2 bg-indigo-500 rounded-full transition-all duration-100"
-            style={{ width: `${progress}%` }}
-          />
+            className="mt-8 h-[3px] bg-paper-3"
+            role="progressbar"
+            aria-label="Printing your cover"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(shown * 100)}
+          >
+            <div className="h-full origin-left bg-ink" style={{ transform: `scaleX(${shown})` }} />
+          </div>
+          <ol className="mt-10 space-y-4" aria-label="Steps">
+            {PRESS_STEPS.map((label, i) => {
+              const state = i < activeStep || allDone ? 'done' : i === activeStep ? 'active' : 'todo';
+              return (
+                <m.li
+                  key={label}
+                  initial={reduce ? false : { opacity: 0 }}
+                  animate={{ opacity: state === 'todo' ? 0.45 : 1 }}
+                  transition={{ duration: 0.4 }}
+                  className="flex items-center gap-4"
+                  aria-current={state === 'active' ? 'step' : undefined}
+                >
+                  <span className="grid w-4 place-items-center">
+                    <StepMark state={state} />
+                  </span>
+                  <span className={`text-[1.05rem] ${state === 'todo' ? 'text-ink-2' : 'text-ink'}`}>{label}</span>
+                </m.li>
+              );
+            })}
+          </ol>
+          <p className="meta mt-10">Keep this tab open. It takes a few seconds.</p>
         </div>
-
-        <div className="flex justify-between text-xs text-slate-500">
-          <span>Processing</span>
-          <span>{Math.round(progress)}%</span>
-        </div>
-
-        {/* Fake metrics */}
-        <div className="mt-10 grid grid-cols-3 gap-4 text-center">
-          {[
-            { label: 'Trajectories', value: Math.round(progress * 8.47) },
-            { label: 'Data Points', value: Math.round(progress * 143.2) },
-            { label: 'Confidence', value: `${Math.min(Math.round(progress * 0.997), 99)}%` },
-          ].map((m) => (
-            <div key={m.label} className="bg-slate-900 border border-slate-800 rounded-lg p-3">
-              <div className="text-white font-bold text-lg tabular-nums">{m.value}</div>
-              <div className="text-slate-500 text-xs mt-0.5">{m.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <p className="mt-16 text-xs text-slate-700">
-        CareerPredict Neural Engine v4.2.1 · Quantum Matrix Active
-      </p>
+      </main>
     </div>
   );
 }

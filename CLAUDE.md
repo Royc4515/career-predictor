@@ -6,7 +6,11 @@ A satirical 5-question career quiz web app: a Google-signed-in user gets a deter
 Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in `server/routes/userRoutes.js`); the only real AI is the text-to-image call.
 
 ## Stack & layout
-- `client/` - React 19, Vite 6, Tailwind 4, React Router 7. Pages: Landing, Onboarding (quiz), Loading, Result. Dev server on :3000 proxies `/auth` and `/api` to :5000 (`client/vite.config.js`).
+- `client/` - React 19, Vite 6, Tailwind 4, React Router 7 (data router, so `viewTransition` works), Motion via `LazyMotion` + `m.*` (strict: a full `motion.*` throws). Dev server on :3000 proxies `/auth` and `/api` to :5000 (`client/vite.config.js`).
+  - `src/pages/` Landing, Onboarding (quiz), Loading ("Printing your cover"), Result (cover + report), NotFound. Signed-in pages are lazy routes in `App.jsx`.
+  - `src/components/Cover.jsx` + `src/lib/coverCanvas.js` - the magazine cover on screen and as a 1080x1350 PNG; both read proportions from `src/lib/coverLayout.js`, so change sizes there, not in either renderer.
+  - `src/lib/api.js` (all server calls), `src/lib/storage.js` (sessionStorage, never throws), `src/hooks/useImageReady.js` (HEAD-polls `/api/image/:id`), `src/content.js` (all copy, quiz options).
+  - Design tokens in `src/index.css` `@theme`: paper / ink / one highlighter (`mark`). Rationale and the review against Anthropic's frontend-design skill: `docs/redesign-plan.md`.
 - `server/` - Express 4 monolith (CommonJS), Passport Google OAuth, express-session (memory store), SQLite via sql.js.
   - `index.js` - entry; waits for `initDB()`, then mounts routes and serves `client/dist` with an SPA catch-all.
   - `db.js` - schema, additive migrations via `addColumnIfMissing` (checks `PRAGMA table_info`), whole-DB `saveDB()` to `server/career-predictor.db`.
@@ -19,12 +23,14 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
 - Deploy: Render single service, https://career-predictor-cnvg.onrender.com
 
 ## Commands
-- Server tests: `cd server && npm test` (node:test; runs `server/__tests__/` and `services/image/__tests__/`) - verified, 66/66 pass on Node 22 after `npm install`.
+- Server tests: `cd server && npm test` (node:test; runs `server/__tests__/` and `services/image/__tests__/`) - verified, 90/90 pass on Node 22 after `npm install`.
+- Client tests: `cd client && npm test` (node:test over pure modules in `src/lib/__tests__/`) - verified, 19/19 pass.
+- Client build: `cd client && npx vite build` - verified. CI (`test.yml`) runs server tests, client tests and the client build.
 - Server dev: `cd server && npm install && npm run dev` (nodemon, :5000) - unverified.
 - Client dev: `cd client && npm install && npm run dev` (:3000) - unverified.
 - Prod build: `npm run build` at root (installs both, builds client) - unverified.
 - Prod start: `npm start` at root (`node server/index.js`) - unverified.
-- Config: copy `server/.env.example` to `server/.env`. Default image chain is `pollinations` (keyless).
+- Config: copy `server/.env.example` to `server/.env`. Default image chain is `pollinations` (keyless), which now always serves the low-end "sana" model with a watermark; setting `POLLINATIONS_API_KEY` (an `sk_` key) switches the default to `pollinations_gen,pollinations`.
 
 ## Conventions (Roy's standing rules)
 - Comments explain WHY, not what.
@@ -36,11 +42,14 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
 - `kickoff()` must stay synchronous (no `await` before return); spec section 2 and `imageService.test.js` enforce it.
 
 ## Gotchas
-- Quiz mapping is string-coupled: `mapCareer` matches substrings of the literal option text in `client/src/pages/Onboarding.jsx` (e.g. `'social construct'`, `'people who know'`). Editing option copy silently changes results. Server checks answers are non-empty strings of at most 200 chars (`validateOnboardingAnswers`), but not against the allowed options.
+- Quiz mapping is string-coupled: `mapCareer` matches substrings of the literal option text in `client/src/content.js` (e.g. `'social construct'`, `'people who know'`). Editing option copy silently changes results. Server checks answers are non-empty strings of at most 200 chars (`validateOnboardingAnswers`), but not against the allowed options.
 - `getImageService()` runs inside `initDB().then(...)` in `server/index.js`, so a provider missing its key fails startup via the same catch (logged as "Startup failed ...").
 - `LocalDiskStore` default dir and `IMAGE_CACHE_DIR=./data/image-cache` resolve against `process.cwd()`. Root `npm start` writes to `<repo>/data/` (gitignored as `/data/`), not `server/data/`.
 - Persistence: Render free-tier disk is wiped on redeploy (per `.env.example`), so SQLite DB and disk image cache are lost. Sessions use the in-memory store and die on every restart. Use `IMAGE_STORE=r2` for durable images.
 - `SESSION_SECRET` falls back to a hardcoded dev string in `server/index.js` if unset (production logs a warning but still starts). Set it in every deployed env.
 - `saveDB()` rewrites the whole DB file synchronously on every write.
 - `docs/image-service-spec.md` links to a `.claude/plans/...` file outside the repo (dead link).
-- No client tests; CI runs server tests only.
+- Client tests cover only pure modules (`src/lib`); pages are verified by hand / Playwright with a mocked API, there is no component test setup.
+- `Loading.jsx` snapshots the draft answers once on mount (marked `don't touch`): re-reading storage per render raced the deferred view-transition navigation and bounced users back to /onboarding.
+- The cover export needs CORS on `/api/image/:id` in dev (different origins); `server/index.js` `cors()` covers it. If the canvas is tainted anyway, `renderCoverBlob` retries without the photo.
+- `ImageService` output size is 896x1120 in production (`instance.js` `COVER_SIZE`); the constructor rejects sizes that are not multiples of 32 in [256, 1440].

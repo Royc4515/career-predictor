@@ -1,1 +1,144 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
+/* Self-hosted so the first paint never waits on a third-party font CDN.
+   opsz files carry the optical-size axis: display sizes get the tight,
+   high-contrast cut automatically via font-optical-sizing. */
+@import '@fontsource-variable/newsreader/opsz.css';
+@import '@fontsource-variable/newsreader/opsz-italic.css';
+@import '@fontsource-variable/schibsted-grotesk/wght.css';
+
+/* ── Design tokens ────────────────────────────────────────────────────────
+   Office supplies, because the joke is a corporate career assessment:
+   cool copy paper, blue-black ballpoint ink, and a yellow highlighter, used
+   the way a reviewer marks up a performance review. The highlighter is the
+   only accent and only ever marks something the reader chose or earned.
+   Every text pairing below is WCAG AA (lowest: ink-3 on paper-2, 4.61:1). */
+@theme {
+  --color-paper: #f3f4f1;
+  --color-paper-2: #e8eae5;
+  --color-paper-3: #d9dcd5;
+  --color-ink: #13203a;
+  --color-ink-2: #46506a;
+  --color-ink-3: #5f687c;
+  --color-rule: #c9cdd4;
+  --color-mark: #f6e24a;
+  --color-alert: #b42318;
+
+  --font-serif: 'Newsreader Variable', 'Iowan Old Style', Georgia, serif;
+  --font-sans: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+
+  --ease-press: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    scrollbar-gutter: stable;
+  }
+  body {
+    font-family: var(--font-sans);
+    min-height: 100dvh;
+  }
+  ::selection {
+    background: var(--color-mark);
+    color: var(--color-ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  .font-display {
+    font-family: var(--font-serif);
+    font-optical-sizing: auto;
+    letter-spacing: -0.022em;
+    font-feature-settings: 'kern', 'liga';
+  }
+  /* Small, sentence-case metadata. Deliberately not tracked capitals. */
+  .meta {
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    font-weight: 500;
+    color: var(--color-ink-2);
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  .link-ink {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    transition: text-decoration-color 0.2s;
+  }
+  .link-ink:hover {
+    text-decoration-color: transparent;
+  }
+  /* Highlighter stroke. Uneven corner radii so it reads as a pen mark
+     rather than a UI fill. */
+  .marker {
+    background: var(--color-mark);
+    border-radius: 0.2em 0.5em 0.3em 0.6em / 0.6em 0.3em 0.5em 0.2em;
+  }
+}
+
+/* ── View Transitions between routes ──────────────────────────────────────
+   One short crossfade; the masthead keeps its own name so it stays put. */
+::view-transition-old(root) {
+  animation: 200ms ease-out both vt-out;
+}
+::view-transition-new(root) {
+  animation: 360ms var(--ease-press) 60ms both vt-in;
+}
+@keyframes vt-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ── Darkroom: the portrait develops instead of popping in. This is the
+   result page's one orchestrated moment, so it gets the time. ──────────── */
+@keyframes develop {
+  0% {
+    filter: blur(18px) brightness(1.9) sepia(0.7) contrast(0.6);
+    opacity: 0;
+    transform: scale(1.04);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    filter: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+.develop {
+  animation: develop 2.2s var(--ease-press) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
