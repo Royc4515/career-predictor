@@ -229,6 +229,86 @@ html:is([data-nav='forward'], [data-nav='back'])::view-transition-new(root) {
 
 /* Reduced motion means gentler, not none: movement goes, fades stay, so
    state changes are still visible. */
+/* ── Print shop effects ─────────────────────────────────────────────────── */
+
+/* Misregistered plates: cyan, magenta and yellow copies of the cover type sit
+   off-register and pull into alignment over the print run (loading page).
+   @property makes the offset animatable. */
+@property --mis {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+.misregister {
+  --mis: 0px;
+  animation: register 5.2s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.misregister p,
+.misregister span {
+  text-shadow:
+    var(--mis) 0 rgba(0, 168, 232, 0.75),
+    calc(var(--mis) * -0.8) calc(var(--mis) * 0.5) rgba(232, 49, 127, 0.75),
+    0 calc(var(--mis) * -0.7) rgba(246, 226, 74, 0.7);
+}
+@keyframes register {
+  from {
+    --mis: 9px;
+  }
+  to {
+    --mis: 0px;
+  }
+}
+
+/* Print head: a band of light that sweeps down the sheet on every pass. */
+.print-head {
+  background: linear-gradient(
+    to bottom,
+    rgba(243, 244, 241, 0) 0%,
+    rgba(243, 244, 241, 0.16) 70%,
+    rgba(246, 226, 74, 0.55) 98%,
+    rgba(243, 244, 241, 0) 100%
+  );
+  animation: print-pass 1.3s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+@keyframes print-pass {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(560%);
+  }
+}
+
+/* Barcode scanner: a laser line sweeps the code when the cover is hovered. */
+.barcode-laser {
+  position: absolute;
+  inset-inline: 0;
+  top: -10%;
+  height: 2px;
+  background: #e5322d;
+  box-shadow: 0 0 6px 1px rgba(229, 50, 45, 0.8);
+  opacity: 0;
+}
+@media (hover: hover) {
+  figure:hover .barcode-laser {
+    animation: scan 0.9s cubic-bezier(0.65, 0, 0.35, 1) 2;
+  }
+}
+@keyframes scan {
+  0% {
+    top: 0%;
+    opacity: 1;
+  }
+  50% {
+    top: 70%;
+    opacity: 1;
+  }
+  100% {
+    top: 0%;
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -238,6 +318,11 @@ html:is([data-nav='forward'], [data-nav='back'])::view-transition-new(root) {
   }
   .develop {
     animation: fade-in 300ms ease both !important;
+  }
+  .misregister,
+  .print-head,
+  .barcode-laser {
+    animation: none !important;
   }
   ::view-transition-group(*) {
     animation: none !important;

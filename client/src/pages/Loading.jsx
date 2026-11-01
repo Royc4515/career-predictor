@@ -167,7 +167,7 @@ export default function Loading() {
       <main id="main" className="flex flex-1 items-center px-4 sm:px-8">
         <div className="mx-auto grid w-full max-w-[1240px] items-center gap-12 py-16 lg:grid-cols-12 lg:gap-10">
           <div className="hidden lg:col-span-4 lg:block">
-            <Cover title={headline} imageStatus="pending" deck="Going to print." className="max-w-[320px]" />
+            <Cover title={headline} imageStatus="pending" deck="Going to print." printing className="max-w-[320px]" />
           </div>
 
           <div className="lg:col-span-6 lg:col-start-6">

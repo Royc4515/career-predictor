@@ -4,6 +4,9 @@ import { AnimatePresence, m } from 'motion/react';
 import { useAuth } from '../app/AuthContext';
 import Masthead from '../components/Masthead';
 import Cover from '../components/Cover';
+import TiltCard from '../components/effects/TiltCard';
+import Stamp from '../components/effects/Stamp';
+import Odometer from '../components/effects/Odometer';
 import Footer from '../components/Footer';
 import { useToast } from '../components/Toast';
 import { useImageReady } from '../hooks/useImageReady';
@@ -13,7 +16,7 @@ import { coverFileName } from '../lib/coverLayout';
 import { firstName } from '../lib/issue';
 import { EASE_OUT, rise } from '../lib/motion';
 import { setNavDirection } from '../lib/navDirection';
-import { cachedResult, draftAnswers } from '../lib/storage';
+import { cachedResult, draftAnswers, stampSeen } from '../lib/storage';
 
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 const SAVED_LABEL_MS = 1600;
@@ -80,11 +83,20 @@ export default function Result() {
   const imageStatus = useImageReady(result?.imageUrl);
   const [coverBlob, setCoverBlob] = useState(null);
   const [justSaved, setJustSaved] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+  // Decided once per mount: slam the stamp only the first time this session.
+  const [slam] = useState(() => !(result && stampSeen.has(result.careerTitle)));
   const savedTimer = useRef(null);
   const [toast, showToast] = useToast();
   const name = firstName(user?.name);
 
   useEffect(() => () => clearTimeout(savedTimer.current), []);
+
+  // A cover without a portrait is still finished, so it gets its stamp too.
+  const stamped = revealed || imageStatus === 'failed';
+  useEffect(() => {
+    if (stamped && result) stampSeen.mark(result.careerTitle);
+  }, [stamped, result]);
 
   // Render the cover PNG as soon as the photo settles. Doing it ahead of the
   // click keeps navigator.share() inside the user gesture on iOS Safari,
@@ -211,15 +223,37 @@ export default function Result() {
           {/* Short entrance: the darkroom develop is this page's moment, so
               nothing else should compete with it. */}
           <m.div className="lg:col-span-6" {...rise(10)} transition={{ duration: 0.45, ease: EASE_OUT }}>
-            <div className="lg:sticky lg:top-8">
-              <Cover
-                title={careerTitle}
-                imageUrl={result.imageUrl}
-                imageStatus={imageStatus}
-                personName={name}
-                happiness={stats.happiness}
-                className="mx-auto max-w-[600px]"
-              />
+            <div className="relative mx-auto max-w-[600px] lg:sticky lg:top-8">
+              {/* The stamp's impact nudges the cover, like a desk taking the hit. */}
+              <m.div
+                animate={
+                  stamped && slam
+                    ? {
+                        transform: [
+                          'translateX(0px)',
+                          'translateX(-6px)',
+                          'translateX(4px)',
+                          'translateX(-2px)',
+                          'translateX(0px)',
+                        ],
+                      }
+                    : undefined
+                }
+                transition={{ duration: 0.32, delay: 0.12, ease: 'easeOut' }}
+              >
+                <TiltCard>
+                  <Cover
+                    title={careerTitle}
+                    imageUrl={result.imageUrl}
+                    imageStatus={imageStatus}
+                    personName={name}
+                    happiness={stats.happiness}
+                    reveal="press"
+                    onRevealed={() => setRevealed(true)}
+                  />
+                </TiltCard>
+              </m.div>
+              {stamped && <Stamp play={slam} date={filed} className="absolute top-[38%] -right-2 z-20 sm:-right-10" />}
             </div>
           </m.div>
 
@@ -265,7 +299,11 @@ export default function Result() {
                 <div>
                   <dt className="meta">Happiness index</dt>
                   <dd className="mt-1">
-                    <span className="font-display tabular text-[2.6rem] leading-none">{stats.happiness}</span>
+                    <Odometer
+                      value={stats.happiness}
+                      delay={0.4}
+                      className="font-display tabular text-[2.6rem] leading-none"
+                    />
                     <span> / 100</span>
                   </dd>
                 </div>

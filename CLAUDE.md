@@ -10,6 +10,7 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
   - `src/pages/` Landing, Onboarding (quiz), Loading ("Printing your cover"), Result (cover + report), NotFound. Signed-in pages are lazy routes in `App.jsx`.
   - `src/components/Cover.jsx` + `src/lib/coverCanvas.js` - the magazine cover on screen and as a 1080x1350 PNG; both read proportions from `src/lib/coverLayout.js`, so change sizes there, not in either renderer.
   - `src/lib/api.js` (all server calls), `src/lib/storage.js` (sessionStorage, never throws), `src/hooks/useImageReady.js` (HEAD-polls `/api/image/:id`), `src/content.js` (all copy, quiz options).
+  - `src/components/effects/` - the signature effects, each self-contained with a fallback: `HalftoneReveal` (CMYK halftone press reveal, Paper Shaders WebGL2, lazy chunk), `TiltCard` (pointer tilt + gloss), `Stamp` (rubber stamp slam), `Odometer`, `IssueStack` (scroll-driven back-issue fan), `EffectBoundary` (an effect that throws removes itself, never the page). `hooks/useProximityWeight.js` drives the hero's variable-weight letters. CSS-only effects (CMYK misregistration, print head, barcode laser) live in `index.css` under "Print shop effects". Every effect checks `lib/capabilities.js` (WebGL2, hover) and reduced motion first.
   - Design tokens in `src/index.css` `@theme`: paper / ink / one highlighter (`mark`). Rationale and the review against Anthropic's frontend-design skill: `docs/redesign-plan.md`.
 - `server/` - Express 4 monolith (CommonJS), Passport Google OAuth, express-session (memory store), SQLite via sql.js.
   - `index.js` - entry; waits for `initDB()`, then mounts routes and serves `client/dist` with an SPA catch-all.
@@ -51,6 +52,7 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
 - `SESSION_SECRET` falls back to a hardcoded dev string in `server/index.js` if unset (production logs a warning but still starts). Set it in every deployed env.
 - `saveDB()` rewrites the whole DB file synchronously on every write.
 - `docs/image-service-spec.md` links to a `.claude/plans/...` file outside the repo (dead link).
+- `@paper-design/shaders-react` must stay in `optimizeDeps.include` (`vite.config.js`): if Vite discovers it mid-session it pre-bundles a second React copy and the shader throws "Invalid hook call" (dev only). `HalftoneReveal`'s `size` is calibrated: 1 renders blurry blobs, ~0.55 is the coarsest that still reads as print dots.
 - Client tests cover only pure modules (`src/lib`); pages are verified by hand / Playwright with a mocked API, there is no component test setup.
 - Changing `mapCareer` rules changes which career a given answer set gets (saved results are unaffected, they are stored). `careers.test.js` fails if a title becomes unreachable or a sample answer set stops matching its label; `client/src/content.js` `SAMPLE_TITLES` must list the same titles in the same order as `SAMPLE_ANSWERS`.
 - The quiz step lives in the URL (`/onboarding?q=3`) so browser Back works; `resolveStep` clamps it to the first unanswered question.

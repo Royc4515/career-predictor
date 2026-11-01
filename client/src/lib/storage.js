@@ -54,3 +54,10 @@ export function isResult(value) {
       typeof value.stats === 'object',
   );
 }
+
+// The stamp slams down once per cover per session; after that it is simply
+// there, so a reload doesn't replay the joke.
+export const stampSeen = {
+  has: (title) => read(`cp:stamped:${title}`) === true,
+  mark: (title) => write(`cp:stamped:${title}`, true),
+};

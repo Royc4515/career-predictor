@@ -30,6 +30,12 @@ function preloadDisplayFont() {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), preloadDisplayFont()],
+  // Pre-bundle the shader library with the app's React on first start. If
+  // Vite discovers it mid-session it re-optimizes into a second React copy
+  // and every hook in the shader throws (dev only).
+  optimizeDeps: {
+    include: ['@paper-design/shaders-react'],
+  },
   server: {
     port: 3000,
     proxy: {

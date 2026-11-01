@@ -223,3 +223,25 @@ Declined, with reasons: cropping the Pollinations watermark (removing the
 provider's attribution is not ours to do; an API key removes it properly);
 numerals instead of spelled-out small numbers (editorial style); an animated
 "Cover story" tag on arrival (the auditor itself flagged it as excess).
+
+## 7. Third pass: signature effects
+
+Feedback after the second pass: not enough striking motion. The brief now
+explicitly asks for bolder effects, so this pass spends more of the motion
+budget, still drawn from the concept's own world (printing, magazines, an
+office) rather than generic AI-site effects, and every one has a fallback.
+
+| Effect | Where | How | Fallback |
+|---|---|---|---|
+| Press reveal | Landing specimen, result cover | Paper Shaders `HalftoneCmyk` (WebGL2): the portrait is printed as coarse CMYK dots that tighten until they disappear into the photo | No WebGL2, reduced motion, or a shader error: darkroom fade |
+| Gloss tilt | Landing specimen, result cover | Spring-driven 3D tilt toward the pointer with a soft-light gloss highlight | Touch and reduced motion: flat cover |
+| Variable-weight headline | Landing hero | Newsreader weight axis, letters near the pointer go from 400 to 720; direct style writes in one rAF, no re-renders | Touch and reduced motion: static |
+| Back-issue fan | Landing | Five real sample covers pinned with `position: sticky`, fanned by scroll progress | Reduced motion: shown fanned, not pinned |
+| CMYK misregistration + print head | Loading cover | `@property --mis` animates C, M and Y offsets into register over the print run; a highlighter-yellow print head sweeps the sheet | Reduced motion: aligned, no sweep |
+| Rubber stamp | Result | "APPROVED / NOT CAREER ADVICE" slams down on a stiff spring once the cover is revealed, the cover takes a small impact shake; rough ink edges from an SVG displacement filter; once per cover per session | Reduced motion and repeat visits: already stamped |
+| Odometer | Result happiness index | Digit wheels roll to the value, rightmost last | Reduced motion: static number |
+| Barcode laser | Every cover | A red scanner line sweeps the barcode on hover | Touch: none |
+
+Robustness: effects are wrapped in an error boundary, the shader loads as its
+own chunk (30 KB gzipped) only when a cover prints, and the main bundle grew
+by about 6 KB.

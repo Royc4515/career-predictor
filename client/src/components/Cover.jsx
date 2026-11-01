@@ -1,7 +1,13 @@
-import { useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { COVER, COVER_RATIO, headlineScale } from '../lib/coverLayout';
 import { barcodeBars, issueFor } from '../lib/issue';
+import { supportsWebGL2 } from '../lib/capabilities';
+import EffectBoundary from './effects/EffectBoundary';
+
+// The shader library only loads when a cover actually prints a photo.
+const loadHalftone = () => import('./effects/HalftoneReveal');
+const HalftoneReveal = lazy(loadHalftone);
 
 // Size as a fraction of the cover width, with an optional on-screen floor so
 // small print stays legible on a 300px phone cover. The canvas export is
@@ -24,6 +30,9 @@ export const SAFELIGHT = 'rgba(214, 92, 38, 0.38)';
  * develops in once its bytes have actually decoded), 'failed' (runs without a
  * photo, still complete). specimen: the landing-page sample; no status text.
  * deck: replaces the bottom line (the loading page has no score yet).
+ * reveal: 'press' prints the photo in CMYK halftone first (WebGL2); 'develop'
+ * is the darkroom fade. printing: misregistered plates and a print-head scan
+ * line, for the loading page. onRevealed fires once the photo is fully shown.
  */
 export default function Cover({
   title,
@@ -33,6 +42,9 @@ export default function Cover({
   happiness,
   specimen = false,
   deck = null,
+  reveal = 'develop',
+  printing = false,
+  onRevealed,
   className = '',
 }) {
   const reduce = useReducedMotion();
@@ -43,6 +55,28 @@ export default function Cover({
   const [loadedUrl, setLoadedUrl] = useState(null);
   const wantPhoto = imageStatus === 'ready' && Boolean(imageUrl);
   const loaded = loadedUrl === imageUrl;
+  const imgRef = useRef(null);
+  const [revealedUrl, setRevealedUrl] = useState(null);
+  const press = reveal === 'press' && !reduce && supportsWebGL2();
+  const pressing = press && wantPhoto && loaded && revealedUrl !== imageUrl;
+
+  // Shared by the normal ending and the error fallback: either way the real
+  // photo is shown and the caller hears that the cover is complete.
+  const finishPress = () => {
+    setRevealedUrl(imageUrl);
+    onRevealed?.();
+  };
+
+  // Warm the shader chunk while the portrait is still being generated.
+  useEffect(() => {
+    if (press) loadHalftone();
+  }, [press]);
+
+  // Without the press, the photo counts as revealed once it has decoded.
+  useEffect(() => {
+    if (wantPhoto && loaded && !press) onRevealed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantPhoto, loaded, press]);
 
   // Keep the safelight on until the photo has decoded: HEAD saying "ready"
   // only means the bytes exist, and on a slow connection the download can
@@ -75,6 +109,8 @@ export default function Cover({
 
       {wantPhoto && (
         <img
+          ref={imgRef}
+          crossOrigin="anonymous"
           src={imageUrl}
           alt=""
           width={896}
@@ -82,8 +118,22 @@ export default function Cover({
           fetchPriority="high"
           decoding="async"
           onLoad={() => setLoadedUrl(imageUrl)}
-          className={`absolute inset-0 -z-10 h-full w-full object-cover ${loaded ? 'develop' : 'opacity-0'}`}
+          className={`absolute inset-0 -z-10 h-full w-full object-cover ${
+            !loaded || pressing ? 'opacity-0' : press ? '' : 'develop'
+          }`}
         />
+      )}
+
+      {pressing && (
+        <EffectBoundary onError={finishPress}>
+          <Suspense fallback={null}>
+            <HalftoneReveal image={imgRef.current} onDone={finishPress} />
+          </Suspense>
+        </EffectBoundary>
+      )}
+
+      {printing && !reduce && (
+        <div aria-hidden="true" className="print-head pointer-events-none absolute inset-x-0 top-0 z-10 h-[18%]" />
       )}
 
       {/* Scrims keep paper-colored type legible on any photograph. */}
@@ -96,7 +146,10 @@ export default function Cover({
         className="pointer-events-none absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-black/85 via-black/45 to-transparent"
       />
 
-      <div className="absolute inset-0 flex flex-col" style={{ padding: cqw(COVER.pad) }}>
+      <div
+        className={`absolute inset-0 flex flex-col ${printing ? 'misregister' : ''}`}
+        style={{ padding: cqw(COVER.pad) }}
+      >
         <div>
           <p
             translate="no"
@@ -158,9 +211,10 @@ export default function Cover({
             </p>
             <div
               aria-hidden="true"
-              className="flex shrink-0 flex-col items-center bg-paper px-[1.2cqw] pt-[1cqw] pb-[0.6cqw] text-ink"
+              className="barcode relative flex shrink-0 flex-col items-center overflow-hidden bg-paper px-[1.2cqw] pt-[1cqw] pb-[0.6cqw] text-ink"
               style={{ width: cqw(COVER.barcodeWidth) }}
             >
+              <span className="barcode-laser" />
               <div
                 className="flex w-full items-stretch justify-between"
                 style={{ height: cqw(COVER.barcodeHeight * 0.62) }}

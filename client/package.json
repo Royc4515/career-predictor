@@ -12,6 +12,7 @@
   "dependencies": {
     "@fontsource-variable/newsreader": "^5.3.0",
     "@fontsource-variable/schibsted-grotesk": "^5.3.0",
+    "@paper-design/shaders-react": "0.0.82",
     "motion": "^14.9.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

@@ -7,8 +7,10 @@ import GoogleButton from '../components/GoogleButton';
 import RevealText from '../components/RevealText';
 import Cover from '../components/Cover';
 import Footer from '../components/Footer';
-import { SAMPLE_TITLES } from '../content';
-import { authUrls, fetchSamples } from '../lib/api';
+import TiltCard from '../components/effects/TiltCard';
+import IssueStack from '../components/effects/IssueStack';
+import { authUrls } from '../lib/api';
+import { useSamples } from '../hooks/useSamples';
 import { useImageReady } from '../hooks/useImageReady';
 import { EASE_OUT, rise } from '../lib/motion';
 
@@ -43,25 +45,10 @@ const CORRECTIONS = [
   ],
 ];
 
-function CoverSpecimen() {
-  // Titles render immediately as text-only covers; portraits arrive from
-  // /api/samples. If that call fails the specimen simply stays text-only.
-  const [samples, setSamples] = useState(() => SAMPLE_TITLES.map((title) => ({ title })));
+function CoverSpecimen({ samples }) {
   const [index, setIndex] = useState(0);
   const current = samples[index];
   const status = useImageReady(current.imageUrl);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchSamples().then((fromServer) => {
-      if (cancelled || !fromServer?.length) return;
-      const urls = new Map(fromServer.map((s) => [s.title, s.imageUrl]));
-      setSamples((prev) => prev.map((s) => ({ ...s, imageUrl: urls.get(s.title) })));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   return (
     <div>
@@ -73,7 +60,9 @@ function CoverSpecimen() {
           exit={{ opacity: 0, filter: 'blur(2px)', transition: { duration: 0.15 } }}
           transition={{ duration: 0.3, ease: EASE_OUT }}
         >
-          <Cover title={current.title} imageUrl={current.imageUrl} imageStatus={status} specimen />
+          <TiltCard>
+            <Cover title={current.title} imageUrl={current.imageUrl} imageStatus={status} specimen reveal="press" />
+          </TiltCard>
         </m.div>
       </AnimatePresence>
       <div className="mt-4 flex items-center justify-between gap-4">
@@ -94,6 +83,7 @@ function CoverSpecimen() {
 
 export default function Landing() {
   const { user, loading } = useAuth();
+  const samples = useSamples();
   const navigate = useNavigate();
 
   // A signed-in reader goes straight to their cover; the result page sends
@@ -119,6 +109,7 @@ export default function Landing() {
               text="Your career, predicted with unwarranted confidence."
               className="font-display text-display font-normal text-balance"
               delay={0.1}
+              proximity
             />
 
             <m.p {...enter(0.3)} className="font-display mt-8 max-w-[33rem] text-lede">
@@ -141,9 +132,11 @@ export default function Landing() {
           </div>
 
           <m.div {...enter(0.5)} className="mx-auto w-full max-w-[460px] lg:col-span-5 lg:col-start-8 lg:max-w-none">
-            <CoverSpecimen />
+            <CoverSpecimen samples={samples} />
           </m.div>
         </section>
+
+        <IssueStack samples={samples} />
 
         <section aria-labelledby="how-heading" className="mx-auto max-w-[1240px] border-t border-ink py-16 sm:py-24">
           <h2 id="how-heading" className="font-display text-section">
