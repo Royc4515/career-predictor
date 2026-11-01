@@ -1,12 +1,13 @@
-import { m, useReducedMotion } from 'motion/react';
+import { m } from 'motion/react';
+import { EASE_OUT } from '../lib/motion';
 
 /**
- * Headline that rises line by line from behind a mask, like type being set.
+ * Headline that rises word by word from behind a mask, like type being set.
  * Used once, for the landing page's load sequence. Screen readers get the
  * sentence once via aria-label; the animated spans are hidden from them.
+ * Reduced motion is handled by MotionConfig in App.jsx (fade only).
  */
-export default function RevealText({ text, as: Tag = 'h1', className = '', delay = 0, stagger = 0.04 }) {
-  const reduce = useReducedMotion();
+export default function RevealText({ text, as: Tag = 'h1', className = '', delay = 0, stagger = 0.035 }) {
   const words = text.split(' ');
 
   return (
@@ -19,9 +20,9 @@ export default function RevealText({ text, as: Tag = 'h1', className = '', delay
         >
           <m.span
             className="inline-block"
-            initial={reduce ? false : { y: '105%' }}
-            animate={{ y: 0 }}
-            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: delay + i * stagger }}
+            initial={{ transform: 'translateY(105%)' }}
+            animate={{ transform: 'translateY(0%)' }}
+            transition={{ duration: 0.7, ease: EASE_OUT, delay: delay + i * stagger }}
           >
             {word}
           </m.span>

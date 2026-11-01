@@ -28,7 +28,10 @@ async function request(path, { method = 'GET', body } = {}) {
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    throw new ApiError(res.status, data?.error || `Request failed (${res.status})`);
+    throw new ApiError(
+      res.status,
+      data?.error || `The newsroom returned an error (${res.status}). Try again in a moment.`,
+    );
   }
   return data;
 }
@@ -60,5 +63,16 @@ export async function fetchResult() {
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) return null;
     throw err;
+  }
+}
+
+/** Sample covers for the landing page. Null when unavailable; the page
+ *  falls back to text-only specimens, so this never throws. */
+export async function fetchSamples() {
+  try {
+    const data = await request('/api/samples');
+    return Array.isArray(data?.samples) ? data.samples : null;
+  } catch {
+    return null;
   }
 }

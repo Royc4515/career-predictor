@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { m, useReducedMotion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { useAuth } from '../app/AuthContext';
 import Masthead from '../components/Masthead';
 import Cover from '../components/Cover';
@@ -11,10 +11,12 @@ import { authUrls, fetchResult } from '../lib/api';
 import { renderCoverBlob } from '../lib/coverCanvas';
 import { coverFileName } from '../lib/coverLayout';
 import { firstName } from '../lib/issue';
+import { EASE_OUT, rise } from '../lib/motion';
+import { setNavDirection } from '../lib/navDirection';
 import { cachedResult, draftAnswers } from '../lib/storage';
 
-const EASE = [0.22, 1, 0.36, 1];
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
+const SAVED_LABEL_MS = 1600;
 
 // Derived "analysis" rows. Same formulas as the original report so existing
 // results read the same; clamped so no bar can leave its track.
@@ -54,15 +56,35 @@ function useResult() {
   return { result, error, retry: () => setAttempt((n) => n + 1) };
 }
 
+/** Button label that changes in place instead of jumping between states. */
+function SwapLabel({ text }) {
+  return (
+    <AnimatePresence mode="popLayout" initial={false}>
+      <m.span
+        key={text}
+        initial={{ opacity: 0, transform: 'translateY(6px)', filter: 'blur(2px)' }}
+        animate={{ opacity: 1, transform: 'translateY(0px)', filter: 'blur(0px)' }}
+        exit={{ opacity: 0, transform: 'translateY(-6px)', filter: 'blur(2px)' }}
+        transition={{ duration: 0.18, ease: EASE_OUT }}
+      >
+        {text}
+      </m.span>
+    </AnimatePresence>
+  );
+}
+
 export default function Result() {
   const navigate = useNavigate();
-  const reduce = useReducedMotion();
   const { user } = useAuth();
   const { result, error, retry } = useResult();
   const imageStatus = useImageReady(result?.imageUrl);
   const [coverBlob, setCoverBlob] = useState(null);
+  const [justSaved, setJustSaved] = useState(false);
+  const savedTimer = useRef(null);
   const [toast, showToast] = useToast();
   const name = firstName(user?.name);
+
+  useEffect(() => () => clearTimeout(savedTimer.current), []);
 
   // Render the cover PNG as soon as the photo settles. Doing it ahead of the
   // click keeps navigator.share() inside the user gesture on iOS Safari,
@@ -94,13 +116,17 @@ export default function Result() {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    showToast('Cover downloaded');
-  }, [coverBlob, result, showToast]);
+    // The confirmation lives on the button that was pressed, not in a toast
+    // across the screen.
+    setJustSaved(true);
+    clearTimeout(savedTimer.current);
+    savedTimer.current = setTimeout(() => setJustSaved(false), SAVED_LABEL_MS);
+  }, [coverBlob, result]);
 
   const share = useCallback(async () => {
     if (!result) return;
     const url = window.location.origin;
-    const text = `The forecast desk has spoken. I am "${result.careerTitle}". Get your own cover:`;
+    const text = `The forecast desk has spoken. I am “${result.careerTitle}”. Get your own cover:`;
     try {
       const file = coverBlob ? new File([coverBlob], coverFileName(result.careerTitle), { type: 'image/png' }) : null;
       if (file && navigator.canShare?.({ files: [file] })) {
@@ -112,13 +138,14 @@ export default function Result() {
         showToast('Link copied');
       }
     } catch (err) {
-      if (err?.name !== 'AbortError') showToast('This browser can\u2019t share. Use Download cover instead.');
+      if (err?.name !== 'AbortError') showToast('This browser can’t share. Use Download cover instead.');
     }
   }, [coverBlob, result, showToast]);
 
   const retake = useCallback(() => {
     cachedResult.clear();
     draftAnswers.clear();
+    setNavDirection('back');
     navigate('/onboarding', { viewTransition: true });
   }, [navigate]);
 
@@ -141,13 +168,9 @@ export default function Result() {
           className="mx-auto flex w-full max-w-[40rem] flex-1 flex-col justify-center px-4 py-16"
           role="alert"
         >
-          <h1 className="font-display text-[clamp(2.2rem,5vw,3.4rem)] leading-tight">Your cover didn&rsquo;t load</h1>
-          <p className="mt-5 text-lg text-ink-2">{error}</p>
-          <button
-            type="button"
-            onClick={retry}
-            className="mt-10 min-h-[52px] self-start rounded-[3px] bg-ink px-6 text-paper hover:bg-ink-2"
-          >
+          <h1 className="font-display text-title text-balance">Your cover didn&rsquo;t load</h1>
+          <p className="mt-5 text-lede">{error}</p>
+          <button type="button" onClick={retry} className="btn btn-primary mt-10 self-start">
             Load again
           </button>
         </main>
@@ -161,7 +184,7 @@ export default function Result() {
         {header}
         <main id="main" className="flex flex-1 items-center justify-center">
           <p className="meta animate-pulse" role="status">
-            Loading your cover
+            Loading your cover…
           </p>
         </main>
       </div>
@@ -169,6 +192,14 @@ export default function Result() {
   }
 
   const { careerTitle, caption, stats } = result;
+  const filed = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const downloadLabel = justSaved
+    ? 'Saved to your device'
+    : coverBlob
+      ? 'Download cover'
+      : imageStatus === 'pending'
+        ? 'Developing portrait…'
+        : 'Preparing cover…';
 
   return (
     <div className="min-h-dvh">
@@ -177,12 +208,9 @@ export default function Result() {
 
       <main id="main" className="px-4 sm:px-8">
         <div className="mx-auto grid max-w-[1240px] gap-12 pt-8 pb-20 sm:pt-12 lg:grid-cols-12 lg:gap-10">
-          <m.div
-            className="lg:col-span-5"
-            initial={reduce ? false : { opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: EASE }}
-          >
+          {/* Short entrance: the darkroom develop is this page's moment, so
+              nothing else should compete with it. */}
+          <m.div className="lg:col-span-6" {...rise(10)} transition={{ duration: 0.45, ease: EASE_OUT }}>
             <div className="lg:sticky lg:top-8">
               <Cover
                 title={careerTitle}
@@ -190,98 +218,88 @@ export default function Result() {
                 imageStatus={imageStatus}
                 personName={name}
                 happiness={stats.happiness}
-                className="mx-auto max-w-[520px]"
+                className="mx-auto max-w-[600px]"
               />
             </div>
           </m.div>
 
-          <article className="lg:col-span-6 lg:col-start-7 lg:pt-2">
-            <h1 className="font-display text-[clamp(2.3rem,4.6vw,4.2rem)] leading-[1.02] [text-wrap:balance]">
+          <article className="lg:col-span-5 lg:col-start-8 lg:pt-2">
+            <h1 className="font-display text-[clamp(1.75rem,2.8vw,2.5rem)] leading-[1.1] text-balance">
               {careerTitle}
             </h1>
-            {caption && (
-              <p className="font-display mt-6 max-w-[36rem] text-[1.4rem] leading-[1.45] text-ink-2 italic">
-                {caption}
-              </p>
-            )}
-            <p className="meta mt-6">Forecast for {name || 'you'}. Five answers, one lookup table, one image model.</p>
+            {caption && <p className="font-display mt-5 text-lede italic">{caption}</p>}
+            <p className="meta mt-5">
+              Forecast for {name || 'you'}, filed {filed}.
+            </p>
 
-            <section aria-labelledby="figures-heading" className="mt-12 border-t border-ink pt-6">
-              <h2 id="figures-heading" className="font-display text-[1.6rem]">
-                The figures
-              </h2>
-              <dl className="mt-4 grid divide-rule sm:grid-cols-3 sm:divide-x">
-                <div className="border-b border-rule py-4 sm:border-b-0 sm:pr-6">
-                  <dt className="meta">Happiness index</dt>
-                  <dd className="mt-1">
-                    <span className="font-display tabular text-[2.6rem] leading-none">{stats.happiness}</span>
-                    <span className="text-ink-2"> / 100</span>
-                  </dd>
-                </div>
-                <div className="border-b border-rule py-4 sm:border-b-0 sm:px-6">
-                  <dt className="meta">Salary potential</dt>
-                  <dd className="font-display mt-1 text-[1.4rem] leading-snug">{stats.salary}</dd>
-                </div>
-                <div className="py-4 sm:pl-6">
-                  <dt className="meta">Outlook</dt>
-                  <dd className="font-display mt-1 text-[1.4rem] leading-snug">{stats.outlook}</dd>
-                </div>
-              </dl>
-            </section>
-
-            <section aria-labelledby="analysis-heading" className="mt-10 border-t border-ink pt-6">
-              <h2 id="analysis-heading" className="font-display text-[1.6rem]">
-                Detailed analysis
-              </h2>
-              <ul className="mt-2 divide-y divide-rule">
-                {analysisRows(stats.happiness).map((row) => (
-                  <li
-                    key={row.label}
-                    className="grid grid-cols-[1fr_auto] items-center gap-x-6 gap-y-2 py-4 sm:grid-cols-[13rem_1fr_3rem]"
-                  >
-                    <span className="text-ink-2">{row.label}</span>
-                    <span
-                      className="order-3 col-span-2 h-[3px] bg-paper-3 sm:order-none sm:col-span-1"
-                      aria-hidden="true"
-                    >
-                      <span
-                        className="block h-full origin-left bg-ink"
-                        style={{ transform: `scaleX(${row.value / 100})` }}
-                      />
-                    </span>
-                    <span className="tabular text-right font-medium">{row.value}%</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section aria-label="Actions" className="mt-12 flex flex-wrap items-center gap-3">
+            <section aria-label="Actions" className="mt-8 flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={download}
                 disabled={!coverBlob}
-                className="inline-flex min-h-[52px] items-center rounded-[3px] bg-ink px-6 text-paper transition-colors hover:bg-ink-2 disabled:cursor-wait disabled:opacity-60"
+                className="btn btn-primary min-w-[14rem]"
+                aria-live="polite"
               >
-                {coverBlob ? 'Download cover' : imageStatus === 'pending' ? 'Developing portrait' : 'Preparing cover'}
+                <SwapLabel text={downloadLabel} />
               </button>
-              <button
-                type="button"
-                onClick={share}
-                className="inline-flex min-h-[52px] items-center rounded-[3px] border border-ink px-6 transition-colors hover:bg-paper-2"
-              >
+              <button type="button" onClick={share} className="btn btn-secondary">
                 Share cover
               </button>
-              <button type="button" onClick={retake} className="link-ink ml-2 min-h-[44px] text-ink-2 hover:text-ink">
+              <button type="button" onClick={retake} className="link-ink min-h-[44px] text-ink">
                 Retake the questionnaire
               </button>
             </section>
 
             {imageStatus === 'failed' && (
-              <p className="mt-6 max-w-[36rem] text-sm text-ink-2" role="status">
+              <p className="text-body mt-5" role="status">
                 The portrait couldn&rsquo;t be generated, so the cover is printed without one. Retake the questionnaire
                 later to try again.
               </p>
             )}
+
+            <section aria-labelledby="figures-heading" className="mt-12 border-t border-ink pt-6">
+              <h2 id="figures-heading" className="font-display text-section">
+                The figures
+              </h2>
+              <dl className="mt-5 grid gap-6 bg-paper-2 p-6 sm:grid-cols-[0.8fr_1.1fr_1.1fr] sm:gap-8">
+                <div>
+                  <dt className="meta">Happiness index</dt>
+                  <dd className="mt-1">
+                    <span className="font-display tabular text-[2.6rem] leading-none">{stats.happiness}</span>
+                    <span> / 100</span>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="meta">Salary potential</dt>
+                  <dd className="font-display mt-1 text-[1.3rem] leading-snug">{stats.salary}</dd>
+                </div>
+                <div>
+                  <dt className="meta">Outlook</dt>
+                  <dd className="font-display mt-1 text-[1.3rem] leading-snug">{stats.outlook}</dd>
+                </div>
+              </dl>
+            </section>
+
+            <section aria-labelledby="analysis-heading" className="mt-10 border-t border-ink pt-6">
+              <h2 id="analysis-heading" className="font-display text-section">
+                Detailed analysis
+              </h2>
+              <ul className="mt-4 space-y-5">
+                {analysisRows(stats.happiness).map((row) => (
+                  <li key={row.label}>
+                    <div className="text-body flex items-baseline justify-between gap-4">
+                      <span>{row.label}</span>
+                      <span className="tabular font-medium">{row.value}%</span>
+                    </div>
+                    <span
+                      className="mt-2 block h-[6px] origin-left bg-ink"
+                      style={{ width: `${row.value}%` }}
+                      aria-hidden="true"
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
           </article>
         </div>
       </main>

@@ -1,41 +1,99 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { useAuth } from '../app/AuthContext';
 import Masthead from '../components/Masthead';
 import { QUESTIONS } from '../content';
 import { firstName } from '../lib/issue';
 import { draftAnswers } from '../lib/storage';
+import { EASE_IN_OUT, EASE_OUT } from '../lib/motion';
+import { setNavDirection } from '../lib/navDirection';
 
-const EASE = [0.22, 1, 0.36, 1];
-// Long enough to see the selection land, short enough to feel instant.
-const ADVANCE_DELAY_MS = 420;
+// Long enough to see the highlighter land, short enough to feel immediate.
+const ADVANCE_DELAY_MS = 360;
 const LETTERS = ['A', 'B', 'C', 'D'];
+
+// Variants take the direction at exit time. Inline exit props would be frozen
+// at the last render, so going back would still exit upward.
+const questionMotion = {
+  enter: (d) => ({ opacity: 0, transform: `translateY(${12 * d}px)` }),
+  center: { opacity: 1, transform: 'translateY(0px)' },
+  exit: (d) => ({ opacity: 0, transform: `translateY(${-8 * d}px)`, transition: { duration: 0.15 } }),
+};
 
 function firstUnanswered(answers) {
   const i = QUESTIONS.findIndex((q) => !answers[q.id]);
   return i === -1 ? QUESTIONS.length - 1 : i;
 }
 
+/** Which question to show: the one in ?q= if the reader has earned it. */
+function resolveStep(params, answers) {
+  const furthest = firstUnanswered(answers);
+  const requested = Number.parseInt(params.get('q'), 10) - 1;
+  return Number.isInteger(requested) && requested >= 0 ? Math.min(requested, furthest) : furthest;
+}
+
+function AnswerFile({ answers }) {
+  return (
+    <aside aria-labelledby="file-heading" className="bg-paper-2 p-6">
+      <h2 id="file-heading" className="font-display text-[1.5rem] leading-tight">
+        Your file so far
+      </h2>
+      <dl className="mt-5 space-y-4">
+        {QUESTIONS.map((q) => (
+          <div key={q.id}>
+            <dt className="meta">{q.label}</dt>
+            <dd className="mt-1">
+              {answers[q.id] ? (
+                <span className="font-display marker px-1 text-[1.1rem] leading-snug">{answers[q.id]}</span>
+              ) : (
+                <span className="text-ink-3">Not yet answered</span>
+              )}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </aside>
+  );
+}
+
 export default function Onboarding() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const reduce = useReducedMotion();
+  const [params, setParams] = useSearchParams();
 
   // Resume where the reader left off (reload, or back from a failed submit).
   const [answers, setAnswers] = useState(() => draftAnswers.get());
-  const [step, setStep] = useState(() => firstUnanswered(draftAnswers.get()));
-  const [direction, setDirection] = useState(1);
   const [locked, setLocked] = useState(false);
   const optionRefs = useRef([]);
-  const keyboardUser = useRef(false);
   const advanceTimer = useRef(null);
+  const keyboardUser = useRef(false);
+
+  // The step lives in the URL so the browser's Back button walks back through
+  // the questions instead of leaving the questionnaire.
+  const step = resolveStep(params, answers);
+  const prevStep = useRef(step);
+  const direction = step >= prevStep.current ? 1 : -1;
+  useEffect(() => {
+    prevStep.current = step;
+  });
 
   const current = QUESTIONS[step];
   const selected = answers[current.id];
   const answeredCount = QUESTIONS.filter((q) => answers[q.id]).length;
 
+  // Normalize a missing or out-of-range ?q= without adding a history entry.
+  useEffect(() => {
+    if (params.get('q') !== String(step + 1)) setParams({ q: String(step + 1) }, { replace: true });
+  }, [params, setParams, step]);
+
   useEffect(() => () => clearTimeout(advanceTimer.current), []);
+
+  // Fetch the next page's code while the reader is busy answering.
+  useEffect(() => {
+    import('./Loading');
+  }, []);
 
   const choose = useCallback(
     (option) => {
@@ -48,23 +106,22 @@ export default function Onboarding() {
       advanceTimer.current = setTimeout(() => {
         setLocked(false);
         if (step < QUESTIONS.length - 1) {
-          setDirection(1);
-          setStep(step + 1);
+          setParams({ q: String(step + 2) });
         } else {
+          setNavDirection('forward');
           navigate('/loading', { viewTransition: true });
         }
       }, ADVANCE_DELAY_MS);
     },
-    [answers, current.id, locked, navigate, step],
+    [answers, current.id, locked, navigate, setParams, step],
   );
 
   const goBack = useCallback(() => {
     if (step === 0 || locked) return;
-    setDirection(-1);
-    setStep(step - 1);
-  }, [locked, step]);
+    setParams({ q: String(step) });
+  }, [locked, setParams, step]);
 
-  // Keyboard: 1-4 or A-D answer, Backspace goes back. Ignored while a
+  // Keyboard: A-D or 1-4 answer, Backspace goes back. Ignored while a
   // modifier is held so browser shortcuts keep working.
   useEffect(() => {
     function onKey(e) {
@@ -95,13 +152,13 @@ export default function Onboarding() {
     };
   }, []);
 
-  // Move focus to the chosen (or first) option on each new question so
-  // keyboard and screen-reader users land in the right place. Pointer users
-  // are left alone: a focus ring on load reads as a pre-selected answer.
+  // Land keyboard and screen-reader users on the chosen (or first) option of
+  // each new question. Pointer users are left alone: a focus ring on load
+  // reads as a pre-selected answer.
   useEffect(() => {
     if (!keyboardUser.current) return undefined;
     const i = Math.max(0, current.options.indexOf(selected));
-    const t = setTimeout(() => optionRefs.current[i]?.focus({ preventScroll: true }), reduce ? 0 : 450);
+    const t = setTimeout(() => optionRefs.current[i]?.focus({ preventScroll: true }), reduce ? 0 : 170);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
@@ -150,67 +207,80 @@ export default function Onboarding() {
             <m.div
               className="h-full origin-left bg-ink"
               initial={false}
-              animate={{ scaleX: answeredCount / QUESTIONS.length }}
-              transition={{ duration: 0.6, ease: EASE }}
+              animate={{ transform: `scaleX(${answeredCount / QUESTIONS.length})` }}
+              transition={{ duration: 0.3, ease: EASE_IN_OUT }}
             />
           </div>
 
-          <AnimatePresence mode="wait" custom={direction} initial={false}>
-            <m.div
-              key={current.id}
-              initial={reduce ? false : { opacity: 0, y: 16 * direction }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduce ? undefined : { opacity: 0, y: -10 * direction, transition: { duration: 0.18 } }}
-              transition={{ duration: 0.45, ease: EASE }}
-              className="mt-12 max-w-[56rem] sm:mt-16"
-            >
-              <h1 id={`q-${current.id}`} className="font-display text-[clamp(2.2rem,5.2vw,4.4rem)] leading-[1.04]">
-                {current.question}
-              </h1>
-              <div role="radiogroup" aria-labelledby={`q-${current.id}`} className="mt-10 border-t border-ink">
-                {current.options.map((option, i) => {
-                  const isSelected = selected === option;
-                  return (
-                    <button
-                      key={option}
-                      ref={(el) => (optionRefs.current[i] = el)}
-                      type="button"
-                      role="radio"
-                      aria-checked={isSelected}
-                      tabIndex={isSelected || (!selected && i === 0) ? 0 : -1}
-                      onClick={() => choose(option)}
-                      onKeyDown={(e) => onOptionKeyDown(e, i)}
-                      className="group flex min-h-[68px] w-full items-center gap-5 border-b border-rule py-4 text-left sm:gap-7"
-                    >
-                      <kbd
-                        className={`grid size-8 shrink-0 place-items-center rounded-[3px] border font-sans text-[0.8rem] font-semibold transition-colors ${
-                          isSelected
-                            ? 'border-ink bg-ink text-paper'
-                            : 'border-rule text-ink-2 group-hover:border-ink group-hover:text-ink'
-                        }`}
-                      >
-                        {LETTERS[i]}
-                      </kbd>
-                      <span className="font-display relative text-[clamp(1.3rem,2.4vw,1.9rem)] leading-snug">
-                        {/* Highlighter stroke drawn left to right when chosen: the
-                            motion answers the click and shows what was picked. */}
-                        <m.span
-                          aria-hidden="true"
-                          className="marker absolute -inset-x-[0.2em] inset-y-[0.12em] -z-0 origin-left"
-                          initial={false}
-                          animate={{ scaleX: isSelected ? 1 : 0, opacity: isSelected ? 1 : 0 }}
-                          transition={{ duration: reduce ? 0 : 0.32, ease: EASE }}
-                        />
-                        <span className="relative">{option}</span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </m.div>
-          </AnimatePresence>
+          <div className="mt-12 grid gap-12 sm:mt-16 lg:grid-cols-12 lg:gap-10">
+            <div className="lg:col-span-8">
+              <AnimatePresence mode="wait" custom={direction} initial={false}>
+                <m.div
+                  key={current.id}
+                  custom={direction}
+                  variants={questionMotion}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.28, ease: EASE_OUT }}
+                >
+                  <h1 id={`q-${current.id}`} className="font-display text-title text-balance">
+                    {current.question}
+                  </h1>
+                  <div role="radiogroup" aria-labelledby={`q-${current.id}`} className="mt-10 border-t border-ink">
+                    {current.options.map((option, i) => {
+                      const isSelected = selected === option;
+                      return (
+                        <button
+                          key={option}
+                          ref={(el) => (optionRefs.current[i] = el)}
+                          type="button"
+                          role="radio"
+                          aria-checked={isSelected}
+                          tabIndex={isSelected || (!selected && i === 0) ? 0 : -1}
+                          onClick={() => choose(option)}
+                          onKeyDown={(e) => onOptionKeyDown(e, i)}
+                          className="group -mx-3 flex min-h-[68px] w-[calc(100%+1.5rem)] items-center gap-5 border-b border-rule px-3 py-4 text-left transition-colors duration-150 sm:gap-7 [@media(hover:hover)]:hover:bg-paper-2"
+                        >
+                          <kbd
+                            className={`grid size-8 shrink-0 place-items-center rounded-[3px] border font-sans text-[0.8rem] font-semibold transition-colors ${
+                              isSelected
+                                ? 'border-ink bg-ink text-paper'
+                                : 'border-rule text-ink-2 group-hover:border-ink group-hover:text-ink'
+                            }`}
+                          >
+                            {LETTERS[i]}
+                          </kbd>
+                          <span className="font-display relative text-[clamp(1.3rem,2.4vw,1.9rem)] leading-snug">
+                            {/* Highlighter stroke drawn left to right when chosen. clip-path
+                                keeps the stroke's ragged ends intact; scaleX squashed them. */}
+                            <m.span
+                              aria-hidden="true"
+                              className="marker absolute -inset-x-[0.2em] inset-y-[0.12em]"
+                              initial={false}
+                              animate={
+                                reduce
+                                  ? { opacity: isSelected ? 1 : 0 }
+                                  : { clipPath: isSelected ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)' }
+                              }
+                              transition={{ duration: reduce ? 0.15 : 0.3, ease: EASE_OUT }}
+                            />
+                            <span className="relative">{option}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </m.div>
+              </AnimatePresence>
 
-          <p className="meta mt-6 hidden [@media(pointer:fine)]:block">Keys A to D answer. Backspace goes back.</p>
+              <p className="meta mt-6 hidden [@media(pointer:fine)]:block">Keys A to D answer. Backspace goes back.</p>
+            </div>
+
+            <div className="hidden lg:col-span-4 lg:block">
+              <AnswerFile answers={answers} />
+            </div>
+          </div>
         </div>
       </main>
     </div>

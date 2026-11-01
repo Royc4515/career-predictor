@@ -9,11 +9,11 @@ should be checked before installing.
 | Skill | Source | What it adds | Status |
 |---|---|---|---|
 | frontend-design | `anthropics/skills`, `skills/frontend-design` | Commit to an aesthetic before coding; list of AI-design tells to avoid | Verified, applied (see `redesign-plan.md` section 5) |
-| Web Interface Guidelines | `vercel-labs/agent-skills`, `skills/web-design-guidelines` (rules in `vercel-labs/web-interface-guidelines`) | 100+ concrete rules: focus, forms, motion, touch targets, copy | Verified, used as an audit |
-| react-view-transitions | `vercel-labs/agent-skills`, `skills/react-view-transitions` | Correct View Transition patterns for React and routers | Verified, used as an audit |
-| Emil Kowalski skills | `emilkowalski/skill` (`improve-animations`, `review-animations`, `find-animation-opportunities`, `animation-performance`, `emil-design-eng`) | Easing, duration and origin rules for interface motion | Verified, used as an audit |
-| Impeccable | `pbakaus/impeccable`, site impeccable.style | Brand and product modes, commands such as typeset, colorize, bolder | Verified, used as an audit |
-| Taste Skill | `Leonxlnx/taste-skill` | Layout, type, motion and spacing rules with variance and density dials | Verified, used as an audit |
+| Web Interface Guidelines | `vercel-labs/agent-skills`, `skills/web-design-guidelines` (rules in `vercel-labs/web-interface-guidelines`) | 100+ concrete rules: focus, forms, motion, touch targets, copy | Verified, applied (see `redesign-plan.md` section 6) |
+| react-view-transitions | `vercel-labs/agent-skills`, `skills/react-view-transitions` | Correct View Transition patterns for React and routers | Verified, applied (see `redesign-plan.md` section 6) |
+| Emil Kowalski skills | `emilkowalski/skill` (`improve-animations`, `review-animations`, `find-animation-opportunities`, `animation-performance`, `emil-design-eng`) | Easing, duration and origin rules for interface motion | Verified, applied (see `redesign-plan.md` section 6) |
+| Impeccable | `pbakaus/impeccable`, site impeccable.style | Brand and product modes, commands such as typeset, colorize, bolder | Verified, applied (see `redesign-plan.md` section 6) |
+| Taste Skill | `Leonxlnx/taste-skill` | Layout, type, motion and spacing rules with variance and density dials | Verified, applied (see `redesign-plan.md` section 6) |
 | UI UX Pro Max | various forks | Design-system generator for dashboards and SaaS | Not used: wrong fit for an editorial one-off |
 | designer-skills | `Owl-Listener/designer-skills`, `julianoczkowski/designer-skills` | Full process: discovery, brief, IA, tokens, handoff | Not used here |
 | accesslint | `accesslint/claude-marketplace` | WCAG contrast and semantics checks | Not used; contrast was computed directly instead |

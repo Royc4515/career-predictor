@@ -11,7 +11,7 @@ routes and the `ImageService` contract are kept as they are.
 | Layer | Reality |
 |---|---|
 | Promise on the page | "Proprietary AI analyzes your professional DNA across 847 career trajectories with 99.7% accuracy." |
-| What runs | A hand-written rule table (`mapCareer`) that maps 5 multiple-choice answers to ~40 joke titles, each with a caption, three fake stats and a scene prompt. |
+| What runs | A hand-written rule table (`mapCareer`) that maps 5 multiple-choice answers to 45 joke titles, each with a caption, three fake stats and a scene prompt. |
 | The only real AI | One text-to-image call per career, generated in the background and served from a content-addressed cache. |
 | The joke | Deadpan parody of AI career assessments and LinkedIn self-optimization culture. |
 | The deliverable a user leaves with | A title, a portrait, a screenshot. |
@@ -139,7 +139,8 @@ Client:
 
 Not changed: Google OAuth flow, session/cookie config, SQLite schema,
 `mapCareer` titles, captions, stats and scene prompts, option copy in the quiz
-(string-coupled to `mapCareer`, see CLAUDE.md).
+(string-coupled to `mapCareer`, see CLAUDE.md). The rule *selection* did
+change in the second pass (section 6).
 
 ## 5. Review against Anthropic's frontend-design skill
 
@@ -175,3 +176,50 @@ inspiration collections for editorial typography and scroll work (Locomotive's
 Editorial New showcase, Adoratorio's editorial layout for Mara). No design MCP
 was used; designs were iterated in code with Playwright screenshots at
 1440x900 and 390x844, including a reduced-motion pass.
+
+## 6. Second pass: four published skills as auditors
+
+The skills listed in `design-resources.md` were cloned from GitHub and each
+used as an independent read-only audit of the code and screenshots: Vercel's
+Web Interface Guidelines, Vercel's react-view-transitions, Emil Kowalski's
+animation skills, and Impeccable plus Taste Skill. Every finding was checked
+against the code before acting.
+
+Product bug found while building the sample endpoint: only 13 of the 45
+careers could be reached from the quiz. Tier 1 (field + goal) always matched
+because the client always sends both answers, so 32 hand-written careers were
+dead code. Now each tier proposes its first match and a stable hash of all
+five answers picks one: deterministic, every answer matters, 44 of 45 reachable
+(the 45th is the explicit fallback). A test enumerates all 1,024 answer sets.
+
+Implemented from the audits:
+
+- Interface: quiz step in the URL so browser Back works; one `.btn` system
+  with press feedback; `touch-action: manipulation`; hover more emphatic than
+  rest; curly quotes and ellipses; `text-wrap: balance` on headings;
+  `translate="no"` on the brand; display font preloaded at build time; the
+  cover headline is no longer an `h2` above the page `h1`; error fallback
+  copy says what to do.
+- Layout and type: five-step type scale tokens (`text-display`, `-title`,
+  `-section`, `-lede`, `-body`); running text in full ink; result page leads
+  with a larger cover, a smaller title and the actions above the fold;
+  figures in a tinted field instead of a grid of hairlines; landing hero shows
+  a real sample portrait from `GET /api/samples`; "How it works" as a contents
+  list and the facts as a magazine "Corrections" box; the quiz's empty right
+  column holds "Your file so far" with the chosen answers highlighted; the
+  loading page prints a cover beside the checklist and sets the real headline
+  at the "Setting your headline" step; minimum on-screen sizes for cover small
+  print.
+- Motion: shared easing constants; transforms as `transform` strings so they
+  run on the compositor; the photo develops only after it decodes (safelight
+  stays on until then); loading bar on the Web Animations API (6 renders
+  instead of ~600); quiz exits in the correct direction with tighter timing;
+  highlighter drawn with `clip-path` so its ragged ends survive; toast and
+  button labels swap in place; directional route slides through the quiz flow;
+  masthead pinned during transitions; reduced motion keeps fades instead of
+  removing everything; lighter develop filter.
+
+Declined, with reasons: cropping the Pollinations watermark (removing the
+provider's attribution is not ours to do; an API key removes it properly);
+numerals instead of spelled-out small numbers (editorial style); an animated
+"Cover story" tag on arrival (the auditor itself flagged it as excess).

@@ -4,10 +4,7 @@ import { authUrls } from '../lib/api';
 // this is a plain anchor, not a router Link.
 export default function GoogleButton({ children = 'Sign in with Google', className = '' }) {
   return (
-    <a
-      href={authUrls.google}
-      className={`inline-flex min-h-[52px] items-center gap-3 rounded-[3px] bg-ink px-6 text-[0.95rem] font-medium text-paper transition-colors duration-200 hover:bg-ink-2 ${className}`}
-    >
+    <a href={authUrls.google} className={`btn btn-primary ${className}`}>
       <span className="grid size-6 place-items-center rounded-full bg-paper" aria-hidden="true">
         <svg viewBox="0 0 24 24" className="size-[14px]">
           <path

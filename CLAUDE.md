@@ -3,7 +3,7 @@
 ## What this is
 A satirical 5-question career quiz web app: a Google-signed-in user gets a deterministic joke career title, fake stats and an AI-generated portrait; the audience is TODO(Roy): who is this for (portfolio showcase, friends, LinkedIn audience)?
 
-Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in `server/routes/userRoutes.js`); the only real AI is the text-to-image call.
+Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in `server/careers.js`); the only real AI is the text-to-image call.
 
 ## Stack & layout
 - `client/` - React 19, Vite 6, Tailwind 4, React Router 7 (data router, so `viewTransition` works), Motion via `LazyMotion` + `m.*` (strict: a full `motion.*` throws). Dev server on :3000 proxies `/auth` and `/api` to :5000 (`client/vite.config.js`).
@@ -15,7 +15,9 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
   - `index.js` - entry; waits for `initDB()`, then mounts routes and serves `client/dist` with an SPA catch-all.
   - `db.js` - schema, additive migrations via `addColumnIfMissing` (checks `PRAGMA table_info`), whole-DB `saveDB()` to `server/career-predictor.db`.
   - `userData.js` - pure edge helpers: `profileToUserFields` (Google profile in), `toPublicUser` (whitelist for `/auth/me`), `validateOnboardingAnswers`. Tested in `server/__tests__/`.
-  - `routes/userRoutes.js` - `mapCareer` rule table + `/api/user/onboarding` and `/api/user/result`.
+  - `careers.js` - `mapCareer` rule table (three tiers, each proposes a match, an FNV hash of all five answers picks one; 44 of 45 titles reachable, the 45th is the fallback) + `SAMPLE_ANSWERS` for the landing page. Pure, tested in `__tests__/careers.test.js`.
+  - `routes/userRoutes.js` - `/api/user/onboarding` and `/api/user/result`.
+  - `routes/sampleRoutes.js` - public `GET /api/samples`: the fixed landing-page samples with portrait URLs (kicks off generation, cached). `imageUrl.js` builds absolute image URLs for both routes.
   - `routes/imageRoutes.js` - `GET /api/image/:id` (16-hex id; 404 + `Retry-After: 8` while generating).
   - `services/image/` - `ImageService` orchestrator (sync `kickoff`, in-flight dedup, fallback cascade), `promptBuilder` (seed, SDXL/FLUX dialects, content-hash id), `providers/` (realvisxl, cloudflare, huggingface_flux, together, pollinations), `storage/` (disk, r2), `__tests__/`.
 - `docs/image-service-spec.md` - contract the image pipeline and its tests satisfy.
@@ -23,7 +25,7 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
 - Deploy: Render single service, https://career-predictor-cnvg.onrender.com
 
 ## Commands
-- Server tests: `cd server && npm test` (node:test; runs `server/__tests__/` and `services/image/__tests__/`) - verified, 90/90 pass on Node 22 after `npm install`.
+- Server tests: `cd server && npm test` (node:test; runs `server/__tests__/` and `services/image/__tests__/`) - verified, 98/98 pass on Node 22 after `npm install`.
 - Client tests: `cd client && npm test` (node:test over pure modules in `src/lib/__tests__/`) - verified, 19/19 pass.
 - Client build: `cd client && npx vite build` - verified. CI (`test.yml`) runs server tests, client tests and the client build.
 - Server dev: `cd server && npm install && npm run dev` (nodemon, :5000) - unverified.
@@ -42,7 +44,7 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
 - `kickoff()` must stay synchronous (no `await` before return); spec section 2 and `imageService.test.js` enforce it.
 
 ## Gotchas
-- Quiz mapping is string-coupled: `mapCareer` matches substrings of the literal option text in `client/src/content.js` (e.g. `'social construct'`, `'people who know'`). Editing option copy silently changes results. Server checks answers are non-empty strings of at most 200 chars (`validateOnboardingAnswers`), but not against the allowed options.
+- Quiz mapping is string-coupled: `mapCareer` (`server/careers.js`) matches substrings of the literal option text in `client/src/content.js` (e.g. `'social construct'`, `'people who know'`). Editing option copy silently changes results. Server checks answers are non-empty strings of at most 200 chars (`validateOnboardingAnswers`), but not against the allowed options.
 - `getImageService()` runs inside `initDB().then(...)` in `server/index.js`, so a provider missing its key fails startup via the same catch (logged as "Startup failed ...").
 - `LocalDiskStore` default dir and `IMAGE_CACHE_DIR=./data/image-cache` resolve against `process.cwd()`. Root `npm start` writes to `<repo>/data/` (gitignored as `/data/`), not `server/data/`.
 - Persistence: Render free-tier disk is wiped on redeploy (per `.env.example`), so SQLite DB and disk image cache are lost. Sessions use the in-memory store and die on every restart. Use `IMAGE_STORE=r2` for durable images.
@@ -50,6 +52,8 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
 - `saveDB()` rewrites the whole DB file synchronously on every write.
 - `docs/image-service-spec.md` links to a `.claude/plans/...` file outside the repo (dead link).
 - Client tests cover only pure modules (`src/lib`); pages are verified by hand / Playwright with a mocked API, there is no component test setup.
+- Changing `mapCareer` rules changes which career a given answer set gets (saved results are unaffected, they are stored). `careers.test.js` fails if a title becomes unreachable or a sample answer set stops matching its label; `client/src/content.js` `SAMPLE_TITLES` must list the same titles in the same order as `SAMPLE_ANSWERS`.
+- The quiz step lives in the URL (`/onboarding?q=3`) so browser Back works; `resolveStep` clamps it to the first unanswered question.
 - `Loading.jsx` snapshots the draft answers once on mount (marked `don't touch`): re-reading storage per render raced the deferred view-transition navigation and bounced users back to /onboarding.
 - The cover export needs CORS on `/api/image/:id` in dev (different origins); `server/index.js` `cors()` covers it. If the canvas is tainted anyway, `renderCoverBlob` retries without the photo.
 - `ImageService` output size is 896x1120 in production (`instance.js` `COVER_SIZE`); the constructor rejects sizes that are not multiples of 32 in [256, 1440].

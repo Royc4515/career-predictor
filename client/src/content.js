@@ -7,33 +7,38 @@
 export const QUESTIONS = [
   {
     id: 'strength',
-    question: "What's your biggest work strength?",
+    label: 'Strength',
+    question: 'What’s your biggest work strength?',
     options: ['Strategic thinking', 'Raw creativity', "I just don't quit", 'I know people who know people'],
   },
   {
     id: 'monday_vibe',
+    label: 'Mondays',
     question: 'How do you handle Mondays?',
     options: ['IV drip of coffee', 'Quiet suffering', 'Every day feels the same', 'I genuinely love Mondays (liar)'],
   },
   {
     id: 'coworker_desc',
-    question: 'Coworkers would describe you as...',
+    label: 'Coworkers say',
+    question: 'Coworkers would describe you as…',
     options: ['The reliable one', 'A visionary (probably)', 'Wait, you have coworkers?', 'The one who orders food'],
   },
   {
     id: 'five_year_goal',
+    label: 'Five-year plan',
     question: 'Your five-year plan?',
     options: ['CEO or bust', 'Laptop from a beach', 'To still be employed', 'Plans are a social construct'],
   },
   {
     id: 'desired_field',
+    label: 'Field',
     question: 'What field are you actually targeting?',
     options: ['Tech & Startups', 'Creative Arts & Media', 'Finance & Business', 'I just want to go viral'],
   },
 ];
 
-// Real titles from mapCareer, verbatim. The landing page shows what the
-// product actually outputs instead of invented examples.
+// Real titles from server/careers.js SAMPLE_ANSWERS, same order. Shown
+// immediately as text-only covers; /api/samples then adds the portraits.
 export const SAMPLE_TITLES = [
   'Founder Waiting for Series A That Will Never Come',
   'JIRA Ticket Archaeologist, Legacy Systems Division',
