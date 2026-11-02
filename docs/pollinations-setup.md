@@ -17,7 +17,9 @@ owner can do (they need your Pollinations sign-in and your Render dashboard).
      it (`questPollenOnly` in the API). The key then can never charge money;
      when the free balance runs out the site falls back to the keyless model
      instead of failing.
-   - **Budget (optional):** a pollen cap per key, for the same reason.
+   - **Budget:** leave it empty (unlimited, still free-only with Quest Pollen).
+     Do not enter 0: that is a budget of nothing and every render would fail.
+     A positive cap such as 100 also works.
 4. Copy the key once. It is shown only at creation.
 
 The default model, `tongyi-mai/z-image-turbo`, is not paid-only, so it runs on

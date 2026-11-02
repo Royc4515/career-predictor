@@ -46,3 +46,10 @@ test('maskKey never reveals the middle of a key', () => {
   assert.equal(maskKey(undefined), '(missing)');
   assert.equal(maskKey('sk_1'), '(missing)');
 });
+
+test('a budget of exactly 0 pollen is a failure, not a note (null means unlimited)', () => {
+  const zero = evaluateKey({ ...goodKey, pollenBudget: 0 }, ZIMAGE, 'zimage');
+  assert.equal(zero.ok, false);
+  assert.match(zero.problems.join(), /budget is 0/);
+  assert.equal(evaluateKey({ ...goodKey, pollenBudget: null }, ZIMAGE, 'zimage').ok, true);
+});

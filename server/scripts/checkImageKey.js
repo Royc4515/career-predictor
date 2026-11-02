@@ -47,7 +47,13 @@ function evaluateKey(info, modelEntry, modelId) {
       notes.push(`Model health is currently "${modelEntry.health.status}".`);
     }
   }
-  if (info?.pollenBudget != null) notes.push(`Key budget remaining: ${info.pollenBudget} pollen.`);
+  // null means unlimited; 0 is a real budget of nothing, so every render
+  // would be refused and production would silently use the keyless model.
+  if (info?.pollenBudget === 0) {
+    problems.push('The key budget is 0 pollen, so it cannot generate anything. Clear the budget (unlimited) or set a positive cap.');
+  } else if (info?.pollenBudget != null) {
+    notes.push(`Key budget remaining: ${info.pollenBudget} pollen.`);
+  }
   if (info?.questPollenOnly) notes.push('Spends free Quest Pollen only; it can never charge money.');
   return { ok: problems.length === 0, problems, notes };
 }
