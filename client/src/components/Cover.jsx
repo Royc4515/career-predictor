@@ -57,7 +57,13 @@ export default function Cover({
   const loaded = loadedUrl === imageUrl;
   const imgRef = useRef(null);
   const [revealedUrl, setRevealedUrl] = useState(null);
-  const press = reveal === 'press' && !reduce && supportsWebGL2();
+  // Only our own image route promises CORS headers. Legacy rows can point at
+  // a third-party CDN; requesting those in CORS mode would fail outright if
+  // the host stopped sending the header, so they load plainly and skip the
+  // press (WebGL needs a CORS-clean texture). The PNG export already retries
+  // without the photo when a canvas is tainted.
+  const corsSafe = Boolean(imageUrl?.includes('/api/image/'));
+  const press = reveal === 'press' && corsSafe && !reduce && supportsWebGL2();
   const pressing = press && wantPhoto && loaded && revealedUrl !== imageUrl;
 
   // Shared by the normal ending and the error fallback: either way the real
@@ -110,7 +116,7 @@ export default function Cover({
       {wantPhoto && (
         <img
           ref={imgRef}
-          crossOrigin="anonymous"
+          crossOrigin={corsSafe ? 'anonymous' : undefined}
           src={imageUrl}
           alt=""
           width={896}
