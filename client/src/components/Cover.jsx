@@ -53,7 +53,13 @@ export default function Cover({
   // Tracks which URL has decoded rather than a boolean, so a new photo starts
   // undeveloped without an effect that could race a cached image's onLoad.
   const [loadedUrl, setLoadedUrl] = useState(null);
-  const wantPhoto = imageStatus === 'ready' && Boolean(imageUrl);
+  // HEAD saying "ready" does not guarantee the GET succeeds (dropped
+  // connection, proxy error). A failed download settles the cover as
+  // photo-less instead of leaving it dark with nothing happening.
+  const [failedUrl, setFailedUrl] = useState(null);
+  const photoFailed = failedUrl === imageUrl;
+  const status = photoFailed ? 'failed' : imageStatus;
+  const wantPhoto = status === 'ready' && Boolean(imageUrl);
   const loaded = loadedUrl === imageUrl;
   const imgRef = useRef(null);
   const [revealedUrl, setRevealedUrl] = useState(null);
@@ -88,7 +94,7 @@ export default function Cover({
   // only means the bytes exist, and on a slow connection the download can
   // outlast the develop animation.
   const darkroom = !(wantPhoto && loaded);
-  const breathing = imageStatus === 'pending' && !specimen && !reduce;
+  const breathing = status === 'pending' && !specimen && !reduce;
 
   return (
     <figure
@@ -104,9 +110,7 @@ export default function Cover({
             className="absolute inset-0 -z-10"
             style={{ background: `radial-gradient(60% 45% at 50% 56%, ${SAFELIGHT}, rgba(214,92,38,0) 70%)` }}
             initial={{ opacity: 1 }}
-            animate={
-              breathing ? { opacity: [0.5, 1, 0.5] } : { opacity: imageStatus === 'failed' && !specimen ? 0.35 : 1 }
-            }
+            animate={breathing ? { opacity: [0.5, 1, 0.5] } : { opacity: status === 'failed' && !specimen ? 0.35 : 1 }}
             exit={{ opacity: 0, transition: { duration: 0.6 } }}
             transition={breathing ? { duration: 3.2, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.6 }}
           />
@@ -124,6 +128,12 @@ export default function Cover({
           fetchPriority="high"
           decoding="async"
           onLoad={() => setLoadedUrl(imageUrl)}
+          onError={() => {
+            setFailedUrl(imageUrl);
+            // The cover is complete without its photo; let the page move on
+            // (the result page stamps it, the export renders photo-less).
+            onRevealed?.();
+          }}
           className={`absolute inset-0 -z-10 h-full w-full object-cover ${
             !loaded || pressing ? 'opacity-0' : press ? '' : 'develop'
           }`}
