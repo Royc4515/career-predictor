@@ -1,70 +1,107 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const { mapCareer, SAMPLE_ANSWERS, sampleCareers } = require('../careers');
+const { mapCareer, CAREERS, FALLBACK, SAMPLE_ANSWERS, answersFromIds, sampleCareers } = require('../careers');
+const { QUESTIONS, QUESTION_IDS, optionIdFor } = require('../quiz');
 
-// The option strings the client sends (client/src/content.js). Kept in sync by
-// hand on purpose: if the client copy changes, these tests should be updated
-// in the same change, which is the point of the string coupling warning.
-const OPTIONS = [
-  ['Strategic thinking', 'Raw creativity', "I just don't quit", 'I know people who know people'],
-  ['IV drip of coffee', 'Quiet suffering', 'Every day feels the same', 'I genuinely love Mondays (liar)'],
-  ['The reliable one', 'A visionary (probably)', 'Wait, you have coworkers?', 'The one who orders food'],
-  ['CEO or bust', 'Laptop from a beach', 'To still be employed', 'Plans are a social construct'],
-  ['Tech & Startups', 'Creative Arts & Media', 'Finance & Business', 'I just want to go viral'],
-];
-
+// Every possible submission: 4^5 = 1,024 answer sets, as the text the client sends.
 function* allAnswerSets() {
-  for (const a of OPTIONS[0]) for (const b of OPTIONS[1]) for (const c of OPTIONS[2])
-    for (const d of OPTIONS[3]) for (const e of OPTIONS[4]) yield [a, b, c, d, e];
+  function* rec(i, acc) {
+    if (i === QUESTIONS.length) {
+      yield { ...acc };
+      return;
+    }
+    for (const option of QUESTIONS[i].options) yield* rec(i + 1, { ...acc, [QUESTIONS[i].id]: option.text });
+  }
+  yield* rec(0, {});
 }
 
-const FALLBACK = 'Professional Human Being (Specialization Pending)';
+function tally() {
+  const counts = new Map(CAREERS.map((c) => [c.title, 0]));
+  let total = 0;
+  for (const answers of allAnswerSets()) {
+    const { title } = mapCareer(answers);
+    counts.set(title, (counts.get(title) ?? 0) + 1);
+    total += 1;
+  }
+  return { counts, total };
+}
 
-test('every career except the safety fallback is reachable from the quiz', () => {
-  const reached = new Set();
-  for (const answers of allAnswerSets()) reached.add(mapCareer(...answers).title);
-  const src = fs.readFileSync(path.join(__dirname, '..', 'careers.js'), 'utf8');
-  const declared = new Set([...src.matchAll(/title: (['"])((?:\\.|(?!\1).)*)\1/g)].map((m) => m[2].replace(/\\'/g, "'")));
-  const unreachable = [...declared].filter((t) => !reached.has(t));
-  assert.deepEqual(unreachable, [FALLBACK]);
+test('every career in the table is reachable from the quiz', () => {
+  const { counts } = tally();
+  const unreachable = [...counts].filter(([, n]) => n === 0).map(([t]) => t);
+  assert.deepEqual(unreachable, []);
+  assert.equal(counts.has(FALLBACK.title), false, 'valid answers never fall back');
 });
 
-test('the mapping is deterministic: same answers, same career', () => {
-  for (const answers of allAnswerSets()) {
-    assert.equal(mapCareer(...answers).title, mapCareer(...answers).title);
+test('no career is picked for more than 4% or fewer than 1% of all answer sets', () => {
+  const { counts, total } = tally();
+  for (const [title, n] of counts) {
+    assert.ok(n / total <= 0.04, `${title}: ${n}/${total}`);
+    assert.ok(n / total >= 0.01, `${title}: ${n}/${total}`);
   }
 });
 
-test('no single career dominates the 1,024 possible answer sets', () => {
-  const counts = new Map();
+test('the field answer picks the shelf: a career always belongs to the chosen field', () => {
+  const fieldOf = new Map(CAREERS.map((c) => [c.title, c.field]));
   for (const answers of allAnswerSets()) {
-    const t = mapCareer(...answers).title;
-    counts.set(t, (counts.get(t) || 0) + 1);
+    assert.equal(fieldOf.get(mapCareer(answers).title), optionIdFor('desired_field', answers.desired_field));
   }
-  // Before the tier fix one title owned 1/16 of all inputs and 32 had none.
-  assert.ok(Math.max(...counts.values()) <= 100);
 });
 
-test('every career carries the fields the result page and image service need', () => {
+test('evidence quotes two of the user\'s own answers', () => {
   for (const answers of allAnswerSets()) {
-    const c = mapCareer(...answers);
+    const { evidence } = mapCareer(answers);
+    assert.equal(evidence.length, 2);
+    assert.equal(new Set(evidence).size, 2);
+    for (const quote of evidence) assert.ok(Object.values(answers).includes(quote), quote);
+  }
+});
+
+test('the mapping is deterministic: same answers, same career and evidence', () => {
+  for (const answers of allAnswerSets()) assert.deepEqual(mapCareer(answers), mapCareer(answers));
+});
+
+test('the table is well formed', () => {
+  const titles = CAREERS.map((c) => c.title);
+  assert.equal(new Set(titles).size, titles.length, 'titles are unique');
+  for (const key of ['salary', 'outlook', 'caption', 'prompt']) {
+    const values = CAREERS.map((c) => c[key]);
+    assert.equal(new Set(values).size, values.length, `${key} lines are unique`);
+  }
+  const cueIds = new Set(
+    QUESTIONS.filter((q) => q.id !== 'desired_field').flatMap((q) => q.options.map((o) => o.id)),
+  );
+  const fields = new Map();
+  for (const c of [...CAREERS, FALLBACK]) {
     for (const key of ['title', 'prompt', 'caption', 'salary', 'outlook']) {
-      assert.equal(typeof c[key], 'string', key);
-      assert.ok(c[key].length > 0, key);
+      assert.equal(typeof c[key], 'string', `${c.title} ${key}`);
+      assert.ok(c[key].length > 0, `${c.title} ${key}`);
     }
-    assert.ok(Number.isInteger(c.happiness) && c.happiness >= 0 && c.happiness <= 100);
+    assert.ok(Number.isInteger(c.happiness) && c.happiness >= 0 && c.happiness <= 100, c.title);
+    if (c === FALLBACK) continue;
+    assert.equal(c.cues.length, 2, c.title);
+    for (const cue of c.cues) assert.ok(cueIds.has(cue), `${c.title}: unknown cue ${cue}`);
+    fields.set(c.field, (fields.get(c.field) ?? 0) + 1);
   }
+  assert.deepEqual([...fields.values()], [10, 10, 10, 10], 'ten careers per field');
 });
 
-test('missing desired_field (older clients) still maps to a career', () => {
-  assert.ok(mapCareer('Raw creativity', 'Quiet suffering', 'The reliable one', 'CEO or bust', undefined).title);
+test('routing data stays server-side: results carry no field or cues', () => {
+  const result = mapCareer(answersFromIds(SAMPLE_ANSWERS[0][1]));
+  assert.equal('field' in result, false);
+  assert.equal('cues' in result, false);
+});
+
+test('unresolvable answers fall back instead of throwing', () => {
+  assert.equal(mapCareer(undefined).title, FALLBACK.title);
+  assert.equal(mapCareer({ strength: 'Strategic thinking' }).title, FALLBACK.title);
+  assert.deepEqual(mapCareer({}).evidence, []);
 });
 
 test('each landing-page sample answer set produces the title it is labeled with', () => {
-  for (const [title, answers] of SAMPLE_ANSWERS) {
-    assert.equal(mapCareer(...answers).title, title);
+  for (const [title, ids] of SAMPLE_ANSWERS) {
+    assert.equal(ids.length, QUESTION_IDS.length);
+    assert.equal(mapCareer(answersFromIds(ids)).title, title);
   }
   const titles = sampleCareers().map((c) => c.title);
   assert.equal(new Set(titles).size, titles.length, 'samples must be distinct');

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, m } from 'motion/react';
 import { useAuth } from '../app/AuthContext';
@@ -204,6 +204,8 @@ export default function Result() {
   }
 
   const { careerTitle, caption, stats } = result;
+  // Results saved before the quiz redesign (and old cached ones) have none.
+  const evidence = Array.isArray(result.evidence) ? result.evidence.filter((q) => typeof q === 'string') : [];
   const filed = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const downloadLabel = justSaved
     ? 'Saved to your device'
@@ -246,6 +248,18 @@ export default function Result() {
             <p className="meta mt-5">
               Forecast for {name || 'you'}, filed {filed}.
             </p>
+            {evidence.length > 0 && (
+              <p className="meta mt-2">
+                Evidence on file:{' '}
+                {evidence.map((quote, i) => (
+                  <Fragment key={quote}>
+                    {i > 0 && ' and '}
+                    <span className="text-ink">&ldquo;{quote}&rdquo;</span>
+                  </Fragment>
+                ))}
+                .
+              </p>
+            )}
             <Stamp ready={stamped} play={slam} className="mt-4 ml-1" />
 
             <section aria-label="Actions" className="mt-8 flex flex-wrap items-center gap-3">

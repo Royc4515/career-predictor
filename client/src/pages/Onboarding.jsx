@@ -6,6 +6,7 @@ import Masthead from '../components/Masthead';
 import { QUESTIONS } from '../content';
 import { firstName } from '../lib/issue';
 import { draftAnswers } from '../lib/storage';
+import { currentAnswers } from '../lib/quiz';
 import { EASE_IN_OUT, EASE_OUT } from '../lib/motion';
 import { setNavDirection } from '../lib/navDirection';
 
@@ -64,7 +65,8 @@ export default function Onboarding() {
   const [params, setParams] = useSearchParams();
 
   // Resume where the reader left off (reload, or back from a failed submit).
-  const [answers, setAnswers] = useState(() => draftAnswers.get());
+  // Stale answers from an older questionnaire are dropped, not resumed.
+  const [answers, setAnswers] = useState(() => currentAnswers(draftAnswers.get()));
   const [locked, setLocked] = useState(false);
   const optionRefs = useRef([]);
   const advanceTimer = useRef(null);

@@ -18,11 +18,11 @@ import { EASE_OUT, rise } from '../lib/motion';
 const STEPS = [
   {
     title: 'Answer five questions',
-    body: 'Your strengths, your Mondays, your five-year plan. Honest answers are optional; the outcome is equally scientific either way.',
+    body: 'A dead laptop before a demo, your Mondays, your open tabs. Honest answers are optional; the outcome is equally scientific either way.',
   },
   {
     title: 'The desk consults its table',
-    body: 'Forty-four possible futures, each one typed by hand, and all five of your answers have a say in which one you get. No model is asked for an opinion.',
+    body: 'Forty possible futures, each one typed by hand. Your open tabs pick the shelf, your other answers pick the title, and the report quotes the evidence. No model is asked for an opinion.',
   },
   {
     title: 'You make the cover',

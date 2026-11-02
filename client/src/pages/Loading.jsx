@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Masthead from '../components/Masthead';
 import Cover from '../components/Cover';
-import { PRESS_STEPS, QUESTIONS } from '../content';
+import { PRESS_STEPS } from '../content';
 import { submitAnswers } from '../lib/api';
 import { cachedResult, draftAnswers } from '../lib/storage';
 import { setNavDirection } from '../lib/navDirection';
+import { currentAnswers, isComplete } from '../lib/quiz';
 
 // The server answers in milliseconds; the pause is part of the bit. It is
 // kept short enough that nobody waits on purpose for longer than a joke.
@@ -13,11 +14,6 @@ const MIN_DURATION_MS = 5200;
 const STEP_MS = MIN_DURATION_MS / PRESS_STEPS.length;
 // The headline appears on the cover at this step ("Setting your headline").
 const HEADLINE_STEP = PRESS_STEPS.length - 2;
-
-function hasRequiredAnswers(answers) {
-  // desired_field is optional server-side (validateOnboardingAnswers).
-  return QUESTIONS.filter((q) => q.id !== 'desired_field').every((q) => answers[q.id]);
-}
 
 function StepMark({ state }) {
   if (state === 'done') {
@@ -50,8 +46,8 @@ export default function Loading() {
   // draft being cleared on success flip `ready` to false while the deferred
   // view-transition navigation was still pending, which bounced the reader
   // back to /onboarding instead of /result.
-  const [answers] = useState(() => draftAnswers.get());
-  const ready = hasRequiredAnswers(answers);
+  const [answers] = useState(() => currentAnswers(draftAnswers.get()));
+  const ready = isComplete(answers);
 
   useEffect(() => {
     if (!ready) navigate('/onboarding', { replace: true });
