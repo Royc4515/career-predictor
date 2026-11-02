@@ -61,13 +61,16 @@ initDB().then(() => {
   // --- Routes ---
   const userRoutes = require('./routes/userRoutes');
   const { createImageRouter } = require('./routes/imageRoutes');
+  const { createSampleRouter } = require('./routes/sampleRoutes');
   const { getImageService } = require('./services/image/instance');
   app.use('/auth', authRoutes);
   app.use('/api/user', userRoutes);
   app.use(createImageRouter(getImageService()));
+  app.use(createSampleRouter(getImageService()));
   console.log('[SERVER] Auth routes mounted at /auth');
   console.log('[SERVER] User routes mounted at /api/user');
   console.log('[SERVER] Image route mounted at /api/image/:id');
+  console.log('[SERVER] Sample route mounted at /api/samples');
 
   // Health check
   app.get('/api/health', (req, res) => {

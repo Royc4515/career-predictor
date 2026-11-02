@@ -67,3 +67,15 @@ test('negative prompts are non-empty strings', () => {
   assert.equal(typeof promptBuilder.NEGATIVE_PROMPT_FLUX, 'string');
   assert.ok(promptBuilder.NEGATIVE_PROMPT_FLUX.length > 0);
 });
+
+test('enrichment tells modern models to keep lettering out of the image', () => {
+  assert.match(promptBuilder.enrichForFLUX('a scene'), /No text/);
+  assert.match(promptBuilder.NEGATIVE_PROMPT_SDXL, /\btext\b/);
+  assert.match(promptBuilder.NEGATIVE_PROMPT_FLUX, /\btext\b/);
+});
+
+test('enrichment no longer carries 2023-era quality tag soup', () => {
+  for (const out of [promptBuilder.enrichForFLUX('s'), promptBuilder.enrichForSDXL('s')]) {
+    assert.doesNotMatch(out, /8K|award-winning|hyperdetailed/i);
+  }
+});

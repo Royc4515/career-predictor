@@ -1,5 +1,21 @@
+const DEFAULT_SIZE = Object.freeze({ width: 768, height: 768 });
+
+// Every provider in the chain has its own limits (FLUX.1.1 pro: multiples of
+// 32, MAI: multiples of 16 and >= 768). Reject sizes no provider is guaranteed
+// to accept at construction time instead of failing one provider at a time.
+function validateSize(size) {
+  const { width, height } = size || {};
+  const ok = (n) => Number.isInteger(n) && n >= 256 && n <= 1440 && n % 32 === 0;
+  if (!ok(width) || !ok(height)) {
+    throw new Error(`size must have integer width/height in [256, 1440] divisible by 32, got ${JSON.stringify(size)}`);
+  }
+  return Object.freeze({ width, height });
+}
+
 class ImageService {
-  constructor({ providers, blobStore, promptBuilder, logger = console }) {
+  // size is optional so the spec default (768x768) still holds for callers that
+  // don't care; production passes a 4:5 portrait for the magazine-cover layout.
+  constructor({ providers, blobStore, promptBuilder, logger = console, size = DEFAULT_SIZE }) {
     if (!Array.isArray(providers)) throw new Error('providers must be an array');
     if (!blobStore) throw new Error('blobStore required');
     if (!promptBuilder) throw new Error('promptBuilder required');
@@ -9,6 +25,7 @@ class ImageService {
     this.blobStore = blobStore;
     this.promptBuilder = promptBuilder;
     this.logger = logger;
+    this.size = validateSize(size);
     this.inFlight = new Map();
   }
 
@@ -48,8 +65,8 @@ class ImageService {
             ? this.promptBuilder.enrichForSDXL(scenePrompt)
             : this.promptBuilder.enrichForFLUX(scenePrompt),
           seed,
-          width: 768,
-          height: 768,
+          width: this.size.width,
+          height: this.size.height,
           negativePrompt: dialect === 'sdxl'
             ? this.promptBuilder.NEGATIVE_PROMPT_SDXL
             : this.promptBuilder.NEGATIVE_PROMPT_FLUX,
@@ -67,4 +84,4 @@ class ImageService {
   }
 }
 
-module.exports = { ImageService };
+module.exports = { ImageService, DEFAULT_SIZE };

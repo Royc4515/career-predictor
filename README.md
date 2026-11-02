@@ -4,7 +4,7 @@
 
 **CareerPredict AI** runs your professional DNA through 847 career trajectories, cross-references the Quantum Personality Matrix™, and delivers the career destiny you truly deserve - complete with a fake happiness score, a dubious salary projection, and an AI-generated portrait of your future self.
 
-Answer 5 questions. Watch the analysis. Discover you're a *JIRA Ticket Archaeologist, Legacy Systems Division.*
+Answer 5 questions. Watch the analysis. Land on the cover of *The Forecast* as a *JIRA Ticket Archaeologist, Legacy Systems Division.*
 
 ---
 
@@ -23,19 +23,23 @@ Answer 5 questions. Watch the analysis. Discover you're a *JIRA Ticket Archaeolo
     <td width="50%"><img src="screenshots/quiz.png" alt="Quiz" /></td>
   </tr>
   <tr>
-    <td align="center"><sub><em>Discover Your True Career Destiny™</em></sub></td>
-    <td align="center"><sub><em>The questions are hard. The answers are harder.</em></sub></td>
+    <td align="center"><sub><em>The front page. The sample cover cycles through real headlines.</em></sub></td>
+    <td align="center"><sub><em>Keyboard-first. A highlighter marks your answer.</em></sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="screenshots/loading.png" alt="AI Analysis in Progress" /></td>
+    <td width="50%"><img src="screenshots/loading.png" alt="Printing your cover" /></td>
     <td width="50%">
       <img src="screenshots/result.png" alt="Career Result" />
       <img src="screenshots/result-stats.png" alt="Career Stats" />
     </td>
   </tr>
   <tr>
-    <td align="center"><sub><em>823 trajectories · 13,911 data points · Please do not close this window.</em></sub></td>
-    <td align="center"><sub><em>JIRA Ticket Archaeologist · 34/100 happiness · Stable but soul-crushing.</em></sub></td>
+    <td align="center"><sub><em>Printing your cover. The fact-check is skipped.</em></sub></td>
+    <td align="center"><sub><em>JIRA Ticket Archaeologist, 34/100 happiness, stable but soul-crushing.</em></sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="screenshots/cover-export.png" alt="Downloaded cover PNG" /></td>
+    <td width="50%" valign="middle"><sub><em>The downloaded cover (1080x1350 PNG). Portraits in these screenshots come from the keyless endpoint ("sana", watermarked); set <code>POLLINATIONS_API_KEY</code> for current models.</em></sub></td>
   </tr>
 </table>
 
@@ -47,26 +51,27 @@ Answer 5 questions. Watch the analysis. Discover you're a *JIRA Ticket Archaeolo
 |------|-------------|
 | 1 | Sign in with Google |
 | 2 | Answer 5 personality questions |
-| 3 | Watch the AI "analyze" you (97% confidence, 100% fiction) |
-| 4 | Receive your career destiny + AI-generated portrait |
-| 5 | Share it, download it, or try again in denial |
+| 3 | Watch your cover go to print (the steps are real; the analysis is not) |
+| 4 | Get a magazine cover: your career headline, an AI-generated portrait that "develops" like a darkroom print, and fake figures |
+| 5 | Download the composed cover as a PNG, share it from your phone, or retake in denial |
 
 **Sample career results:**
 - *Founder Waiting for Series A That Will Never Come*
 - *JIRA Ticket Archaeologist, Legacy Systems Division*
-- *Chief Vibes Officer at Startup with 6 Months of Runway*
-- *Professional LinkedIn Thought Leader (No One Reads)*
+- *Chief Vibes Officer at a Company of One*
+- *Senior Falafel Architect, Tel Aviv District*
 
 ---
 
 ## Features
 
 - **Google OAuth** - one-click sign in, no passwords
-- **5-question quiz** - powered by Quantum Personality Matrix™ v3.2
-- **Fake AI loading screen** - 823+ trajectories analyzed in real time (trust us)
+- **5-question quiz** - keyboard-first (A-D, Backspace), a highlighter stroke marks your answer, progress survives a reload
+- **Magazine cover result** - one composition rendered on screen (CSS container units) and to a 1080x1350 PNG (canvas) from shared layout constants, so the download matches what you see
 - **AI-generated portrait** via a **swappable provider chain** - primary is HuggingFace [RealVisXL V4.0](https://huggingface.co/SG161222/RealVisXL_V4.0) (a portrait-tuned SDXL fine-tune), fallbacks cascade through Cloudflare Workers AI, HuggingFace FLUX.1-schnell, Together.ai, and [Pollinations.ai](https://pollinations.ai). All fully free. Deterministic seed per career title, dialect-aware prompt engineering (SDXL tags vs FLUX prose), negative-prompt artifact suppression. Switch providers via one env var.
 - **Career stats** - happiness score, salary potential, career outlook, DNA match breakdown
-- **Shareable results** - native share API, clipboard copy, and image download
+- **Shareable results** - Web Share with the cover file on mobile, clipboard fallback, PNG download
+- **Design** - office-supplies palette (copy paper, ballpoint ink, one highlighter), Newsreader + Schibsted Grotesk self-hosted, View Transitions between routes, reduced-motion respected, every text color WCAG AA. Rationale in [`docs/redesign-plan.md`](docs/redesign-plan.md)
 
 ---
 
@@ -74,13 +79,13 @@ Answer 5 questions. Watch the analysis. Discover you're a *JIRA Ticket Archaeolo
 
 | Layer | Tech |
 |-------|------|
-| Frontend | React 19 · Vite 6 · Tailwind CSS 4 · React Router 7 |
+| Frontend | React 19 · Vite 6 · Tailwind CSS 4 · React Router 7 (data router, View Transitions) · Motion (LazyMotion) |
 | Backend | Node.js 20+ · Express 4 (single monolith, serves API + built SPA) |
 | Auth | Google OAuth 2.0 via Passport.js · express-session (server-side sessions) |
 | Database | SQLite in-process via sql.js (WASM, file-backed) |
-| Image Gen | Env-driven fallback chain (`IMAGE_PROVIDER_CHAIN`): RealVisXL V4 (Hugging Face) → FLUX.1-schnell (Cloudflare Workers AI) → FLUX.1-schnell (Hugging Face) → FLUX.1-schnell (Together AI) → Pollinations `flux-realism`. Default: Pollinations only (no API key needed) |
+| Image Gen | Env-driven fallback chain (`IMAGE_PROVIDER_CHAIN`). Recommended: Pollinations API with a key (`tongyi-mai/z-image-turbo` by default, any model via `POLLINATIONS_IMAGE_MODEL`) and Cloudflare FLUX.2 [klein] 9B. Also available: RealVisXL V4, FLUX.1-schnell (Cloudflare, Hugging Face, Together). Zero-config default: keyless Pollinations |
 | Image Storage | Pluggable `BlobStore`: local disk (dev) or Cloudflare R2 via AWS S3 SDK (prod) |
-| Testing & CI | `node:test` (server image pipeline) · GitHub Actions on push/PR |
+| Testing & CI | `node:test` for server and for pure client modules · GitHub Actions runs both plus the production build |
 | Hosting | Render (single web service) · GitHub Actions keep-alive ping every 14 min |
 
 ---
@@ -119,16 +124,23 @@ NODE_ENV=development
 
 The OAuth callback URL is built from `SERVER_URL` as `${SERVER_URL}/auth/google/callback`. In Google Cloud Console → **Authorized redirect URIs**, add `http://localhost:5000/auth/google/callback`.
 
-Run the server test suite with `cd server && npm test` (`node:test`, no extra deps).
+Run the test suites with `cd server && npm test` and `cd client && npm test` (`node:test`, no extra deps).
 
 ### Image generation (optional)
 
-The app works zero-config with Pollinations alone. To activate the full quality+reliability chain, add the providers you have keys for:
+The app works zero-config with keyless Pollinations, but as of November 2026 that endpoint always answers with its cheapest model ("sana") and stamps a watermark, whatever model is requested. For current-generation portraits, add a free secret key from [enter.pollinations.ai](https://enter.pollinations.ai/keys); with only the key set, the chain becomes `pollinations_gen,pollinations` automatically:
 
 ```
-IMAGE_PROVIDER_CHAIN=realvisxl,cloudflare,huggingface_flux,together,pollinations
+POLLINATIONS_API_KEY=sk_xxx                       # then: cd server && npm run check:image
+# POLLINATIONS_IMAGE_MODEL=tongyi-mai/z-image-turbo   # live list: https://gen.pollinations.ai/image/models
+```
+
+Or pick the chain yourself, adding the providers you have keys for:
+
+```
+IMAGE_PROVIDER_CHAIN=pollinations_gen,cloudflare_flux2,pollinations
 HUGGINGFACE_API_TOKEN=hf_xxx          # used by realvisxl AND huggingface_flux
-CLOUDFLARE_ACCOUNT_ID=
+CLOUDFLARE_ACCOUNT_ID=                 # used by cloudflare AND cloudflare_flux2
 CLOUDFLARE_API_TOKEN=
 TOGETHER_API_KEY=
 
@@ -156,7 +168,8 @@ Express builds the React frontend and serves it as static files - single service
 | `CLIENT_URL` | `https://your-app.onrender.com` |
 | `SERVER_URL` | `https://your-app.onrender.com` |
 | `NODE_ENV` | `production` |
-| `IMAGE_PROVIDER_CHAIN` | *(optional)* e.g. `realvisxl,cloudflare,huggingface_flux,together,pollinations` |
+| `POLLINATIONS_API_KEY` | *(recommended)* `sk_` key; upgrades portraits to current models |
+| `IMAGE_PROVIDER_CHAIN` | *(optional)* e.g. `pollinations_gen,cloudflare_flux2,pollinations` |
 | `HUGGINGFACE_API_TOKEN` / `CLOUDFLARE_*` / `TOGETHER_API_KEY` | *(optional)* keys for the providers in your chain |
 | `IMAGE_STORE` | *(optional)* `disk` (default) or `r2` |
 | `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` | *(when `IMAGE_STORE=r2`)* |
@@ -251,7 +264,8 @@ The image-generation pipeline lives behind two abstractions - `ImageProvider` (t
 
 ```
 server/services/image/
-├── imageService.js             ← orchestrator: kickoff() / fetchIfReady()
+├── imageService.js             ← orchestrator: kickoff() / fetchIfReady(),
+│                                  configurable output size (4:5 cover in prod)
 │                                  in-flight dedup, fallback cascade,
 │                                  per-dialect prompt routing, telemetry
 ├── instance.js                 ← lazy singleton (composition root)
@@ -260,11 +274,13 @@ server/services/image/
 │
 ├── providers/                  ← ImageProvider implementations
 │   ├── index.js                ← env-driven factory (resolveProviders)
-│   ├── realVisXLProvider.js    ← HF · SDXL · primary (portrait-tuned)
+│   ├── pollinationsGenProvider.js ← Pollinations API (keyed) · Z-Image / FLUX / MAI
+│   ├── cloudflareFlux2Provider.js ← CF Workers AI · FLUX.2 [klein] 9B (multipart)
+│   ├── realVisXLProvider.js    ← HF · SDXL (portrait-tuned)
 │   ├── cloudflareProvider.js   ← CF Workers AI · FLUX-schnell
 │   ├── huggingFaceFluxProvider.js  ← HF · FLUX-schnell
 │   ├── togetherProvider.js     ← Together.ai · FLUX-schnell-Free
-│   └── pollinationsProvider.js ← keyless safety net (legacy)
+│   └── pollinationsProvider.js ← keyless safety net (serves 'sana' only)
 │
 ├── storage/                    ← BlobStore implementations
 │   ├── index.js                ← env-driven factory (resolveBlobStore)

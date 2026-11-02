@@ -13,18 +13,28 @@ function imageIdFor(scenePrompt, seed) {
   return crypto.createHash('sha256').update(scenePrompt + '\x00' + seed).digest('hex').slice(0, 16);
 }
 
-// SDXL fine-tunes (RealVisXL) respond best to comma-separated tags with weights.
-const SDXL_SUFFIX =
-  '(photorealistic:1.2), (highly detailed skin:1.1), Canon EOS R5, 85mm f/1.4, ' +
-  'shallow depth of field, cinematic lighting, chiaroscuro, hyperdetailed, ' +
-  '8k UHD, sharp focus, editorial portrait, award-winning';
+// House style. Every career shares one art direction so results read as a
+// series from the same magazine, not as unrelated AI images. The wording is
+// deliberately plain: "8K, award-winning, hyperdetailed" tag soup is what
+// makes output look synthetic on current models, and it adds nothing.
+// The empty space above the subject is load-bearing: the client sets the
+// masthead and headline there (see client/src/lib/cover.js).
 
-// FLUX prefers natural-language descriptions over tag soup.
+// SDXL fine-tunes (RealVisXL) still respond best to comma-separated tags.
+const SDXL_SUFFIX =
+  'editorial magazine cover photograph, medium format camera, 80mm lens, ' +
+  'soft natural window light, subtle film grain, muted true-to-life colors, ' +
+  'subject in lower two thirds, clean empty space above head, deadpan expression, ' +
+  'documentary realism, photorealistic, sharp focus';
+
+// FLUX-family and other current models follow natural-language direction.
 const FLUX_SUFFIX =
-  ', cinematic composition, dramatic chiaroscuro lighting, shallow depth of field, ' +
-  'Canon EOS R5 85mm f/1.4 lens, photorealistic, 8K UHD, hyperdetailed textures, ' +
-  'subsurface skin scattering, volumetric light rays, film grain, professionally color graded, ' +
-  'editorial photography, award-winning shot';
+  '. Shot as an editorial magazine cover photograph on a medium format camera with an 80mm lens. ' +
+  'Soft natural light with one practical light source in the scene, subtle film grain, ' +
+  'muted true-to-life colors, realistic skin texture. ' +
+  'The subject sits in the lower two thirds of a vertical frame with calm, uncluttered space above their head. ' +
+  'Deadpan, candid expression, documentary realism, not staged. ' +
+  'No text, no letters, no logos, no watermark anywhere in the image.';
 
 function enrichForSDXL(scene) {
   return scene + ', ' + SDXL_SUFFIX;
@@ -34,21 +44,22 @@ function enrichForFLUX(scene) {
   return scene + FLUX_SUFFIX;
 }
 
+// Lettering is listed explicitly because image models hallucinate fake words
+// on screens and signs, and the client already sets real type over the photo.
 const NEGATIVE_PROMPT_SDXL = [
   '(deformed:1.3)', '(disfigured:1.3)', '(bad anatomy:1.2)', '(bad hands:1.2)',
   'extra limbs', 'missing limbs', 'fused fingers', 'mutated', 'duplicate',
-  'watermark', 'text', 'signature', 'logo',
-  'cartoon', 'anime', 'illustration', '3D render', 'plastic skin',
-  'blurry', 'low quality', 'jpeg artifacts', 'overexposed', 'underexposed', 'flat lighting',
+  'watermark', 'text', 'letters', 'typography', 'signature', 'logo',
+  'cartoon', 'anime', 'illustration', '3D render', 'plastic skin', 'airbrushed',
+  'oversaturated', 'blurry', 'low quality', 'jpeg artifacts', 'overexposed', 'underexposed',
 ].join(', ');
 
 const NEGATIVE_PROMPT_FLUX = [
-  'ugly', 'deformed', 'noisy', 'blurry', 'low quality', 'worst quality',
-  'bad anatomy', 'bad hands', 'extra limbs', 'missing limbs', 'fused fingers',
-  'watermark', 'text overlay', 'signature', 'logo',
-  'cartoon', 'anime', 'illustration', 'painting', 'sketch', '3D render',
-  'plastic skin', 'overexposed', 'underexposed', 'washed out', 'flat lighting',
-  'disfigured', 'mutated', 'duplicate', 'jpeg artifacts', 'cross-eyed',
+  'deformed', 'blurry', 'low quality', 'bad anatomy', 'bad hands', 'extra limbs',
+  'missing limbs', 'fused fingers', 'watermark', 'text', 'letters', 'typography',
+  'signature', 'logo', 'cartoon', 'anime', 'illustration', 'painting', '3D render',
+  'plastic skin', 'airbrushed', 'oversaturated', 'HDR', 'disfigured', 'duplicate',
+  'jpeg artifacts', 'cross-eyed',
 ].join(', ');
 
 module.exports = {

@@ -1,1 +1,336 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
+/* Self-hosted so the first paint never waits on a third-party font CDN.
+   opsz files carry the optical-size axis: display sizes get the tight,
+   high-contrast cut automatically via font-optical-sizing. */
+@import '@fontsource-variable/newsreader/opsz.css';
+@import '@fontsource-variable/newsreader/opsz-italic.css';
+@import '@fontsource-variable/schibsted-grotesk/wght.css';
+
+/* ── Design tokens ────────────────────────────────────────────────────────
+   Office supplies, because the joke is a corporate career assessment:
+   cool copy paper, blue-black ballpoint ink, and a yellow highlighter, used
+   the way a reviewer marks up a performance review. The highlighter is the
+   only accent and only ever marks something the reader chose or earned.
+   Every text pairing below is WCAG AA (lowest: ink-3 on paper-2, 4.61:1). */
+@theme {
+  --color-paper: #f3f4f1;
+  --color-paper-2: #e8eae5;
+  --color-paper-3: #d9dcd5;
+  --color-ink: #13203a;
+  --color-ink-2: #46506a;
+  --color-ink-3: #5f687c;
+  --color-rule: #c9cdd4;
+  --color-mark: #f6e24a;
+  --color-alert: #b42318;
+
+  --font-serif: 'Newsreader Variable', 'Iowan Old Style', Georgia, serif;
+  --font-sans: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+
+  --ease-press: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-move: cubic-bezier(0.77, 0, 0.175, 1);
+
+  /* Type scale. Five steps do all the visible work; every page uses these
+     names so the same role is the same size everywhere. */
+  --text-display: clamp(2.75rem, 7vw, 6rem);
+  --text-display--line-height: 0.96;
+  --text-title: clamp(2.25rem, 4.5vw, 4rem);
+  --text-title--line-height: 1.04;
+  --text-section: clamp(1.75rem, 3vw, 2.5rem);
+  --text-section--line-height: 1.1;
+  --text-lede: 1.375rem;
+  --text-lede--line-height: 1.5;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.6;
+}
+
+@layer base {
+  html {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    caret-color: var(--color-ink);
+    scrollbar-color: var(--color-ink-3) var(--color-paper);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    scrollbar-gutter: stable;
+  }
+  body {
+    font-family: var(--font-sans);
+    min-height: 100dvh;
+  }
+  ::selection {
+    background: var(--color-mark);
+    color: var(--color-ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+  }
+  /* No 300ms double-tap wait and no grey flash on iOS; focus-visible still
+     covers keyboard users. */
+  a,
+  button,
+  [role='radio'] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  .font-display {
+    font-family: var(--font-serif);
+    font-optical-sizing: auto;
+    letter-spacing: -0.022em;
+    font-feature-settings: 'kern', 'liga';
+  }
+  /* Small, sentence-case metadata. Deliberately not tracked capitals. */
+  .meta {
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    font-weight: 500;
+    color: var(--color-ink-2);
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  .link-ink {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    transition: text-decoration-thickness 0.15s;
+  }
+  /* Hover must read as more emphatic than rest, not less. */
+  .link-ink:hover {
+    text-decoration-thickness: 2px;
+  }
+  /* One button system instead of four hand-written ones. Press feedback is
+     a small scale on :active so every tap visibly lands. */
+  .btn {
+    display: inline-flex;
+    min-height: 52px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0 1.5rem;
+    border-radius: 3px;
+    font: 500 0.9375rem/1 var(--font-sans);
+    transition:
+      transform 160ms var(--ease-press),
+      background-color 200ms ease;
+  }
+  .btn:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  .btn:disabled {
+    cursor: wait;
+    opacity: 0.6;
+  }
+  .btn-primary {
+    background: var(--color-ink);
+    color: var(--color-paper);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--color-ink-2);
+  }
+  .btn-secondary {
+    background: var(--color-paper-3);
+    color: var(--color-ink);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: #cdd1c9;
+  }
+  /* Highlighter stroke. Uneven corner radii so it reads as a pen mark
+     rather than a UI fill. */
+  .marker {
+    background: var(--color-mark);
+    border-radius: 0.2em 0.5em 0.3em 0.6em / 0.6em 0.3em 0.5em 0.2em;
+  }
+}
+
+/* ── View Transitions between routes ──────────────────────────────────────
+   Default is a short crossfade. Inside the quiz flow (lib/navDirection.js)
+   pages slide in the direction of travel. The masthead is pinned: without
+   this, after scrolling, its old snapshot is off-screen and it would slide
+   down into place. */
+::view-transition-old(root) {
+  animation: 180ms ease-out both vt-out;
+}
+::view-transition-new(root) {
+  animation: 280ms var(--ease-press) 40ms both vt-in;
+}
+::view-transition-group(masthead) {
+  animation: none;
+  z-index: 100;
+}
+html[data-nav='forward'] {
+  --vt-from: 48px;
+  --vt-to: -48px;
+}
+html[data-nav='back'] {
+  --vt-from: -48px;
+  --vt-to: 48px;
+}
+html:is([data-nav='forward'], [data-nav='back'])::view-transition-old(root) {
+  animation: 180ms ease-in both vt-slide-out;
+}
+html:is([data-nav='forward'], [data-nav='back'])::view-transition-new(root) {
+  animation: 300ms var(--ease-press) 40ms both vt-slide-in;
+}
+@keyframes vt-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes vt-slide-out {
+  to {
+    opacity: 0;
+    translate: var(--vt-to) 0;
+  }
+}
+@keyframes vt-slide-in {
+  from {
+    opacity: 0;
+    translate: var(--vt-from) 0;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ── Darkroom: the portrait develops instead of popping in. This is the
+   result page's one orchestrated moment, so it gets the time. ──────────── */
+@keyframes develop {
+  0% {
+    /* Kept under the ~20px blur where Safari starts dropping frames. */
+    filter: blur(8px) brightness(1.6) sepia(0.6);
+    opacity: 0;
+    transform: scale(1.04);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    filter: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+.develop {
+  animation: develop 2.2s var(--ease-press) both;
+}
+
+/* Reduced motion means gentler, not none: movement goes, fades stay, so
+   state changes are still visible. */
+/* ── Print shop effects ─────────────────────────────────────────────────── */
+
+/* Misregistered plates: cyan, magenta and yellow copies of the cover type sit
+   off-register and pull into alignment over the print run (loading page).
+   @property makes the offset animatable. */
+@property --mis {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+.misregister {
+  --mis: 0px;
+  animation: register 5.2s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.misregister p,
+.misregister span {
+  text-shadow:
+    var(--mis) 0 rgba(0, 168, 232, 0.75),
+    calc(var(--mis) * -0.8) calc(var(--mis) * 0.5) rgba(232, 49, 127, 0.75),
+    0 calc(var(--mis) * -0.7) rgba(246, 226, 74, 0.7);
+}
+@keyframes register {
+  from {
+    --mis: 9px;
+  }
+  to {
+    --mis: 0px;
+  }
+}
+
+/* Print head: a band of light that sweeps down the sheet on every pass. */
+.print-head {
+  background: linear-gradient(
+    to bottom,
+    rgba(243, 244, 241, 0) 0%,
+    rgba(243, 244, 241, 0.16) 70%,
+    rgba(246, 226, 74, 0.55) 98%,
+    rgba(243, 244, 241, 0) 100%
+  );
+  animation: print-pass 1.3s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+@keyframes print-pass {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(560%);
+  }
+}
+
+/* Barcode scanner: a laser line sweeps the code when the cover is hovered. */
+.barcode-laser {
+  position: absolute;
+  inset-inline: 0;
+  top: -10%;
+  height: 2px;
+  background: #e5322d;
+  box-shadow: 0 0 6px 1px rgba(229, 50, 45, 0.8);
+  opacity: 0;
+}
+@media (hover: hover) {
+  figure:hover .barcode-laser {
+    animation: scan 0.9s cubic-bezier(0.65, 0, 0.35, 1) 2;
+  }
+}
+@keyframes scan {
+  0% {
+    top: 0%;
+    opacity: 1;
+  }
+  50% {
+    top: 70%;
+    opacity: 1;
+  }
+  100% {
+    top: 0%;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .develop {
+    animation: fade-in 300ms ease both !important;
+  }
+  .misregister,
+  .print-head,
+  .barcode-laser {
+    animation: none !important;
+  }
+  ::view-transition-group(*) {
+    animation: none !important;
+  }
+  ::view-transition-old(root) {
+    animation: 150ms ease both vt-out !important;
+  }
+  ::view-transition-new(root) {
+    animation: 200ms ease both fade-in !important;
+  }
+}
