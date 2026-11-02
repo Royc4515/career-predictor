@@ -10,10 +10,12 @@ passport.serializeUser((user, done) => {
 });
 
 // --- Deserialize: fetch full user from DB on each request ---
-passport.deserializeUser((id, done) => {
+// Async because the database is (Turso in production). Errors go to done()
+// so Passport turns them into a normal Express error instead of a hang.
+passport.deserializeUser(async (id, done) => {
   console.log('[AUTH] Deserializing user ID:', id);
   try {
-    const user = findUserById(id);
+    const user = await findUserById(id);
     done(null, user || false);
   } catch (err) {
     done(err, null);
@@ -29,13 +31,13 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         callbackURL: `${process.env.SERVER_URL}/auth/google/callback`,
       },
-      (accessToken, refreshToken, profile, done) => {
+      async (accessToken, refreshToken, profile, done) => {
         console.log('[AUTH] Google OAuth callback triggered');
 
         try {
           const fields = profileToUserFields(profile);
           console.log('[AUTH] Google profile received:', fields.name, fields.email);
-          const user = upsertUser(fields);
+          const user = await upsertUser(fields);
 
           console.log('[AUTH] User upserted in DB, ID:', user.id);
           done(null, user);

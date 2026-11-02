@@ -82,7 +82,7 @@ Answer 5 questions. Watch the analysis. Land on the cover of *The Forecast* as a
 | Frontend | React 19 · Vite 6 · Tailwind CSS 4 · React Router 7 (data router, View Transitions) · Motion (LazyMotion) |
 | Backend | Node.js 20+ · Express 4 (single monolith, serves API + built SPA) |
 | Auth | Google OAuth 2.0 via Passport.js · express-session (server-side sessions) |
-| Database | SQLite in-process via sql.js (WASM, file-backed) |
+| Database | SQLite via `@libsql/client`: Turso (hosted, durable) in production, a local file in development |
 | Image Gen | Env-driven fallback chain (`IMAGE_PROVIDER_CHAIN`). Recommended: Pollinations API with a key (`tongyi-mai/z-image-turbo` by default, any model via `POLLINATIONS_IMAGE_MODEL`) and Cloudflare FLUX.2 [klein] 9B. Also available: RealVisXL V4, FLUX.1-schnell (Cloudflare, Hugging Face, Together). Zero-config default: keyless Pollinations |
 | Image Storage | Pluggable `BlobStore`: local disk (dev) or Cloudflare R2 via AWS S3 SDK (prod) |
 | Testing & CI | `node:test` for server and for pure client modules · GitHub Actions runs both plus the production build |
@@ -242,7 +242,7 @@ The system is a classic **full-stack monolith** - React on the front, Express on
 │   /auth/logout                                              │
 │         │                          │                        │
 │         ▼                          ▼                        │
-│   Passport.js               SQLite (sql.js)                 │
+│   Passport.js               SQLite (libSQL / Turso)                 │
 │   Session Store             users + results table           │
 └─────────────────────────────────────────────────────────────┘
          │
@@ -344,7 +344,7 @@ Result page renders - <img src="/api/image/<id>">
 
 ### Database Schema
 
-SQLite via `sql.js` - zero-dependency, file-based, runs entirely in-process on Render's free tier without needing a managed database.
+SQLite via `@libsql/client`. Production points it at a free Turso database (`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`) so users and results survive Render's redeploys; without those variables the same client uses a local file, so development needs no account.
 
 ```sql
 CREATE TABLE users (
@@ -381,7 +381,7 @@ Results are **deterministic per session** - same answers always produce the same
 |----------|--------|
 | React 19 + Vite | Fast HMR in dev, optimized static build in prod |
 | Express monolith | Serves both API and static files - one Render service, one bill ($0) |
-| SQLite (sql.js) | No managed DB needed and no native build step. Note: Render's free-tier disk is wiped on redeploy, so the DB file is not durable there |
+| SQLite (libSQL / Turso) | Same SQL locally and in production; Turso's free tier keeps data across Render redeploys, which wipe local disk |
 | Passport.js | Battle-tested OAuth middleware; session handled server-side, not JWT |
 | Provider abstraction | One `ImageProvider` interface, five concrete impls (RealVisXL, CF Workers AI, HF FLUX-schnell, Together, Pollinations), env-driven fallback chain. Adding a sixth provider is one new file + one factory entry - no edits to the route handler or orchestrator. |
 | `BlobStore` interface | Decouples bytes from the third-party CDN. `LocalDiskStore` in dev, `R2Store` in prod (free 10 GB), same interface. Historical user portraits survive provider rotations. |

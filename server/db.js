@@ -1,29 +1,31 @@
-const initSqlJs = require('sql.js');
-const fs = require('fs');
 const path = require('path');
+const { createClient } = require('@libsql/client');
 
-const DB_PATH = path.join(__dirname, 'career-predictor.db');
+// One client for both environments. In production TURSO_DATABASE_URL points
+// at the hosted Turso database, which survives Render redeploys (the free
+// tier wipes local disk). Without it, the same libsql client uses a local
+// SQLite file, so development needs no account.
+const DEFAULT_FILE = path.join(__dirname, 'career-predictor.db');
 
-let db;
+let client;
+
+function connectionConfig(env = process.env) {
+  if (env.TURSO_DATABASE_URL) {
+    return { url: env.TURSO_DATABASE_URL, authToken: env.TURSO_AUTH_TOKEN || undefined };
+  }
+  return { url: `file:${DEFAULT_FILE}` };
+}
 
 /**
- * Initialize the database. Must be called (and awaited) before using any db functions.
+ * Connect and bring the schema up to date. Must be awaited before any other
+ * function here is called. `config` overrides the environment (tests pass
+ * { url: ':memory:' }).
  */
-async function initDB() {
-  const SQL = await initSqlJs();
+async function initDB(config = connectionConfig()) {
+  client = createClient(config);
+  console.log(`[DB] Connected (${config.url.startsWith('file:') || config.url === ':memory:' ? 'local' : 'remote'})`);
 
-  // Load existing database file if it exists, otherwise create new
-  if (fs.existsSync(DB_PATH)) {
-    const fileBuffer = fs.readFileSync(DB_PATH);
-    db = new SQL.Database(fileBuffer);
-    console.log('[DB] SQLite database loaded from file');
-  } else {
-    db = new SQL.Database();
-    console.log('[DB] New SQLite database created');
-  }
-
-  // Create tables
-  db.run(`
+  await client.execute(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       google_id TEXT UNIQUE NOT NULL,
@@ -33,9 +35,8 @@ async function initDB() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
-  console.log('[DB] Users table ready');
 
-  db.run(`
+  await client.execute(`
     CREATE TABLE IF NOT EXISTS onboarding (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER REFERENCES users(id),
@@ -49,118 +50,115 @@ async function initDB() {
       completed_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
-  console.log('[DB] Onboarding table ready');
 
-  // Add desired_field column to existing databases that predate this migration
-  addColumnIfMissing('onboarding', 'desired_field', 'TEXT');
+  // Additive migrations. The production Turso database was created by an
+  // earlier version without image_id, and very old databases lack
+  // desired_field; both are added in place without touching existing rows.
+  await addColumnIfMissing('onboarding', 'desired_field', 'TEXT');
+  // image_id (16-hex content hash) for new rows; image_url is kept for legacy
+  // rows that point at the Pollinations CDN, and reads fall back to it.
+  await addColumnIfMissing('onboarding', 'image_id', 'TEXT');
 
-  // Additive migration: image_id (16-hex content hash) for new rows.
-  // image_url is kept for legacy rows pointing at Pollinations CDN URLs;
-  // reads prefer image_id and fall back to image_url.
-  addColumnIfMissing('onboarding', 'image_id', 'TEXT');
-
-  return db;
+  console.log('[DB] Schema ready');
+  return client;
 }
 
 /**
- * Additive migration helper. Checks the schema first instead of relying on
- * ALTER TABLE throwing for an existing column, so any other failure (typo,
- * corrupt file) surfaces at startup instead of being swallowed.
+ * Checks the schema first instead of relying on ALTER TABLE throwing for an
+ * existing column, so any other failure (typo, permissions, network) surfaces
+ * at startup instead of being swallowed.
  */
-function addColumnIfMissing(table, column, type) {
-  const result = db.exec(`PRAGMA table_info(${table})`);
-  const existing = result.length ? result[0].values.map((row) => row[1]) : [];
+async function addColumnIfMissing(table, column, type) {
+  const info = await client.execute(`PRAGMA table_info(${table})`);
+  const existing = info.rows.map((row) => row.name);
   if (existing.includes(column)) return;
-
-  db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+  await client.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
   console.log(`[DB] Migrated: added ${table}.${column} column`);
 }
 
-/** Save the in-memory database to disk */
-function saveDB() {
-  const data = db.export();
-  const buffer = Buffer.from(data);
-  fs.writeFileSync(DB_PATH, buffer);
+// libsql rows are array-like objects with extra properties; callers (and
+// toPublicUser) expect plain objects keyed by column.
+function plain(row) {
+  return row ? { ...row } : null;
 }
 
-/**
- * Insert or update a user based on their Google ID.
- * Returns the user row from the database.
- */
-function upsertUser({ googleId, email, name, avatarUrl }) {
-  console.log('[DB] Upserting user:', email);
-
-  db.run(
-    `INSERT INTO users (google_id, email, name, avatar_url)
-     VALUES (?, ?, ?, ?)
-     ON CONFLICT(google_id) DO UPDATE SET
-       email = excluded.email,
-       name = excluded.name,
-       avatar_url = excluded.avatar_url`,
-    [googleId, email, name, avatarUrl]
-  );
-
-  const stmt = db.prepare('SELECT * FROM users WHERE google_id = ?');
-  stmt.bind([googleId]);
-  let user = null;
-  if (stmt.step()) {
-    const row = stmt.getAsObject();
-    user = row;
-  }
-  stmt.free();
-
-  saveDB();
+/** Insert or update a user by Google id; returns the stored row. */
+async function upsertUser({ googleId, email, name, avatarUrl }) {
+  await client.execute({
+    sql: `INSERT INTO users (google_id, email, name, avatar_url)
+          VALUES (?, ?, ?, ?)
+          ON CONFLICT(google_id) DO UPDATE SET
+            email = excluded.email,
+            name = excluded.name,
+            avatar_url = excluded.avatar_url`,
+    args: [googleId, email ?? null, name ?? null, avatarUrl ?? null],
+  });
+  const result = await client.execute({ sql: 'SELECT * FROM users WHERE google_id = ?', args: [googleId] });
+  const user = plain(result.rows[0]);
   console.log('[DB] User upserted, DB id:', user?.id);
   return user;
 }
 
-/**
- * Find a user by their internal database ID.
- * Used by Passport's deserializeUser.
- */
-function findUserById(id) {
-  const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
-  stmt.bind([id]);
-  let user = null;
-  if (stmt.step()) {
-    user = stmt.getAsObject();
-  }
-  stmt.free();
-  return user;
+/** Used by Passport's deserializeUser on every authenticated request. */
+async function findUserById(id) {
+  const result = await client.execute({ sql: 'SELECT * FROM users WHERE id = ?', args: [id] });
+  return plain(result.rows[0]);
 }
 
 /**
- * Save onboarding answers + generated result for a user.
- * Replaces any previous onboarding record for this user.
+ * Save answers and result, replacing any previous record (one result per
+ * user). Both statements run in one batch so a failure cannot leave the user
+ * with their old result deleted and no new one.
  */
-function saveOnboarding({ userId, strength, mondayVibe, coworkerDesc, fiveYearGoal, desiredField, careerResult, imageUrl, imageId }) {
-  console.log('[DB] Saving onboarding for user ID:', userId);
-
-  // Delete previous record if exists (one result per user)
-  db.run('DELETE FROM onboarding WHERE user_id = ?', [userId]);
-
-  db.run(
-    `INSERT INTO onboarding (user_id, strength, monday_vibe, coworker_desc, five_year_goal, desired_field, career_result, image_url, image_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [userId, strength, mondayVibe, coworkerDesc, fiveYearGoal, desiredField || null, careerResult, imageUrl || null, imageId || null]
+async function saveOnboarding({
+  userId,
+  strength,
+  mondayVibe,
+  coworkerDesc,
+  fiveYearGoal,
+  desiredField,
+  careerResult,
+  imageUrl,
+  imageId,
+}) {
+  await client.batch(
+    [
+      { sql: 'DELETE FROM onboarding WHERE user_id = ?', args: [userId] },
+      {
+        sql: `INSERT INTO onboarding (user_id, strength, monday_vibe, coworker_desc, five_year_goal, desired_field, career_result, image_url, image_id)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          userId,
+          strength,
+          mondayVibe,
+          coworkerDesc,
+          fiveYearGoal,
+          desiredField || null,
+          careerResult,
+          imageUrl || null,
+          imageId || null,
+        ],
+      },
+    ],
+    'write',
   );
-
-  saveDB();
-  console.log('[DB] Onboarding saved');
+  console.log('[DB] Onboarding saved for user ID:', userId);
 }
 
-/**
- * Get the onboarding result for a user.
- */
-function getOnboardingByUserId(userId) {
-  const stmt = db.prepare('SELECT * FROM onboarding WHERE user_id = ? ORDER BY completed_at DESC LIMIT 1');
-  stmt.bind([userId]);
-  let row = null;
-  if (stmt.step()) {
-    row = stmt.getAsObject();
-  }
-  stmt.free();
-  return row;
+/** The user's latest result, or null. */
+async function getOnboardingByUserId(userId) {
+  const result = await client.execute({
+    sql: 'SELECT * FROM onboarding WHERE user_id = ? ORDER BY completed_at DESC, id DESC LIMIT 1',
+    args: [userId],
+  });
+  return plain(result.rows[0]);
 }
 
-module.exports = { initDB, upsertUser, findUserById, saveDB, saveOnboarding, getOnboardingByUserId };
+module.exports = {
+  initDB,
+  connectionConfig,
+  upsertUser,
+  findUserById,
+  saveOnboarding,
+  getOnboardingByUserId,
+};
