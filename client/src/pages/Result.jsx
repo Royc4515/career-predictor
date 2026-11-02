@@ -164,7 +164,7 @@ export default function Result() {
   const header = (
     <Masthead
       right={
-        <a href={authUrls.logout} className="meta link-ink text-ink">
+        <a href={authUrls.logout} className="meta link-ink tap text-ink">
           Sign out
         </a>
       }
@@ -224,36 +224,17 @@ export default function Result() {
               nothing else should compete with it. */}
           <m.div className="lg:col-span-6" {...rise(10)} transition={{ duration: 0.45, ease: EASE_OUT }}>
             <div className="relative mx-auto max-w-[600px] lg:sticky lg:top-8">
-              {/* The stamp's impact nudges the cover, like a desk taking the hit. */}
-              <m.div
-                animate={
-                  stamped && slam
-                    ? {
-                        transform: [
-                          'translateX(0px)',
-                          'translateX(-6px)',
-                          'translateX(4px)',
-                          'translateX(-2px)',
-                          'translateX(0px)',
-                        ],
-                      }
-                    : undefined
-                }
-                transition={{ duration: 0.32, delay: 0.12, ease: 'easeOut' }}
-              >
-                <TiltCard>
-                  <Cover
-                    title={careerTitle}
-                    imageUrl={result.imageUrl}
-                    imageStatus={imageStatus}
-                    personName={name}
-                    happiness={stats.happiness}
-                    reveal="press"
-                    onRevealed={() => setRevealed(true)}
-                  />
-                </TiltCard>
-              </m.div>
-              {stamped && <Stamp play={slam} date={filed} className="absolute top-[38%] -right-2 z-20 sm:-right-10" />}
+              <TiltCard>
+                <Cover
+                  title={careerTitle}
+                  imageUrl={result.imageUrl}
+                  imageStatus={imageStatus}
+                  personName={name}
+                  happiness={stats.happiness}
+                  reveal="press"
+                  onRevealed={() => setRevealed(true)}
+                />
+              </TiltCard>
             </div>
           </m.div>
 
@@ -265,6 +246,7 @@ export default function Result() {
             <p className="meta mt-5">
               Forecast for {name || 'you'}, filed {filed}.
             </p>
+            <Stamp ready={stamped} play={slam} className="mt-4 ml-1" />
 
             <section aria-label="Actions" className="mt-8 flex flex-wrap items-center gap-3">
               <button

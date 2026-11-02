@@ -53,6 +53,12 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     scrollbar-gutter: stable;
+    /* don't touch / an effect that pokes past the edge mid-animation (a
+       scaled slam, a fanned cover) makes mobile browsers widen the layout
+       viewport, which then stretches every fixed element and leaves the page
+       scrolling sideways for good. clip, not hidden: hidden would make html a
+       scroll container and break position: sticky. */
+    overflow-x: clip;
   }
   body {
     font-family: var(--font-sans);
@@ -98,6 +104,18 @@
     text-decoration-thickness: 1px;
     text-underline-offset: 0.2em;
     transition: text-decoration-thickness 0.15s;
+  }
+  /* Bigger hit area for small text links on touch screens (Apple and WCAG
+     ask for ~44px), without moving a pixel of the layout. */
+  @media (pointer: coarse) {
+    .tap {
+      position: relative;
+    }
+    .tap::after {
+      content: '';
+      position: absolute;
+      inset: -12px -8px;
+    }
   }
   /* Hover must read as more emphatic than rest, not less. */
   .link-ink:hover {

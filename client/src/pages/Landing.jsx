@@ -171,7 +171,7 @@ export default function Landing() {
           </div>
           <p className="text-body mt-10">
             Already have a cover?{' '}
-            <a href={authUrls.google} className="link-ink">
+            <a href={authUrls.google} className="link-ink tap">
               Sign in to see it again
             </a>
           </p>

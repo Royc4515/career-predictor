@@ -1,37 +1,54 @@
-import { m, useReducedMotion } from 'motion/react';
+import { useRef } from 'react';
+import { m, useInView, useReducedMotion } from 'motion/react';
+
+// Lifted and slightly rotated before the hit; landed is the resting state.
+const LIFTED = { opacity: 0, scale: 1.4, rotate: -1 };
+const LANDED = { opacity: 0.92, scale: 1, rotate: -5 };
+const SLAM = { type: 'spring', stiffness: 560, damping: 28, mass: 0.8 };
 
 /**
- * HR rubber stamp. Slams down once (oversized and lifted, then a hard,
- * slightly rotated landing), with rough ink edges from an SVG displacement
- * filter so it reads as ink on paper, not a UI badge.
- * `play` false renders it already stamped (repeat visits, reduced motion).
+ * Office rubber stamp on the report, in the page's own ink. It sits beside
+ * the filing line, never on the cover: the portrait is the product, and a
+ * badge over it hid the face (and, oversized mid-slam, widened the page on
+ * phones).
+ *
+ * ready: the cover is finished, so the stamp may land. It lands when it is
+ * scrolled into view, so on a phone, where the report starts below the cover,
+ * the slam still happens where the reader can see it.
+ * play false renders it already stamped (repeat visits, reduced motion).
+ * Space is reserved from the start so landing never shifts the layout.
  */
-export default function Stamp({ play = true, date, className = '' }) {
+export default function Stamp({ ready = true, play = true, className = '' }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, amount: 0.8 });
   const reduce = useReducedMotion();
   const animate = play && !reduce;
+  const landed = ready && (inView || !animate);
 
   return (
     <m.div
-      aria-label="Stamped: approved, not career advice"
+      ref={ref}
       role="img"
-      className={`pointer-events-none select-none ${className}`}
-      initial={animate ? { opacity: 0, scale: 2.4, rotate: -2 } : false}
-      animate={{ opacity: 0.88, scale: 1, rotate: -11 }}
-      transition={animate ? { type: 'spring', stiffness: 520, damping: 26, mass: 0.9 } : { duration: 0 }}
-      // Normal blending on purpose: multiply vanishes over the dark cover.
+      aria-label="Stamped: approved, not career advice"
+      aria-hidden={ready ? undefined : true}
+      className={`pointer-events-none inline-block origin-left select-none ${className}`}
+      initial={animate ? LIFTED : false}
+      animate={landed ? LANDED : animate ? LIFTED : { ...LANDED, opacity: 0 }}
+      transition={animate ? SLAM : { duration: 0 }}
       style={{ filter: 'url(#stamp-ink)' }}
     >
       <svg width="0" height="0" className="absolute" aria-hidden="true">
         <filter id="stamp-ink">
           <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="noise" />
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.2" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.6" />
         </filter>
       </svg>
-      <div className="rounded-[10px] border-[3px] border-[#c4261a] bg-paper/85 p-[3px] text-[#c4261a] shadow-[0_6px_18px_-8px_rgba(19,32,58,.45)]">
-        <div className="rounded-[7px] border border-[#b42318] px-4 py-2 text-center">
-          <p className="font-sans text-[1.9rem] leading-none font-extrabold tracking-[0.06em]">APPROVED</p>
-          <p className="mt-1 font-sans text-[0.68rem] font-semibold tracking-[0.12em]">NOT CAREER ADVICE</p>
-          {date && <p className="tabular mt-0.5 font-sans text-[0.62rem] font-semibold">{date}</p>}
+      <div className="border-2 border-ink p-[2px] text-ink">
+        <div className="border border-ink px-3 py-1.5 text-center">
+          <p className="font-sans text-[1.05rem] leading-none font-extrabold tracking-[0.14em]">APPROVED</p>
+          <p className="mt-1 font-sans text-[0.625rem] leading-none font-semibold tracking-[0.14em]">
+            NOT CAREER ADVICE
+          </p>
         </div>
       </div>
     </m.div>

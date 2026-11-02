@@ -238,7 +238,7 @@ office) rather than generic AI-site effects, and every one has a fallback.
 | Variable-weight headline | Landing hero | Newsreader weight axis, letters near the pointer go from 400 to 720; direct style writes in one rAF, no re-renders | Touch and reduced motion: static |
 | Back-issue fan | Landing | Five real sample covers pinned with `position: sticky`, fanned by scroll progress | Reduced motion: shown fanned, not pinned |
 | CMYK misregistration + print head | Loading cover | `@property --mis` animates C, M and Y offsets into register over the print run; a highlighter-yellow print head sweeps the sheet | Reduced motion: aligned, no sweep |
-| Rubber stamp | Result | "APPROVED / NOT CAREER ADVICE" slams down on a stiff spring once the cover is revealed, the cover takes a small impact shake; rough ink edges from an SVG displacement filter; once per cover per session | Reduced motion and repeat visits: already stamped |
+| Rubber stamp | Result | "APPROVED / NOT CAREER ADVICE" in the page ink slams down on a stiff spring under the filing line once the cover is finished and the stamp is in view; rough ink edges from an SVG displacement filter; once per cover per session. Moved off the cover in November 2026: the red badge was off-palette, hid the portrait and, mid-slam, widened the page on phones | Reduced motion and repeat visits: already stamped |
 | Odometer | Result happiness index | Digit wheels roll to the value, rightmost last | Reduced motion: static number |
 | Barcode laser | Every cover | A red scanner line sweeps the barcode on hover | Touch: none |
 
