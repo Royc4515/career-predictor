@@ -72,6 +72,17 @@ Count: Mom. Every salary and outlook line is unique.
 evidence always two current option texts; samples still map to their titles;
 client and server option text identical; unknown options rejected.
 
+## 4b. Keeping it funny (follow-up)
+
+Quoting the answers back explained the result but was not a joke. The
+report's "Evidence on file" section now prints each quoted answer with a
+dry analyst's conclusion (`FINDINGS` in `client/src/content.js`, one per
+option): trivial evidence, unearned confidence. Flat options were sharpened
+("Third coffee (it's 9:02)", "A spreadsheet tracking my other spreadsheets")
+and "Genuinely love Mondays (liar)" is back. Option ids did not change, so
+the mapping and its balance are untouched. A client test requires a finding
+for every option and keeps the copy free of em dashes and exclamation marks.
+
 ## 5. Measured result (all 1,024 answer sets)
 
 | | Before | After |

@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, m } from 'motion/react';
 import { useAuth } from '../app/AuthContext';
@@ -8,6 +8,7 @@ import TiltCard from '../components/effects/TiltCard';
 import Stamp from '../components/effects/Stamp';
 import Odometer from '../components/effects/Odometer';
 import Footer from '../components/Footer';
+import { FINDINGS } from '../content';
 import { useToast } from '../components/Toast';
 import { useImageReady } from '../hooks/useImageReady';
 import { authUrls, fetchResult } from '../lib/api';
@@ -248,18 +249,6 @@ export default function Result() {
             <p className="meta mt-5">
               Forecast for {name || 'you'}, filed {filed}.
             </p>
-            {evidence.length > 0 && (
-              <p className="meta mt-2">
-                Evidence on file:{' '}
-                {evidence.map((quote, i) => (
-                  <Fragment key={quote}>
-                    {i > 0 && ' and '}
-                    <span className="text-ink">&ldquo;{quote}&rdquo;</span>
-                  </Fragment>
-                ))}
-                .
-              </p>
-            )}
             <Stamp ready={stamped} play={slam} className="mt-4 ml-1" />
 
             <section aria-label="Actions" className="mt-8 flex flex-wrap items-center gap-3">
@@ -285,6 +274,28 @@ export default function Result() {
                 The portrait couldn&rsquo;t be generated, so the cover is printed without one. Retake the questionnaire
                 later to try again.
               </p>
+            )}
+
+            {evidence.length > 0 && (
+              <section aria-labelledby="evidence-heading" className="mt-12 border-t border-ink pt-6">
+                <h2 id="evidence-heading" className="font-display text-section">
+                  Evidence on file
+                </h2>
+                {/* Quote, then the analyst's conclusion: the satire is the
+                    straight face between the two. */}
+                <dl className="mt-5 space-y-5">
+                  {evidence.map((quote) => (
+                    <div key={quote} className="border-l-2 border-mark pl-4">
+                      <dt className="text-body font-medium text-ink">&ldquo;{quote}&rdquo;</dt>
+                      {FINDINGS[quote] && (
+                        <dd className="font-display mt-1 text-[1.15rem] leading-snug text-ink-2 italic">
+                          {FINDINGS[quote]}
+                        </dd>
+                      )}
+                    </div>
+                  ))}
+                </dl>
+              </section>
             )}
 
             <section aria-labelledby="figures-heading" className="mt-12 border-t border-ink pt-6">

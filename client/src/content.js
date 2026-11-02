@@ -12,8 +12,8 @@ export const QUESTIONS = [
     label: 'Under pressure',
     question: 'The demo is in ten minutes and the laptop just died. You…',
     options: [
-      'Pitch the vision from memory',
-      'Improvise with a whiteboard and confidence',
+      'Present from memory. Slides were holding me back',
+      'Improvise with a whiteboard and unearned confidence',
       'Fix it with a paperclip and pure spite',
       'Call a guy who knows a guy',
     ],
@@ -23,10 +23,10 @@ export const QUESTIONS = [
     label: 'Mondays',
     question: 'Monday, 9:02 a.m. First move?',
     options: [
-      'Third coffee',
+      "Third coffee (it's 9:02)",
       'Stare at the wall until lunch',
       'Same as Sunday, honestly',
-      'Post something inspiring in the team chat',
+      'Genuinely love Mondays (liar)',
     ],
   },
   {
@@ -34,7 +34,7 @@ export const QUESTIONS = [
     label: 'Reputation',
     question: 'Your coworkers know you as…',
     options: [
-      'The one who can just quickly do it',
+      'The one who can just quickly do it. Again.',
       'The one whose ideas need a translator',
       'Who? We have never met',
       'The one who knows when lunch arrives',
@@ -45,7 +45,7 @@ export const QUESTIONS = [
     label: 'Five-year plan',
     question: 'Where do you see yourself in five years?',
     options: [
-      'Ringing the bell at the stock exchange',
+      'Ringing the bell at a stock exchange. Any stock exchange',
       'Somewhere with palm trees and bad Wi-Fi',
       'Same desk. Hopefully.',
       "I can't see past Thursday",
@@ -56,13 +56,50 @@ export const QUESTIONS = [
     label: 'Open tabs',
     question: 'You have 47 browser tabs open. Mostly…',
     options: [
-      'Pitch decks and a half-built app',
+      'Pitch decks and an app that is 90% done',
       'Moodboards and fonts I will never pay for',
-      'Spreadsheets and a stock app',
+      'A spreadsheet tracking my other spreadsheets',
       'My own comments section',
     ],
   },
 ];
+
+// The analyst's note printed under each quoted answer in the report's
+// "Evidence on file". The joke is the gap between trivial evidence and a
+// confident conclusion, so keep them dry: no exclamation marks, no winking.
+// Keyed by option text; an answer with no note (an old saved result whose
+// option was since reworded) is simply quoted without one.
+export const FINDINGS = {
+  // The demo is in ten minutes and the laptop just died.
+  'Present from memory. Slides were holding me back':
+    'Subject confuses having no slides with having a vision. Investors have made the same mistake.',
+  'Improvise with a whiteboard and unearned confidence':
+    'Confidence exceeded evidence by a ratio our instruments could not display.',
+  'Fix it with a paperclip and pure spite': 'Problem solved. Root cause untouched. Promotion unlikely.',
+  'Call a guy who knows a guy': 'The guy who knows a guy has also been contacted. He is not available.',
+  // Monday, 9:02 a.m.
+  "Third coffee (it's 9:02)": 'Consistent with a resting heart rate the desk chose not to measure.',
+  'Stare at the wall until lunch': 'Output before noon: unmeasurable. After noon: also unmeasurable.',
+  'Same as Sunday, honestly': 'No weekend detected. It may never have been installed.',
+  'Genuinely love Mondays (liar)': "Flagged by the desk's lie detector, which was also lying.",
+  // Your coworkers know you as...
+  'The one who can just quickly do it. Again.': 'Quickly has taken four years so far.',
+  'The one whose ideas need a translator': 'Three ideas submitted. None understood. One patented by accident.',
+  'Who? We have never met': 'HR confirms you exist. Colleagues do not.',
+  'The one who knows when lunch arrives': 'The most reliable data source in the building.',
+  // Five years from now.
+  'Ringing the bell at a stock exchange. Any stock exchange':
+    'Bell located. The stock exchange has not returned our calls.',
+  'Somewhere with palm trees and bad Wi-Fi': 'Signal strength consistent with career outlook.',
+  'Same desk. Hopefully.': 'Ambition measured at chair height.',
+  "I can't see past Thursday": 'Planning horizon: three days. Industry average: also three days.',
+  // 47 open tabs.
+  'Pitch decks and an app that is 90% done': 'The remaining 10% is projected to take the rest of your life.',
+  'Moodboards and fonts I will never pay for': 'The licensing department has been notified.',
+  'A spreadsheet tracking my other spreadsheets':
+    'The spreadsheets are tracking each other now. Nobody is tracking you.',
+  'My own comments section': 'Top comment is yours. So is the second one.',
+};
 
 // Real titles from server/careers.js SAMPLE_ANSWERS, same order. Shown
 // immediately as text-only covers; /api/samples then adds the portraits.

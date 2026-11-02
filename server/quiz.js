@@ -11,8 +11,8 @@ const QUESTIONS = [
   {
     id: 'strength',
     options: [
-      { id: 'vision', text: 'Pitch the vision from memory' },
-      { id: 'improv', text: 'Improvise with a whiteboard and confidence' },
+      { id: 'vision', text: 'Present from memory. Slides were holding me back' },
+      { id: 'improv', text: 'Improvise with a whiteboard and unearned confidence' },
       { id: 'grind', text: 'Fix it with a paperclip and pure spite' },
       { id: 'network', text: 'Call a guy who knows a guy' },
     ],
@@ -20,16 +20,16 @@ const QUESTIONS = [
   {
     id: 'monday_vibe',
     options: [
-      { id: 'coffee', text: 'Third coffee' },
+      { id: 'coffee', text: "Third coffee (it's 9:02)" },
       { id: 'suffer', text: 'Stare at the wall until lunch' },
       { id: 'same', text: 'Same as Sunday, honestly' },
-      { id: 'hype', text: 'Post something inspiring in the team chat' },
+      { id: 'hype', text: 'Genuinely love Mondays (liar)' },
     ],
   },
   {
     id: 'coworker_desc',
     options: [
-      { id: 'asked', text: 'The one who can just quickly do it' },
+      { id: 'asked', text: 'The one who can just quickly do it. Again.' },
       { id: 'translator', text: 'The one whose ideas need a translator' },
       { id: 'ghost', text: 'Who? We have never met' },
       { id: 'lunch', text: 'The one who knows when lunch arrives' },
@@ -38,7 +38,7 @@ const QUESTIONS = [
   {
     id: 'five_year_goal',
     options: [
-      { id: 'bell', text: 'Ringing the bell at the stock exchange' },
+      { id: 'bell', text: 'Ringing the bell at a stock exchange. Any stock exchange' },
       { id: 'palms', text: 'Somewhere with palm trees and bad Wi-Fi' },
       { id: 'desk', text: 'Same desk. Hopefully.' },
       { id: 'thursday', text: "I can't see past Thursday" },
@@ -49,9 +49,9 @@ const QUESTIONS = [
     // without asking for it outright.
     id: 'desired_field',
     options: [
-      { id: 'tech', text: 'Pitch decks and a half-built app' },
+      { id: 'tech', text: 'Pitch decks and an app that is 90% done' },
       { id: 'creative', text: 'Moodboards and fonts I will never pay for' },
-      { id: 'finance', text: 'Spreadsheets and a stock app' },
+      { id: 'finance', text: 'A spreadsheet tracking my other spreadsheets' },
       { id: 'viral', text: 'My own comments section' },
     ],
   },

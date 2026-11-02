@@ -9,11 +9,11 @@ const {
 } = require('../userData');
 
 const VALID = {
-  strength: 'Pitch the vision from memory',
-  monday_vibe: 'Third coffee',
-  coworker_desc: 'The one who can just quickly do it',
+  strength: 'Present from memory. Slides were holding me back',
+  monday_vibe: "Third coffee (it's 9:02)",
+  coworker_desc: 'The one who can just quickly do it. Again.',
   five_year_goal: 'Same desk. Hopefully.',
-  desired_field: 'Spreadsheets and a stock app',
+  desired_field: 'A spreadsheet tracking my other spreadsheets',
 };
 
 // --- profileToUserFields ---
@@ -106,8 +106,8 @@ test('validateOnboardingAnswers: text that is not a current option gets the relo
 });
 
 test('validateOnboardingAnswers: trims surrounding whitespace', () => {
-  const { answers } = validateOnboardingAnswers({ ...VALID, strength: '  Pitch the vision from memory  ' });
-  assert.equal(answers.strength, 'Pitch the vision from memory');
+  const { answers } = validateOnboardingAnswers({ ...VALID, strength: '  Present from memory. Slides were holding me back  ' });
+  assert.equal(answers.strength, 'Present from memory. Slides were holding me back');
 });
 
 test('validateOnboardingAnswers: ignores unknown extra fields', () => {

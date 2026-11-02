@@ -46,7 +46,7 @@ test('optionIdFor and optionText are inverses; unknown input is null', () => {
     }
   }
   assert.equal(optionIdFor('strength', 'Strategic thinking'), null, 'old option text');
-  assert.equal(optionIdFor('nope', 'Third coffee'), null);
+  assert.equal(optionIdFor('nope', "Third coffee (it's 9:02)"), null);
   assert.equal(optionText('strength', 'nope'), null);
 });
 
