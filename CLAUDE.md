@@ -29,7 +29,7 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
 
 ## Commands
 - Server tests: `cd server && npm test` (node:test; runs `server/__tests__/` and `services/image/__tests__/`) - verified, 120/120 pass on Node 22 after `npm install`.
-- Client tests: `cd client && npm test` (node:test over pure modules in `src/lib/__tests__/`) - verified, 24/24 pass.
+- Client tests: `cd client && npm test` (node:test over pure modules in `src/lib/__tests__/`) - verified, 27/27 pass.
 - Client build: `cd client && npx vite build` - verified. CI (`test.yml`) runs server tests, client tests and the client build.
 - Image key check: `cd server && npm run check:image` (add `-- --generate` for one real render) - verified against a fake key (clean 401) and a missing key. Owner steps: `docs/pollinations-setup.md`.
 - Server dev: `cd server && npm install && npm run dev` (nodemon, :5000) - unverified.

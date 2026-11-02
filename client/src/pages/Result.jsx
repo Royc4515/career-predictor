@@ -12,6 +12,7 @@ import { FINDINGS } from '../content';
 import { useToast } from '../components/Toast';
 import { useImageReady } from '../hooks/useImageReady';
 import { authUrls, fetchResult } from '../lib/api';
+import { analysisRows } from '../lib/analysis';
 import { renderCoverBlob } from '../lib/coverCanvas';
 import { coverFileName } from '../lib/coverLayout';
 import { firstName } from '../lib/issue';
@@ -19,20 +20,7 @@ import { EASE_OUT, rise } from '../lib/motion';
 import { setNavDirection } from '../lib/navDirection';
 import { cachedResult, draftAnswers, stampSeen } from '../lib/storage';
 
-const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 const SAVED_LABEL_MS = 1600;
-
-// Derived "analysis" rows. Same formulas as the original report so existing
-// results read the same; clamped so no bar can leave its track.
-function analysisRows(happiness) {
-  const h = Number(happiness) || 0;
-  return [
-    { label: 'Professional DNA match', value: 97 },
-    { label: 'Market viability', value: clamp(h - 5, 10, 99) },
-    { label: 'Passion alignment', value: clamp(h + 20, 0, 99) },
-    { label: 'Long-term stability', value: clamp(h - 15, 5, 99) },
-  ];
-}
 
 function useResult() {
   const navigate = useNavigate();
@@ -341,6 +329,7 @@ export default function Result() {
                       style={{ width: `${row.value}%` }}
                       aria-hidden="true"
                     />
+                    <p className="font-display mt-2 text-[1.05rem] leading-snug text-ink-2 italic">{row.note}</p>
                   </li>
                 ))}
               </ul>

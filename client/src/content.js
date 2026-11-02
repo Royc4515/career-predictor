@@ -101,6 +101,32 @@ export const FINDINGS = {
   'My own comments section': 'Top comment is yours. So is the second one.',
 };
 
+// The report's "Detailed analysis": one row per fake metric, each with a dry
+// note picked by how the score came out. `low` applies below 35, `high` from
+// 70, `mid` in between. Values come from lib/analysis.js.
+export const ANALYSIS_NOTES = {
+  dna: {
+    low: 'Sample may have been contaminated by optimism.',
+    mid: 'The remaining 3% is the part of you that wanted to be a vet.',
+    high: 'The remaining 3% is the part of you that wanted to be a vet.',
+  },
+  market: {
+    low: 'The market has been informed and has asked for privacy.',
+    mid: 'Viable in at least one market. Not this one.',
+    high: 'Strong demand, mostly from you.',
+  },
+  passion: {
+    low: 'Passion located. Alignment pending.',
+    mid: 'You care about this more than the job does.',
+    high: 'Alarmingly sincere. Monitoring continues.',
+  },
+  stability: {
+    low: 'Stable in the way a Jenga tower is stable.',
+    mid: 'Stable until the next reorg.',
+    high: 'Suspiciously stable. An audit has been scheduled.',
+  },
+};
+
 // Real titles from server/careers.js SAMPLE_ANSWERS, same order. Shown
 // immediately as text-only covers; /api/samples then adds the portraits.
 export const SAMPLE_TITLES = [
