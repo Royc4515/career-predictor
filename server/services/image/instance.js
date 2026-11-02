@@ -14,8 +14,12 @@ let instance;
 
 function getImageService() {
   if (!instance) {
+    const providers = resolveProviders(process.env);
+    // Names only, never keys: lets the Render log confirm at a glance that a
+    // newly added POLLINATIONS_API_KEY was picked up.
+    console.log(`[IMAGE] provider chain: ${providers.map((p) => p.name).join(' -> ')}`);
     instance = new ImageService({
-      providers: resolveProviders(process.env),
+      providers,
       blobStore: resolveBlobStore(process.env),
       promptBuilder,
       size: COVER_SIZE,

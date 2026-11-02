@@ -131,7 +131,7 @@ Run the test suites with `cd server && npm test` and `cd client && npm test` (`n
 The app works zero-config with keyless Pollinations, but as of November 2026 that endpoint always answers with its cheapest model ("sana") and stamps a watermark, whatever model is requested. For current-generation portraits, add a free secret key from [enter.pollinations.ai](https://enter.pollinations.ai/keys); with only the key set, the chain becomes `pollinations_gen,pollinations` automatically:
 
 ```
-POLLINATIONS_API_KEY=sk_xxx
+POLLINATIONS_API_KEY=sk_xxx                       # then: cd server && npm run check:image
 # POLLINATIONS_IMAGE_MODEL=tongyi-mai/z-image-turbo   # live list: https://gen.pollinations.ai/image/models
 ```
 

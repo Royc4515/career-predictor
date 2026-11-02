@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
-    "test": "node --test --test-reporter=spec __tests__/*.test.js services/image/__tests__/*.test.js"
+    "test": "node --test --test-reporter=spec __tests__/*.test.js services/image/__tests__/*.test.js",
+    "check:image": "node scripts/checkImageKey.js"
   },
   "dependencies": {
     "sql.js": "^1.12.0",
