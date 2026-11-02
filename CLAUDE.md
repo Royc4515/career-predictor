@@ -12,9 +12,10 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
   - `src/lib/api.js` (all server calls), `src/lib/storage.js` (sessionStorage, never throws), `src/hooks/useImageReady.js` (HEAD-polls `/api/image/:id`), `src/content.js` (all copy, quiz options).
   - `src/components/effects/` - the signature effects, each self-contained with a fallback: `HalftoneReveal` (CMYK halftone press reveal, Paper Shaders WebGL2, lazy chunk), `TiltCard` (pointer tilt + gloss), `Stamp` (rubber stamp slam), `Odometer`, `IssueStack` (scroll-driven back-issue fan), `EffectBoundary` (an effect that throws removes itself, never the page). `hooks/useProximityWeight.js` drives the hero's variable-weight letters. CSS-only effects (CMYK misregistration, print head, barcode laser) live in `index.css` under "Print shop effects". Every effect checks `lib/capabilities.js` (WebGL2, hover) and reduced motion first.
   - Design tokens in `src/index.css` `@theme`: paper / ink / one highlighter (`mark`). Rationale and the review against Anthropic's frontend-design skill: `docs/redesign-plan.md`.
-- `server/` - Express 4 monolith (CommonJS), Passport Google OAuth, express-session (memory store), SQLite via sql.js.
+- `server/` - Express 4 monolith (CommonJS), Passport Google OAuth, express-session (memory store), SQLite via `@libsql/client`: Turso in production (`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`), a local file otherwise.
   - `index.js` - entry; waits for `initDB()`, then mounts routes and serves `client/dist` with an SPA catch-all.
-  - `db.js` - schema, additive migrations via `addColumnIfMissing` (checks `PRAGMA table_info`), whole-DB `saveDB()` to `server/career-predictor.db`.
+  - `db.js` - async API over libsql; schema + additive migrations via `addColumnIfMissing` (checks `PRAGMA table_info`). `saveOnboarding` replaces the user's row in one write batch. Tested against a real SQLite file in `__tests__/db.test.js`, including the schema production Turso had before `image_id`.
+  - `asyncRoute.js` - wraps every async Express handler so a rejection becomes a JSON 500 (Express 4 would hang the request).
   - `userData.js` - pure edge helpers: `profileToUserFields` (Google profile in), `toPublicUser` (whitelist for `/auth/me`), `validateOnboardingAnswers`. Tested in `server/__tests__/`.
   - `careers.js` - `mapCareer` rule table (three tiers, each proposes a match, an FNV hash of all five answers picks one; 44 of 45 titles reachable, the 45th is the fallback) + `SAMPLE_ANSWERS` for the landing page. Pure, tested in `__tests__/careers.test.js`.
   - `routes/userRoutes.js` - `/api/user/onboarding` and `/api/user/result`.
@@ -23,10 +24,10 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
   - `services/image/` - `ImageService` orchestrator (sync `kickoff`, in-flight dedup, fallback cascade), `promptBuilder` (seed, SDXL/FLUX dialects, content-hash id), `providers/` (realvisxl, cloudflare, huggingface_flux, together, pollinations), `storage/` (disk, r2), `__tests__/`.
 - `docs/image-service-spec.md` - contract the image pipeline and its tests satisfy.
 - `.github/workflows/test.yml` (server tests on push/PR), `keep-alive.yml` (pings Render every 14 min).
-- Deploy: Render single service, https://career-predictor-cnvg.onrender.com
+- Deploy: Render single service, https://career-predictor-cnvg.onrender.com, deploying `main` (`render.yaml`). Until November 2026 the dashboard deployed a separate branch (`claude/migrate-free-hosting-tvidw`, the Turso migration), so merges to main did not ship; check the service's branch if a merge doesn't appear.
 
 ## Commands
-- Server tests: `cd server && npm test` (node:test; runs `server/__tests__/` and `services/image/__tests__/`) - verified, 104/104 pass on Node 22 after `npm install`.
+- Server tests: `cd server && npm test` (node:test; runs `server/__tests__/` and `services/image/__tests__/`) - verified, 113/113 pass on Node 22 after `npm install`.
 - Client tests: `cd client && npm test` (node:test over pure modules in `src/lib/__tests__/`) - verified, 19/19 pass.
 - Client build: `cd client && npx vite build` - verified. CI (`test.yml`) runs server tests, client tests and the client build.
 - Image key check: `cd server && npm run check:image` (add `-- --generate` for one real render) - verified against a fake key (clean 401) and a missing key. Owner steps: `docs/pollinations-setup.md`.
@@ -49,9 +50,8 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
 - Quiz mapping is string-coupled: `mapCareer` (`server/careers.js`) matches substrings of the literal option text in `client/src/content.js` (e.g. `'social construct'`, `'people who know'`). Editing option copy silently changes results. Server checks answers are non-empty strings of at most 200 chars (`validateOnboardingAnswers`), but not against the allowed options.
 - `getImageService()` runs inside `initDB().then(...)` in `server/index.js`, so a provider missing its key fails startup via the same catch (logged as "Startup failed ...").
 - `LocalDiskStore` default dir and `IMAGE_CACHE_DIR=./data/image-cache` resolve against `process.cwd()`. Root `npm start` writes to `<repo>/data/` (gitignored as `/data/`), not `server/data/`.
-- Persistence: Render free-tier disk is wiped on redeploy (per `.env.example`), so SQLite DB and disk image cache are lost. Sessions use the in-memory store and die on every restart. Use `IMAGE_STORE=r2` for durable images.
+- Persistence: Render free-tier disk is wiped on redeploy. The database survives only because production uses Turso; without `TURSO_DATABASE_URL` it falls back to a local file that is lost on deploy. The disk image cache is lost too (use `IMAGE_STORE=r2` for durable images), and sessions use the in-memory store and die on every restart.
 - `SESSION_SECRET` falls back to a hardcoded dev string in `server/index.js` if unset (production logs a warning but still starts). Set it in every deployed env.
-- `saveDB()` rewrites the whole DB file synchronously on every write.
 - `docs/image-service-spec.md` links to a `.claude/plans/...` file outside the repo (dead link).
 - `@paper-design/shaders-react` must stay in `optimizeDeps.include` (`vite.config.js`): if Vite discovers it mid-session it pre-bundles a second React copy and the shader throws "Invalid hook call" (dev only). `HalftoneReveal`'s `size` is calibrated: 1 renders blurry blobs, ~0.55 is the coarsest that still reads as print dots.
 - Client tests cover only pure modules (`src/lib`); pages are verified by hand / Playwright with a mocked API, there is no component test setup.

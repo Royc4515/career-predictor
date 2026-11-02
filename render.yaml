@@ -1,0 +1,35 @@
+# Render Blueprint for the single web service. Values marked sync: false are
+# secrets set in the Render dashboard, never committed. If the service was
+# created by hand in the dashboard this file is documentation; the dashboard
+# settings (including the deploy branch, which must be main) win.
+services:
+  - type: web
+    name: career-predictor
+    runtime: node
+    plan: free
+    branch: main
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: CLIENT_URL
+        sync: false
+      - key: SERVER_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      # Persistent database. Without these the app falls back to a local
+      # SQLite file, which Render's free tier wipes on every deploy.
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
+      # Current-generation portraits (docs/pollinations-setup.md).
+      - key: POLLINATIONS_API_KEY
+        sync: false
