@@ -2,13 +2,15 @@
 // payloads out, quiz answers in). Kept free of db/passport imports so they
 // can be unit tested without initializing either.
 
-const REQUIRED_ANSWERS = ['strength', 'monday_vibe', 'coworker_desc', 'five_year_goal'];
-const OPTIONAL_ANSWERS = ['desired_field'];
+const { QUESTION_IDS, optionIdFor } = require('./quiz');
 
-// Every real option in client/src/pages/Onboarding.jsx is well under this.
-// The cap only exists so a hand-crafted request can't store arbitrarily
-// large strings in the DB.
+// Every real option is well under this. Checked before the option lookup so
+// a hand-crafted request is turned away cheaply.
 const MAX_ANSWER_LENGTH = 200;
+
+// A tab or saved draft from before the questionnaire changed sends option
+// text that no longer exists. Say what to do instead of a generic error.
+const STALE_ANSWERS_ERROR = 'The questionnaire was updated. Reload the page and answer again.';
 
 /**
  * Map a passport-google-oauth20 profile to the fields upsertUser() expects.
@@ -39,10 +41,10 @@ function toPublicUser(user) {
 }
 
 /**
- * Validate the onboarding request body.
- * Returns { answers } on success or { error } with a client-facing message.
- * mapCareer() calls .includes() on every answer, so a non-string value
- * (number, object) would throw there; reject it here instead.
+ * Validate the onboarding request body: all five answers, each the exact
+ * text of a current option (quiz.js).
+ * Returns { answers } (trimmed text keyed by question id) on success or
+ * { error } with a client-facing message.
  */
 function validateOnboardingAnswers(body) {
   if (!body || typeof body !== 'object') {
@@ -50,23 +52,23 @@ function validateOnboardingAnswers(body) {
   }
 
   const answers = {};
-  for (const key of [...REQUIRED_ANSWERS, ...OPTIONAL_ANSWERS]) {
+  for (const key of QUESTION_IDS) {
     const value = body[key];
-    const required = REQUIRED_ANSWERS.includes(key);
-
-    if (value === undefined || value === null || value === '') {
-      if (required) return { error: 'All four answers are required' };
-      continue;
+    if (value === undefined || value === null) {
+      return { error: 'All five answers are required' };
     }
     if (typeof value !== 'string') {
       return { error: `Answer "${key}" must be a string` };
     }
     const trimmed = value.trim();
-    if (required && trimmed === '') {
-      return { error: 'All four answers are required' };
+    if (trimmed === '') {
+      return { error: 'All five answers are required' };
     }
     if (trimmed.length > MAX_ANSWER_LENGTH) {
       return { error: `Answer "${key}" is too long` };
+    }
+    if (!optionIdFor(key, trimmed)) {
+      return { error: STALE_ANSWERS_ERROR };
     }
     answers[key] = trimmed;
   }
@@ -79,4 +81,5 @@ module.exports = {
   toPublicUser,
   validateOnboardingAnswers,
   MAX_ANSWER_LENGTH,
+  STALE_ANSWERS_ERROR,
 };

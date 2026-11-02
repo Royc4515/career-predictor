@@ -1,41 +1,131 @@
 // Copy lives here so pages stay about layout and motion.
 
-// don't touch / Option strings are matched by substring in mapCareer
-// (server/routes/userRoutes.js). Rewording an option silently changes which
-// career a user gets. Question text and ids are safe to edit; ids are the
-// keys validateOnboardingAnswers expects.
+// don't touch / Option text is the contract with the server: server/quiz.js
+// holds the same strings with stable ids, and server/__tests__/quiz.test.js
+// imports this file and fails on any difference. Edit both together. Question
+// ids are database column names, so they keep their old names even where the
+// question changed. Options are quoted back on the report as evidence, so
+// they must read well inside quotation marks (no quotes inside them).
 export const QUESTIONS = [
   {
     id: 'strength',
-    label: 'Strength',
-    question: 'What’s your biggest work strength?',
-    options: ['Strategic thinking', 'Raw creativity', "I just don't quit", 'I know people who know people'],
+    label: 'Under pressure',
+    question: 'The demo is in ten minutes and the laptop just died. You…',
+    options: [
+      'Present from memory. Slides were holding me back',
+      'Improvise with a whiteboard and unearned confidence',
+      'Fix it with a paperclip and pure spite',
+      'Call a guy who knows a guy',
+    ],
   },
   {
     id: 'monday_vibe',
     label: 'Mondays',
-    question: 'How do you handle Mondays?',
-    options: ['IV drip of coffee', 'Quiet suffering', 'Every day feels the same', 'I genuinely love Mondays (liar)'],
+    question: 'Monday, 9:02 a.m. First move?',
+    options: [
+      "Third coffee (it's 9:02)",
+      'Stare at the wall until lunch',
+      'Same as Sunday, honestly',
+      'Genuinely love Mondays (liar)',
+    ],
   },
   {
     id: 'coworker_desc',
-    label: 'Coworkers say',
-    question: 'Coworkers would describe you as…',
-    options: ['The reliable one', 'A visionary (probably)', 'Wait, you have coworkers?', 'The one who orders food'],
+    label: 'Reputation',
+    question: 'Your coworkers know you as…',
+    options: [
+      'The one who can just quickly do it. Again.',
+      'The one whose ideas need a translator',
+      'Who? We have never met',
+      'The one who knows when lunch arrives',
+    ],
   },
   {
     id: 'five_year_goal',
     label: 'Five-year plan',
-    question: 'Your five-year plan?',
-    options: ['CEO or bust', 'Laptop from a beach', 'To still be employed', 'Plans are a social construct'],
+    question: 'Where do you see yourself in five years?',
+    options: [
+      'Ringing the bell at a stock exchange. Any stock exchange',
+      'Somewhere with palm trees and bad Wi-Fi',
+      'Same desk. Hopefully.',
+      "I can't see past Thursday",
+    ],
   },
   {
     id: 'desired_field',
-    label: 'Field',
-    question: 'What field are you actually targeting?',
-    options: ['Tech & Startups', 'Creative Arts & Media', 'Finance & Business', 'I just want to go viral'],
+    label: 'Open tabs',
+    question: 'You have 47 browser tabs open. Mostly…',
+    options: [
+      'Pitch decks and an app that is 90% done',
+      'Moodboards and fonts I will never pay for',
+      'A spreadsheet tracking my other spreadsheets',
+      'My own comments section',
+    ],
   },
 ];
+
+// The analyst's note printed under each quoted answer in the report's
+// "Evidence on file". The joke is the gap between trivial evidence and a
+// confident conclusion, so keep them dry: no exclamation marks, no winking.
+// Keyed by option text; an answer with no note (an old saved result whose
+// option was since reworded) is simply quoted without one.
+export const FINDINGS = {
+  // The demo is in ten minutes and the laptop just died.
+  'Present from memory. Slides were holding me back':
+    'Subject confuses having no slides with having a vision. Investors have made the same mistake.',
+  'Improvise with a whiteboard and unearned confidence':
+    'Confidence exceeded evidence by a ratio our instruments could not display.',
+  'Fix it with a paperclip and pure spite': 'Problem solved. Root cause untouched. Promotion unlikely.',
+  'Call a guy who knows a guy': 'The guy who knows a guy has also been contacted. He is not available.',
+  // Monday, 9:02 a.m.
+  "Third coffee (it's 9:02)": 'Consistent with a resting heart rate the desk chose not to measure.',
+  'Stare at the wall until lunch': 'Output before noon: unmeasurable. After noon: also unmeasurable.',
+  'Same as Sunday, honestly': 'No weekend detected. It may never have been installed.',
+  'Genuinely love Mondays (liar)': "Flagged by the desk's lie detector, which was also lying.",
+  // Your coworkers know you as...
+  'The one who can just quickly do it. Again.': 'Quickly has taken four years so far.',
+  'The one whose ideas need a translator': 'Three ideas submitted. None understood. One patented by accident.',
+  'Who? We have never met': 'HR confirms you exist. Colleagues do not.',
+  'The one who knows when lunch arrives': 'The most reliable data source in the building.',
+  // Five years from now.
+  'Ringing the bell at a stock exchange. Any stock exchange':
+    'Bell located. The stock exchange has not returned our calls.',
+  'Somewhere with palm trees and bad Wi-Fi': 'Signal strength consistent with career outlook.',
+  'Same desk. Hopefully.': 'Ambition measured at chair height.',
+  "I can't see past Thursday": 'Planning horizon: three days. Industry average: also three days.',
+  // 47 open tabs.
+  'Pitch decks and an app that is 90% done': 'The remaining 10% is projected to take the rest of your life.',
+  'Moodboards and fonts I will never pay for': 'The licensing department has been notified.',
+  'A spreadsheet tracking my other spreadsheets':
+    'The spreadsheets are tracking each other now. Nobody is tracking you.',
+  'My own comments section': 'Top comment is yours. So is the second one.',
+};
+
+// The report's "Detailed analysis": one row per fake metric, each with a dry
+// note picked by how the score came out. `low` applies below 35, `high` from
+// 70, `mid` in between. Values come from lib/analysis.js.
+export const ANALYSIS_NOTES = {
+  dna: {
+    low: 'Sample may have been contaminated by optimism.',
+    mid: 'The remaining 3% is the part of you that wanted to be a vet.',
+    high: 'The remaining 3% is the part of you that wanted to be a vet.',
+  },
+  market: {
+    low: 'The market has been informed and has asked for privacy.',
+    mid: 'Viable in at least one market. Not this one.',
+    high: 'Strong demand, mostly from you.',
+  },
+  passion: {
+    low: 'Passion located. Alignment pending.',
+    mid: 'You care about this more than the job does.',
+    high: 'Alarmingly sincere. Monitoring continues.',
+  },
+  stability: {
+    low: 'Stable in the way a Jenga tower is stable.',
+    mid: 'Stable until the next reorg.',
+    high: 'Suspiciously stable. An audit has been scheduled.',
+  },
+};
 
 // Real titles from server/careers.js SAMPLE_ANSWERS, same order. Shown
 // immediately as text-only covers; /api/samples then adds the portraits.

@@ -13,7 +13,7 @@ export default function NotFound() {
           to="/"
           viewTransition
           onClick={() => setNavDirection(null)}
-          className="link-ink mt-8 self-start text-lede"
+          className="link-ink tap mt-8 self-start text-lede"
         >
           Go to the front page
         </Link>

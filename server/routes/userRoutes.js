@@ -28,7 +28,7 @@ router.post(
       const { strength, monday_vibe, coworker_desc, five_year_goal, desired_field } = answers;
       const userId = req.user.id;
 
-      const career = mapCareer(strength, monday_vibe, coworker_desc, five_year_goal, desired_field);
+      const career = mapCareer(answers);
       console.log('[ROUTE] Career mapped:', career.title);
 
       // kickoff() returns synchronously with the deterministic id; generation,
@@ -49,6 +49,7 @@ router.post(
           happiness: career.happiness,
           salary: career.salary,
           outlook: career.outlook,
+          evidence: career.evidence,
         }),
         imageId,
       });
@@ -58,6 +59,7 @@ router.post(
         caption: career.caption,
         imageUrl: imageUrlFor(imageId),
         stats: { happiness: career.happiness, salary: career.salary, outlook: career.outlook },
+        evidence: career.evidence,
       });
     },
     { label: 'POST /api/user/onboarding', message: 'Could not save your result. Please try again.' },
@@ -82,6 +84,8 @@ router.get(
         caption: parsed.caption || 'Your career destiny has been sealed by the algorithm.',
         imageUrl,
         stats: { happiness: parsed.happiness, salary: parsed.salary, outlook: parsed.outlook },
+        // Results saved before the quiz redesign have no evidence.
+        evidence: Array.isArray(parsed.evidence) ? parsed.evidence : [],
       });
     },
     { label: 'GET /api/user/result', message: 'Could not load your result. Please try again.' },

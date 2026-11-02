@@ -8,9 +8,11 @@ import TiltCard from '../components/effects/TiltCard';
 import Stamp from '../components/effects/Stamp';
 import Odometer from '../components/effects/Odometer';
 import Footer from '../components/Footer';
+import { FINDINGS } from '../content';
 import { useToast } from '../components/Toast';
 import { useImageReady } from '../hooks/useImageReady';
 import { authUrls, fetchResult } from '../lib/api';
+import { analysisRows } from '../lib/analysis';
 import { renderCoverBlob } from '../lib/coverCanvas';
 import { coverFileName } from '../lib/coverLayout';
 import { firstName } from '../lib/issue';
@@ -18,20 +20,7 @@ import { EASE_OUT, rise } from '../lib/motion';
 import { setNavDirection } from '../lib/navDirection';
 import { cachedResult, draftAnswers, stampSeen } from '../lib/storage';
 
-const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 const SAVED_LABEL_MS = 1600;
-
-// Derived "analysis" rows. Same formulas as the original report so existing
-// results read the same; clamped so no bar can leave its track.
-function analysisRows(happiness) {
-  const h = Number(happiness) || 0;
-  return [
-    { label: 'Professional DNA match', value: 97 },
-    { label: 'Market viability', value: clamp(h - 5, 10, 99) },
-    { label: 'Passion alignment', value: clamp(h + 20, 0, 99) },
-    { label: 'Long-term stability', value: clamp(h - 15, 5, 99) },
-  ];
-}
 
 function useResult() {
   const navigate = useNavigate();
@@ -164,7 +153,7 @@ export default function Result() {
   const header = (
     <Masthead
       right={
-        <a href={authUrls.logout} className="meta link-ink text-ink">
+        <a href={authUrls.logout} className="meta link-ink tap text-ink">
           Sign out
         </a>
       }
@@ -204,6 +193,8 @@ export default function Result() {
   }
 
   const { careerTitle, caption, stats } = result;
+  // Results saved before the quiz redesign (and old cached ones) have none.
+  const evidence = Array.isArray(result.evidence) ? result.evidence.filter((q) => typeof q === 'string') : [];
   const filed = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const downloadLabel = justSaved
     ? 'Saved to your device'
@@ -224,36 +215,17 @@ export default function Result() {
               nothing else should compete with it. */}
           <m.div className="lg:col-span-6" {...rise(10)} transition={{ duration: 0.45, ease: EASE_OUT }}>
             <div className="relative mx-auto max-w-[600px] lg:sticky lg:top-8">
-              {/* The stamp's impact nudges the cover, like a desk taking the hit. */}
-              <m.div
-                animate={
-                  stamped && slam
-                    ? {
-                        transform: [
-                          'translateX(0px)',
-                          'translateX(-6px)',
-                          'translateX(4px)',
-                          'translateX(-2px)',
-                          'translateX(0px)',
-                        ],
-                      }
-                    : undefined
-                }
-                transition={{ duration: 0.32, delay: 0.12, ease: 'easeOut' }}
-              >
-                <TiltCard>
-                  <Cover
-                    title={careerTitle}
-                    imageUrl={result.imageUrl}
-                    imageStatus={imageStatus}
-                    personName={name}
-                    happiness={stats.happiness}
-                    reveal="press"
-                    onRevealed={() => setRevealed(true)}
-                  />
-                </TiltCard>
-              </m.div>
-              {stamped && <Stamp play={slam} date={filed} className="absolute top-[38%] -right-2 z-20 sm:-right-10" />}
+              <TiltCard>
+                <Cover
+                  title={careerTitle}
+                  imageUrl={result.imageUrl}
+                  imageStatus={imageStatus}
+                  personName={name}
+                  happiness={stats.happiness}
+                  reveal="press"
+                  onRevealed={() => setRevealed(true)}
+                />
+              </TiltCard>
             </div>
           </m.div>
 
@@ -265,6 +237,7 @@ export default function Result() {
             <p className="meta mt-5">
               Forecast for {name || 'you'}, filed {filed}.
             </p>
+            <Stamp ready={stamped} play={slam} className="mt-4 ml-1" />
 
             <section aria-label="Actions" className="mt-8 flex flex-wrap items-center gap-3">
               <button
@@ -289,6 +262,28 @@ export default function Result() {
                 The portrait couldn&rsquo;t be generated, so the cover is printed without one. Retake the questionnaire
                 later to try again.
               </p>
+            )}
+
+            {evidence.length > 0 && (
+              <section aria-labelledby="evidence-heading" className="mt-12 border-t border-ink pt-6">
+                <h2 id="evidence-heading" className="font-display text-section">
+                  Evidence on file
+                </h2>
+                {/* Quote, then the analyst's conclusion: the satire is the
+                    straight face between the two. */}
+                <dl className="mt-5 space-y-5">
+                  {evidence.map((quote) => (
+                    <div key={quote} className="border-l-2 border-mark pl-4">
+                      <dt className="text-body font-medium text-ink">&ldquo;{quote}&rdquo;</dt>
+                      {FINDINGS[quote] && (
+                        <dd className="font-display mt-1 text-[1.15rem] leading-snug text-ink-2 italic">
+                          {FINDINGS[quote]}
+                        </dd>
+                      )}
+                    </div>
+                  ))}
+                </dl>
+              </section>
             )}
 
             <section aria-labelledby="figures-heading" className="mt-12 border-t border-ink pt-6">
@@ -334,6 +329,7 @@ export default function Result() {
                       style={{ width: `${row.value}%` }}
                       aria-hidden="true"
                     />
+                    <p className="font-display mt-2 text-[1.05rem] leading-snug text-ink-2 italic">{row.note}</p>
                   </li>
                 ))}
               </ul>

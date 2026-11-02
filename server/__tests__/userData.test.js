@@ -5,13 +5,15 @@ const {
   toPublicUser,
   validateOnboardingAnswers,
   MAX_ANSWER_LENGTH,
+  STALE_ANSWERS_ERROR,
 } = require('../userData');
 
 const VALID = {
-  strength: 'Strategic thinking',
-  monday_vibe: 'Powered by coffee',
-  coworker_desc: 'Reliable',
-  five_year_goal: 'Running the place',
+  strength: 'Present from memory. Slides were holding me back',
+  monday_vibe: "Third coffee (it's 9:02)",
+  coworker_desc: 'The one who can just quickly do it. Again.',
+  five_year_goal: 'Same desk. Hopefully.',
+  desired_field: 'A spreadsheet tracking my other spreadsheets',
 };
 
 // --- profileToUserFields ---
@@ -65,35 +67,26 @@ test('toPublicUser: null in, null out', () => {
 
 // --- validateOnboardingAnswers ---
 
-test('validateOnboardingAnswers: accepts the four required answers', () => {
+test('validateOnboardingAnswers: accepts all five current options', () => {
   const { answers, error } = validateOnboardingAnswers(VALID);
   assert.equal(error, undefined);
   assert.deepEqual(answers, VALID);
 });
 
-test('validateOnboardingAnswers: keeps optional desired_field when present', () => {
-  const { answers } = validateOnboardingAnswers({ ...VALID, desired_field: 'Tech' });
-  assert.equal(answers.desired_field, 'Tech');
-});
-
-test('validateOnboardingAnswers: omits desired_field when empty', () => {
-  const { answers } = validateOnboardingAnswers({ ...VALID, desired_field: '' });
-  assert.equal('desired_field' in answers, false);
-});
-
-test('validateOnboardingAnswers: each missing required answer is rejected', () => {
+test('validateOnboardingAnswers: each missing answer is rejected, the field included', () => {
   for (const key of Object.keys(VALID)) {
     const body = { ...VALID };
     delete body[key];
-    assert.ok(validateOnboardingAnswers(body).error, `missing ${key} should fail`);
+    assert.match(validateOnboardingAnswers(body).error, /All five answers/, `missing ${key} should fail`);
+    assert.match(validateOnboardingAnswers({ ...VALID, [key]: '' }).error, /All five answers/);
   }
 });
 
-test('validateOnboardingAnswers: whitespace-only required answer is rejected', () => {
+test('validateOnboardingAnswers: whitespace-only answer is rejected', () => {
   assert.ok(validateOnboardingAnswers({ ...VALID, strength: '   ' }).error);
 });
 
-test('validateOnboardingAnswers: non-string answers are rejected (mapCareer would throw)', () => {
+test('validateOnboardingAnswers: non-string answers are rejected', () => {
   for (const bad of [42, true, { a: 1 }, ['x']]) {
     const { error } = validateOnboardingAnswers({ ...VALID, strength: bad });
     assert.match(error, /must be a string/);
@@ -101,19 +94,25 @@ test('validateOnboardingAnswers: non-string answers are rejected (mapCareer woul
   assert.match(validateOnboardingAnswers({ ...VALID, desired_field: 5 }).error, /must be a string/);
 });
 
-test('validateOnboardingAnswers: over-long answer is rejected', () => {
+test('validateOnboardingAnswers: over-long answer is rejected before the option lookup', () => {
   const long = 'x'.repeat(MAX_ANSWER_LENGTH + 1);
   assert.match(validateOnboardingAnswers({ ...VALID, coworker_desc: long }).error, /too long/);
 });
 
-test('validateOnboardingAnswers: answer exactly at the limit is accepted', () => {
-  const atLimit = 'x'.repeat(MAX_ANSWER_LENGTH);
-  assert.equal(validateOnboardingAnswers({ ...VALID, coworker_desc: atLimit }).error, undefined);
+test('validateOnboardingAnswers: text that is not a current option gets the reload message', () => {
+  // An open tab or saved draft from before the questionnaire changed.
+  assert.equal(validateOnboardingAnswers({ ...VALID, strength: 'Strategic thinking' }).error, STALE_ANSWERS_ERROR);
+  assert.equal(validateOnboardingAnswers({ ...VALID, coworker_desc: 'x'.repeat(10) }).error, STALE_ANSWERS_ERROR);
 });
 
 test('validateOnboardingAnswers: trims surrounding whitespace', () => {
-  const { answers } = validateOnboardingAnswers({ ...VALID, strength: '  Strategic thinking  ' });
-  assert.equal(answers.strength, 'Strategic thinking');
+  const { answers } = validateOnboardingAnswers({ ...VALID, strength: '  Present from memory. Slides were holding me back  ' });
+  assert.equal(answers.strength, 'Present from memory. Slides were holding me back');
+});
+
+test('validateOnboardingAnswers: ignores unknown extra fields', () => {
+  const { answers } = validateOnboardingAnswers({ ...VALID, role: 'admin' });
+  assert.equal('role' in answers, false);
 });
 
 test('validateOnboardingAnswers: missing or non-object body is rejected', () => {

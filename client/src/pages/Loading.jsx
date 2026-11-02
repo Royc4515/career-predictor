@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Masthead from '../components/Masthead';
 import Cover from '../components/Cover';
-import { PRESS_STEPS, QUESTIONS } from '../content';
+import { PRESS_STEPS } from '../content';
 import { submitAnswers } from '../lib/api';
 import { cachedResult, draftAnswers } from '../lib/storage';
 import { setNavDirection } from '../lib/navDirection';
+import { currentAnswers, isComplete } from '../lib/quiz';
 
 // The server answers in milliseconds; the pause is part of the bit. It is
 // kept short enough that nobody waits on purpose for longer than a joke.
@@ -13,11 +14,6 @@ const MIN_DURATION_MS = 5200;
 const STEP_MS = MIN_DURATION_MS / PRESS_STEPS.length;
 // The headline appears on the cover at this step ("Setting your headline").
 const HEADLINE_STEP = PRESS_STEPS.length - 2;
-
-function hasRequiredAnswers(answers) {
-  // desired_field is optional server-side (validateOnboardingAnswers).
-  return QUESTIONS.filter((q) => q.id !== 'desired_field').every((q) => answers[q.id]);
-}
 
 function StepMark({ state }) {
   if (state === 'done') {
@@ -50,8 +46,8 @@ export default function Loading() {
   // draft being cleared on success flip `ready` to false while the deferred
   // view-transition navigation was still pending, which bounced the reader
   // back to /onboarding instead of /result.
-  const [answers] = useState(() => draftAnswers.get());
-  const ready = hasRequiredAnswers(answers);
+  const [answers] = useState(() => currentAnswers(draftAnswers.get()));
+  const ready = isComplete(answers);
 
   useEffect(() => {
     if (!ready) navigate('/onboarding', { replace: true });
@@ -165,15 +161,18 @@ export default function Loading() {
     <div className="flex min-h-dvh flex-col">
       <Masthead />
       <main id="main" className="flex flex-1 items-center px-4 sm:px-8">
-        <div className="mx-auto grid w-full max-w-[1240px] items-center gap-12 py-16 lg:grid-cols-12 lg:gap-10">
-          <div className="hidden lg:col-span-4 lg:block">
-            <Cover title={headline} imageStatus="pending" deck="Going to print." printing className="max-w-[320px]" />
+        <div className="mx-auto grid w-full max-w-[1240px] items-center gap-8 py-8 sm:py-16 lg:grid-cols-12 lg:gap-10">
+          {/* Phones get the printing cover too, small and above the title, so
+              the press effect isn't desktop-only. */}
+          {/* Width on the wrapper: Cover sets w-full on itself. */}
+          <div className="w-[min(52vw,220px)] lg:col-span-4 lg:w-full lg:max-w-[320px]">
+            <Cover title={headline} imageStatus="pending" deck="Going to print." printing />
           </div>
 
           <div className="lg:col-span-6 lg:col-start-6">
             <h1 className="font-display text-title text-balance">Printing your cover…</h1>
             <div
-              className="mt-8 h-[3px] bg-paper-3"
+              className="mt-6 h-[3px] bg-paper-3 sm:mt-8"
               role="progressbar"
               aria-label="Printing your cover"
               aria-valuemin={0}
@@ -182,7 +181,7 @@ export default function Loading() {
             >
               <div ref={barRef} className="h-full origin-left bg-ink" style={{ transform: 'scaleX(0)' }} />
             </div>
-            <ol className="mt-10 space-y-4" aria-label="Steps">
+            <ol className="mt-6 space-y-3 sm:mt-10 sm:space-y-4" aria-label="Steps">
               {PRESS_STEPS.map((label, i) => {
                 const state = i < activeStep || done ? 'done' : i === activeStep ? 'active' : 'todo';
                 return (
@@ -199,7 +198,7 @@ export default function Loading() {
                 );
               })}
             </ol>
-            <p className="meta mt-10">Keep this tab open. It takes a few seconds.</p>
+            <p className="meta mt-6 sm:mt-10">Keep this tab open. It takes a few seconds.</p>
           </div>
         </div>
       </main>

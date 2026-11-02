@@ -6,6 +6,7 @@ import Masthead from '../components/Masthead';
 import { QUESTIONS } from '../content';
 import { firstName } from '../lib/issue';
 import { draftAnswers } from '../lib/storage';
+import { currentAnswers } from '../lib/quiz';
 import { EASE_IN_OUT, EASE_OUT } from '../lib/motion';
 import { setNavDirection } from '../lib/navDirection';
 
@@ -64,7 +65,8 @@ export default function Onboarding() {
   const [params, setParams] = useSearchParams();
 
   // Resume where the reader left off (reload, or back from a failed submit).
-  const [answers, setAnswers] = useState(() => draftAnswers.get());
+  // Stale answers from an older questionnaire are dropped, not resumed.
+  const [answers, setAnswers] = useState(() => currentAnswers(draftAnswers.get()));
   const [locked, setLocked] = useState(false);
   const optionRefs = useRef([]);
   const advanceTimer = useRef(null);
@@ -240,7 +242,7 @@ export default function Onboarding() {
                           tabIndex={isSelected || (!selected && i === 0) ? 0 : -1}
                           onClick={() => choose(option)}
                           onKeyDown={(e) => onOptionKeyDown(e, i)}
-                          className="group -mx-3 flex min-h-[68px] w-[calc(100%+1.5rem)] items-center gap-5 border-b border-rule px-3 py-4 text-left transition-colors duration-150 sm:gap-7 [@media(hover:hover)]:hover:bg-paper-2"
+                          className="group flex min-h-[68px] w-full items-center gap-5 border-b border-rule py-4 text-left transition-colors duration-150 active:bg-paper-2 sm:-mx-3 sm:w-[calc(100%+1.5rem)] sm:gap-7 sm:px-3 [@media(hover:hover)]:hover:bg-paper-2"
                         >
                           <kbd
                             className={`grid size-8 shrink-0 place-items-center rounded-[3px] border font-sans text-[0.8rem] font-semibold transition-colors ${
