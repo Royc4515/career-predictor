@@ -17,24 +17,35 @@ function imageIdFor(scenePrompt, seed) {
 // series from the same magazine, not as unrelated AI images. The wording is
 // deliberately plain: "8K, award-winning, hyperdetailed" tag soup is what
 // makes output look synthetic on current models, and it adds nothing.
-// The empty space above the subject is load-bearing: the client sets the
-// masthead and headline there (see client/src/lib/cover.js).
+// don't touch / The framing line is load-bearing. The client covers the top
+// ~20% with the masthead and the bottom ~40% with the headline over a dark
+// gradient (client/src/components/Cover.jsx, client/src/lib/coverLayout.js),
+// so the face and the gag must land in the middle band. "Subject in the lower
+// two thirds" used to push the props the joke depends on under the headline.
 
 // SDXL fine-tunes (RealVisXL) still respond best to comma-separated tags.
 const SDXL_SUFFIX =
   'editorial magazine cover photograph, medium format camera, 80mm lens, ' +
   'soft natural window light, subtle film grain, muted true-to-life colors, ' +
-  'subject in lower two thirds, clean empty space above head, deadpan expression, ' +
-  'documentary realism, photorealistic, sharp focus';
+  'medium shot, generous headroom, subject centred, top of head a third of the way down the frame, ' +
+  'face just above the middle, plain backdrop above head, deadpan expression, ' +
+  'documentary realism, photorealistic, sharp focus, plain unmarked surfaces';
 
 // FLUX-family and other current models follow natural-language direction.
+// Turbo models (Z-Image Turbo, FLUX.2 klein) run without CFG and ignore the
+// negative prompt, so everything that must stay out of the frame is said here.
+// It is phrased positively first ("blank", "unmarked") because naming a thing,
+// even to forbid it, can summon it; the closing "No text" line is kept because
+// the LLM text encoders these models use do read negation.
 const FLUX_SUFFIX =
-  '. Shot as an editorial magazine cover photograph on a medium format camera with an 80mm lens. ' +
+  '. Shot as an editorial magazine cover photograph on a medium format camera with an 80mm lens at f/4. ' +
   'Soft natural light with one practical light source in the scene, subtle film grain, ' +
   'muted true-to-life colors, realistic skin texture. ' +
-  'The subject sits in the lower two thirds of a vertical frame with calm, uncluttered space above their head. ' +
-  'Deadpan, candid expression, documentary realism, not staged. ' +
-  'No text, no letters, no logos, no watermark anywhere in the image.';
+  'Vertical medium shot with generous headroom: one main subject near the horizontal centre, the top of their head about a third of the way down the frame ' +
+  'and their face just above the middle, with calm, plain backdrop filling the space above them and the details that tell the story kept in the middle of the picture. ' +
+  'Played completely straight: sincere, deadpan expression, candid documentary realism. ' +
+  'Screens show only soft blank light, and every paper, wall, garment and object is plain and unmarked. ' +
+  'No text, no logos, no watermark anywhere in the image.';
 
 function enrichForSDXL(scene) {
   return scene + ', ' + SDXL_SUFFIX;
