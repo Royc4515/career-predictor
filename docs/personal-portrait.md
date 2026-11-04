@@ -41,6 +41,34 @@ an HTML contact sheet.
 If only paid models pass, the feature costs money per user. That is a
 product decision, not a technical one.
 
+## 1b. Result (2026-11-04)
+
+Run with the two synthetic fixtures, both default models, 3 scenes each:
+12 requests, 11 images, about 0.3 pollen in total.
+
+| Criterion | MAI 2.6 | MAI 2.6 flash |
+|---|---|---|
+| Recognisable as the reference | 6 of 6 | 5 of 5 rendered |
+| Joke still reads (balloon, head torch and brush, falafel tower with level) | yes | yes |
+| Text or watermark artefacts | none seen | none seen |
+| Time per render | 21-24 s | 18-20 s |
+| Blocked by content moderation | 0 | 1 (founder scene, woman reference; a false positive) |
+
+**Verdict: pass, with two caveats.**
+1. The references are synthetic, "model-typical" faces, the easiest case for
+   a model. Before launch, repeat with a real, consenting person's ordinary
+   phone selfie (uneven light, angle).
+2. Moderation can refuse a harmless request. The personal path needs a
+   fallback: retry once on the other MAI model, then fall back to the shared
+   public portrait with a short "the darkroom refused this one" note.
+
+Default model for the feature: `microsoft/mai-image-2.6-flash` (half the
+price, a little faster, same likeness here), with `mai-image-2.6` as the
+retry.
+
+Running it from a dev container whose network proxy injects the key: Node's
+built-in fetch ignores HTTPS_PROXY unless started with NODE_USE_ENV_PROXY=1.
+
 ## 2. If it passes: the personal path
 
 **Flow.** Result page, "Put your face on it" (opt-in) -> consent screen ->
