@@ -25,8 +25,11 @@ const CAREERS = [
     happiness: 18,
     salary: '$0 (pre-revenue)',
     outlook: 'Pivoting to B2B SaaS',
+    subject: 'man',
     prompt:
-      'A startup founder in his late twenties, South Asian, in a grey zip hoodie, standing alone in a coworking space after hours, holding his phone face-up in both hands at chest height and staring at it, waiting for a call that is not coming. A half-deflated silver party balloon droops on a ribbon beside his shoulder. Rows of empty desks behind him fade into darkness, one desk lamp the only light',
+      'A startup founder in his late twenties, a South Asian man in a grey zip hoodie, standing alone in a coworking space after hours, holding his phone face-up in both hands at chest height and staring at it, waiting for a call that is not coming. A half-deflated silver party balloon droops on a ribbon beside his shoulder. Rows of empty desks behind him fade into darkness, one desk lamp the only light',
+    altPrompt:
+      'A startup founder in her late twenties, a Mexican woman with a high ponytail, in a grey zip hoodie, standing alone in a coworking space after hours, holding her phone face-up in both hands at chest height and staring at it, waiting for a call that is not coming. A half-deflated silver party balloon droops on a ribbon beside her shoulder. Rows of empty desks behind her fade into darkness, one desk lamp the only light',
   },
   {
     title: 'Remote DevOps Engineer Who Blames the Wi-Fi',
@@ -36,8 +39,11 @@ const CAREERS = [
     happiness: 71,
     salary: 'Contractor rates minus paradise tax',
     outlook: 'Connection unstable',
+    subject: 'woman',
     prompt:
       'A DevOps engineer in her thirties, a Black woman with short natural hair, in a loose linen shirt, standing barefoot on a bright tropical beach holding her open laptop out at arm\'s length at shoulder height, tilting it toward the sky in search of a signal, eyes narrowed with weary suspicion. One small grey cloud hangs directly over her and casts the only shadow on the whole sunny beach, right on her',
+    altPrompt:
+      'A DevOps engineer in his thirties, a Croatian man with a shaved head and stubble, in a loose linen shirt, standing barefoot on a bright tropical beach holding his open laptop out at arm\'s length at shoulder height, tilting it toward the sky in search of a signal, eyes narrowed with weary suspicion. One small grey cloud hangs directly over him and casts the only shadow on the whole sunny beach, right on him',
   },
   {
     title: 'JIRA Ticket Archaeologist, Legacy Systems Division',
@@ -47,8 +53,11 @@ const CAREERS = [
     happiness: 34,
     salary: 'Stable but soul-crushing',
     outlook: 'COBOL never dies',
+    subject: 'man',
     prompt:
-      'A legacy systems engineer in his late fifties, white, with a grey ponytail, wire-rimmed glasses and a head torch, leaning over a dusty beige 1990s computer tower that sits on a steel cart in a dim server room, gently sweeping dust from it with a soft archaeologist\'s brush as if uncovering a fossil, deeply reverent. Rows of server racks recede behind him, lit by one flickering fluorescent tube',
+      'A legacy systems engineer in his late fifties, a white man with a grey ponytail, wire-rimmed glasses and a head torch, standing in a dim server room beside a dusty beige 1990s computer tower that sits on a tall steel cart at chest height, right beside his face, gently sweeping dust from it with a soft archaeologist\'s brush as if uncovering a fossil, deeply reverent. Rows of server racks recede behind him, lit by one flickering fluorescent tube',
+    altPrompt:
+      'A legacy systems engineer in her late fifties, a Chilean woman with a long grey braid, wire-rimmed glasses and a head torch, standing in a dim server room beside a dusty beige 1990s computer tower that sits on a tall steel cart at chest height, right beside her face, gently sweeping dust from it with a soft archaeologist\'s brush as if uncovering a fossil, deeply reverent. Rows of server racks recede behind her, lit by one flickering fluorescent tube',
   },
   {
     title: 'Open Source Contributor (0 Stars, 0 Forks)',
@@ -58,8 +67,11 @@ const CAREERS = [
     happiness: 58,
     salary: 'GitHub sponsorship: $0/mo',
     outlook: 'Waiting for Hacker News',
+    subject: 'woman',
     prompt:
-      'A young programmer in her early twenties, Latina, in a plain grey t-shirt with headphones around her neck, standing proudly behind a small folding table in an empty community hall, presenting her open laptop like a science fair project, its screen turned away from the camera. A full bowl of untouched free sweets sits beside it, and rows of empty folding chairs fill the hall behind her. Light from high windows',
+      'A young programmer in her early twenties, a Latina woman in a plain grey t-shirt with headphones around her neck, standing proudly in an empty community hall, holding her open laptop up at chest height like a science fair project, its screen turned away from the camera. A full bowl of untouched free sweets sits on a tall stand beside her shoulder; rows of empty folding chairs fill the hall behind her. Light from high windows',
+    altPrompt:
+      'A young programmer in his early twenties, an Irish man with red curls, in a plain grey t-shirt with headphones around his neck, standing proudly in an empty community hall, holding his open laptop up at chest height like a science fair project, its screen turned away from the camera. A full bowl of untouched free sweets sits on a tall stand beside his shoulder; rows of empty folding chairs fill the hall behind him. Light from high windows',
   },
   {
     title: 'Solo Developer Running on Espresso and Spite',
@@ -69,8 +81,11 @@ const CAREERS = [
     happiness: 72,
     salary: 'Freelance feast-or-famine',
     outlook: 'Caffeinated independence',
+    subject: 'woman',
     prompt:
-      'A solo developer in her forties, Polish, hair tied back, big noise-cancelling headphones on, sitting alone in a dim converted garage at a desk where a large chrome espresso machine stands right beside the keyboard, pulling a shot without looking away from her monitor, jaw set in grim determination. The monitor faces away from the camera and lights her face',
+      'A solo developer in her forties, a Polish woman with her hair tied back and big noise-cancelling headphones on, sitting alone in a dim converted garage at a desk where a large chrome espresso machine stands on a raised shelf right beside her face, pulling a shot without looking away from her monitor, jaw set in grim determination. The monitor faces away from the camera and lights her face',
+    altPrompt:
+      'A solo developer in his forties, a Jamaican man with short locs tied back and big noise-cancelling headphones on, sitting alone in a dim converted garage at a desk where a large chrome espresso machine stands on a raised shelf right beside his face, pulling a shot without looking away from his monitor, jaw set in grim determination. The monitor faces away from the camera and lights his face',
   },
   {
     title: 'UX Designer for an App That Will Be Deprecated',
@@ -80,8 +95,11 @@ const CAREERS = [
     happiness: 45,
     salary: 'Paid in stakeholder feedback',
     outlook: 'Figma will fix it',
+    subject: 'man',
     prompt:
-      'A UX designer in his thirties, Lebanese, neat beard and an oatmeal sweater, standing in a glass meeting room with a brave, optimistic smile, lowering a carefully crafted white paper phone prototype into a cardboard archive box already full of earlier paper prototypes. Behind him the meeting room is being cleared out, chairs stacked upside down on the table. Flat overcast daylight through the glass',
+      'A UX designer in his thirties, a Lebanese man with a neat beard and an oatmeal sweater, standing in a glass meeting room with a brave, optimistic smile, holding a white paper phone prototype up beside his face, about to lower it into the cardboard archive box he cradles at chest height, already full of earlier paper prototypes. Behind him the meeting room is being cleared out, chairs stacked upside down on the table. Flat overcast daylight through the glass',
+    altPrompt:
+      'A UX designer in her thirties, a Danish woman with a blunt fringe and an oatmeal sweater, standing in a glass meeting room with a brave, optimistic smile, holding a white paper phone prototype up beside her face, about to lower it into the cardboard archive box she cradles at chest height, already full of earlier paper prototypes. Behind her the meeting room is being cleared out, chairs stacked upside down on the table. Flat overcast daylight through the glass',
   },
   {
     title: 'Chief Executive of a Declining Startup',
@@ -91,8 +109,11 @@ const CAREERS = [
     happiness: 12,
     salary: 'Equity in a company worth $0',
     outlook: 'Pivoting aggressively',
+    subject: 'woman',
     prompt:
-      'A startup chief executive in her late thirties, Japanese, sharp black bob and a tailored charcoal suit, standing with hands on hips and unshakable confidence in the middle of a large open-plan office that has been almost entirely cleared out, bare desks and stacked chairs behind her, a wilting fiddle-leaf fig at her side. Late afternoon sun through venetian blinds throws stripes across the room',
+      'A startup chief executive in her late thirties, a Japanese woman with a sharp black bob and a tailored charcoal suit, standing with hands on hips and unshakable confidence in the middle of a large open-plan office that has been almost entirely cleared out, bare desks and stacked chairs behind her, a tall wilting fiddle-leaf fig drooping beside her shoulder. Late afternoon sun through venetian blinds throws stripes across the room',
+    altPrompt:
+      'A startup chief executive in his late thirties, an Egyptian man with slicked-back hair and a tailored charcoal suit, standing with hands on hips and unshakable confidence in the middle of a large open-plan office that has been almost entirely cleared out, bare desks and stacked chairs behind him, a tall wilting fiddle-leaf fig drooping beside his shoulder. Late afternoon sun through venetian blinds throws stripes across the room',
   },
   {
     title: 'Remote Worker Who Forgot What Humans Look Like',
@@ -102,8 +123,11 @@ const CAREERS = [
     happiness: 48,
     salary: 'Saved on pants budget',
     outlook: 'Camera permanently off',
+    subject: 'man',
     prompt:
-      'A remote worker in his twenties, Thai, wearing a dress shirt over pyjama bottoms, sitting at a home desk in a dim room with blackout curtains drawn, holding up a small hand mirror at face height and studying his own reflection with mild, puzzled surprise. The laptop webcam beside him is covered with a strip of tape. A thin blade of daylight slips through a gap in the curtains',
+      'A remote worker in his twenties, a Thai man wearing a dress shirt over pyjama bottoms, sitting at a home desk in a dim room with blackout curtains drawn, holding up a small hand mirror at face height and studying his own reflection with mild, puzzled surprise. The laptop webcam beside him is covered with a strip of tape. A thin blade of daylight slips through a gap in the curtains',
+    altPrompt:
+      'A remote worker in her twenties, a Moroccan woman wearing a dress shirt over pyjama bottoms, sitting at a home desk in a dim room with blackout curtains drawn, holding up a small hand mirror at face height and studying her own reflection with mild, puzzled surprise. The laptop webcam beside her is covered with a strip of tape. A thin blade of daylight slips through a gap in the curtains',
   },
   {
     title: 'Caffeinated Prophet of the Next Big Thing',
@@ -113,8 +137,11 @@ const CAREERS = [
     happiness: 47,
     salary: 'Vision-based compensation',
     outlook: 'Buzzing',
+    subject: 'man',
     prompt:
-      'A wide-eyed visionary in his thirties, Ethiopian, in a rumpled shirt, standing in a dark office at night and gazing upward in ecstatic revelation, holding up beside his face a wobbling tower of seven stacked empty paper coffee cups. A single desk lamp lights him from below, the rest of the office in shadow',
+      'A wide-eyed visionary in his thirties, an Ethiopian man in a rumpled shirt, standing in a dark office at night and gazing upward in ecstatic revelation, holding up beside his face a wobbling tower of seven stacked empty paper coffee cups. A single desk lamp lights him from below, the rest of the office in shadow',
+    altPrompt:
+      'A wide-eyed visionary in her thirties, a Ukrainian woman in a rumpled shirt, standing in a dark office at night and gazing upward in ecstatic revelation, holding up beside her face a wobbling tower of seven stacked empty paper coffee cups. A single desk lamp lights her from below, the rest of the office in shadow',
   },
   {
     title: 'Prompt Engineer Who Says Please to the Chatbot',
@@ -124,8 +151,11 @@ const CAREERS = [
     happiness: 64,
     salary: 'Paid per token (yours)',
     outlook: 'Staying on its good side',
+    subject: 'man',
     prompt:
-      'A prompt engineer in his late twenties, a Kenyan man in a soft grey hoodie, sitting very upright at a tidy desk at night and typing on a laptop whose screen faces away from the camera, one hand pressed to his chest in sincere politeness as he leans toward the screen as if apologising to it. A single desk lamp lights him; a small houseplant and a neatly folded napkin sit beside the keyboard',
+      'A prompt engineer in his late twenties, a Kenyan man in a soft grey hoodie, sitting very upright at a tidy desk at night and typing on a laptop raised on a tall stand to chest height, its screen facing away from the camera, one hand pressed to his chest in sincere politeness, leaning toward the screen as if apologising to it. A single desk lamp lights him; a small houseplant sits beside the laptop',
+    altPrompt:
+      'A prompt engineer in her late twenties, a Norwegian woman with a blonde braid, in a soft grey hoodie, sitting very upright at a tidy desk at night and typing on a laptop raised on a tall stand to chest height, its screen facing away from the camera, one hand pressed to her chest in sincere politeness, leaning toward the screen as if apologising to it. A single desk lamp lights her; a small houseplant sits beside the laptop',
   },
   // --- creative ---
   {
@@ -136,8 +166,11 @@ const CAREERS = [
     happiness: 53,
     salary: 'Enough for Figma Pro',
     outlook: 'Award-winning but underfunded',
+    subject: 'man',
     prompt:
-      'A creative director in his forties, white, shaved head, black turtleneck and round tortoiseshell glasses, standing with arms crossed and total confidence beside a large easel in a bare white agency studio. The easel holds one big canvas that is completely blank except for a single small beige dot in the centre, presented as the entire strategy. Soft daylight from a tall window',
+      'A creative director in his forties, a white man with a shaved head, black turtleneck and round tortoiseshell glasses, standing with arms crossed and total confidence beside a tall easel in a bare white agency studio. The easel holds one big canvas at head height, right beside his face, completely blank except for a single small beige dot in the centre, presented as the entire strategy. Soft daylight from a tall window',
+    altPrompt:
+      'A creative director in her forties, a Brazilian woman with a sleek platinum crop, black turtleneck and round tortoiseshell glasses, standing with arms crossed and total confidence beside a tall easel in a bare white agency studio. The easel holds one big canvas at head height, right beside her face, completely blank except for a single small beige dot in the centre, presented as the entire strategy. Soft daylight from a tall window',
   },
   {
     title: 'Travel Photographer Whose Parents Ask When They\'ll Get a Real Job',
@@ -147,8 +180,11 @@ const CAREERS = [
     happiness: 76,
     salary: '$0.003 per download',
     outlook: 'Golden hour forever',
+    subject: 'woman',
     prompt:
-      'A travel photographer in her late twenties, Filipina, wind-tangled hair and a rain jacket, a professional camera hanging forgotten from her neck, standing on a grassy sea cliff holding her phone to her ear with the patient, tight-lipped smile of someone hearing her mother ask about a real job for the hundredth time. Behind her a spectacular sunset over the ocean goes completely ignored. Soft dusk light',
+      'A travel photographer in her late twenties, a Filipina woman with wind-tangled hair and a rain jacket, a professional camera hanging forgotten from her neck, standing on a grassy sea cliff holding her phone to her ear with the patient, tight-lipped smile of someone hearing her mother ask about a real job for the hundredth time. Behind her a spectacular sunset over the ocean goes completely ignored. Soft dusk light',
+    altPrompt:
+      'A travel photographer in his late twenties, a Sri Lankan man with wind-tangled hair and a rain jacket, a professional camera hanging forgotten from his neck, standing on a grassy sea cliff holding his phone to his ear with the patient, tight-lipped smile of someone hearing his mother ask about a real job for the hundredth time. Behind him a spectacular sunset over the ocean goes completely ignored. Soft dusk light',
   },
   {
     title: 'Freelance Idea Generator (Execution Not Included)',
@@ -158,8 +194,11 @@ const CAREERS = [
     happiness: 74,
     salary: 'Revenue model TBD',
     outlook: 'Lots of irons in the fire',
+    subject: 'woman',
     prompt:
       'A freelance creative in her fifties, a Black woman with silver locs and a mustard cardigan, standing in a cluttered home studio holding an unlit light bulb up at shoulder height with both hands like a trophy, beaming with absolute certainty. On the long shelf behind her, softly out of focus, sit dozens of abandoned projects: a half-knitted scarf, half-painted canvases, a half-built birdhouse. Afternoon window light',
+    altPrompt:
+      'A freelance creative in his fifties, a Portuguese man with a salt-and-pepper beard and a mustard cardigan, standing in a cluttered home studio holding an unlit light bulb up at shoulder height with both hands like a trophy, beaming with absolute certainty. On the long shelf behind him, softly out of focus, sit dozens of abandoned projects: a half-knitted scarf, half-painted canvases, a half-built birdhouse. Afternoon window light',
   },
   {
     title: 'Graphic Designer Who Dies Inside at Every "Make the Logo Bigger"',
@@ -169,8 +208,11 @@ const CAREERS = [
     happiness: 29,
     salary: 'Per revision (infinite revisions)',
     outlook: 'One more round of feedback',
+    subject: 'woman',
     prompt:
-      'A graphic designer in her twenties, Vietnamese, black bob and an oversized white shirt, standing in a client\'s office holding up a large white foam board almost entirely filled by one enormous black circle, her expression one of quiet inner devastation. Beside her a client in a suit holds his hands even wider apart, asking for it bigger still. Even overhead office light',
+      'A graphic designer in her twenties, a Vietnamese woman with a black bob and an oversized white shirt, standing in a client\'s office holding up a large white foam board almost entirely filled by one enormous black circle, her expression one of quiet inner devastation. Beside her a client in a suit holds his hands even wider apart, asking for it bigger still. Even overhead office light',
+    altPrompt:
+      'A graphic designer in his twenties, a Hungarian man with a buzz cut and an oversized white shirt, standing in a client\'s office holding up a large white foam board almost entirely filled by one enormous black circle, his expression one of quiet inner devastation. Beside him a client in a suit holds both hands even wider apart, asking for it bigger still. Even overhead office light',
   },
   {
     title: 'Night Shift Security Guard / Aspiring Novelist',
@@ -180,8 +222,11 @@ const CAREERS = [
     happiness: 61,
     salary: 'Night differential',
     outlook: 'Chapter 47 in progress',
+    subject: 'man',
     prompt:
       'A night security guard in his sixties, a Finnish man with a white beard and reading glasses, in a navy guard uniform, sitting at the reception desk of a vast empty glass lobby at three in the morning, typing on a vintage typewriter in total peace, a tall stack of typed pages face down beside him. A desk lamp lights him and the dark city glimmers softly through the glass behind',
+    altPrompt:
+      'A night security guard in her sixties, a Scottish woman with a white braid and reading glasses, in a navy guard uniform, sitting at the reception desk of a vast empty glass lobby at three in the morning, typing on a vintage typewriter in total peace, a tall stack of typed pages face down beside her. A desk lamp lights her and the dark city glimmers softly through the glass behind',
   },
   {
     title: 'Misunderstood Genius in the Wrong Department',
@@ -191,8 +236,11 @@ const CAREERS = [
     happiness: 22,
     salary: 'Undervalued',
     outlook: 'Transfer request pending',
+    subject: 'man',
     prompt:
       'A thoughtful man in his thirties, Native American, long dark hair tied back, in a button-down shirt, sitting in a cramped payroll department cubicle between grey filing cabinets, holding a thick closed leather notebook against his chest with both hands and gazing out of a rain-streaked window at the city with quiet longing. Grey rainy daylight',
+    altPrompt:
+      'A thoughtful woman in her thirties, Iranian, dark hair in a low bun, in a button-down shirt, sitting in a cramped payroll department cubicle between grey filing cabinets, holding a thick closed leather notebook against her chest with both hands and gazing out of a rain-streaked window at the city with quiet longing. Grey rainy daylight',
   },
   {
     title: 'Philosopher Who Accidentally Ended Up in Corporate',
@@ -202,8 +250,11 @@ const CAREERS = [
     happiness: 43,
     salary: 'Existentially adequate',
     outlook: 'Contemplating',
+    subject: 'woman',
     prompt:
-      'A corporate analyst in her thirties, Greek, dark curly hair, in a blazer, sitting at an open-plan office desk in the exact pose of Rodin\'s Thinker, chin resting on her fist, contemplating a single paperclip held up in her other hand with profound existential resignation. Her laptop sits closed and untouched. Grey window light across a quiet office',
+      'A corporate analyst in her thirties, a Greek woman with dark curly hair, in a blazer, sitting at an open-plan office desk in the exact pose of Rodin\'s Thinker, chin resting on her fist, contemplating a single paperclip held up beside her face in her other hand with profound existential resignation. Her laptop sits closed and untouched. Grey window light across a quiet office',
+    altPrompt:
+      'A corporate analyst in his thirties, a Senegalese man with close-cropped hair, in a blazer, sitting at an open-plan office desk in the exact pose of Rodin\'s Thinker, chin resting on his fist, contemplating a single paperclip held up beside his face in his other hand with profound existential resignation. His laptop sits closed and untouched. Grey window light across a quiet office',
   },
   {
     title: 'Senior Falafel Architect, Tel Aviv District',
@@ -213,8 +264,11 @@ const CAREERS = [
     happiness: 88,
     salary: 'All the falafel you can eat',
     outlook: 'Structurally sound',
+    subject: 'man',
     prompt:
-      'A falafel architect in his forties, Israeli, in a white shirt with rolled sleeves and an architect\'s white hard hat, at a small Tel Aviv street food counter, checking a tall, precisely stacked tower of falafel balls with a spirit level, hummus spread between the layers like mortar, deadly serious. Soft Mediterranean daylight on the pale stone street behind him',
+      'A falafel architect in his forties, an Israeli man in a white shirt with rolled sleeves and an architect\'s white hard hat, standing at a Tel Aviv street food counter beside a tall, precisely stacked tower of falafel balls that rises from the counter to his eye level, hummus spread between the layers like mortar, holding a spirit level against it beside his face, deadly serious. Soft Mediterranean daylight on the pale stone street behind him',
+    altPrompt:
+      'A falafel architect in her forties, a freckled woman with cropped grey hair, in a white shirt with rolled sleeves and an architect\'s white hard hat, standing at a Tel Aviv street food counter beside a tall, precisely stacked tower of falafel balls that rises from the counter to her eye level, hummus spread between the layers like mortar, holding a spirit level against it beside her face, deadly serious. Soft Mediterranean daylight on the pale stone street behind her',
   },
   {
     title: 'Eternal Intern, Distinguished Fellow',
@@ -224,8 +278,11 @@ const CAREERS = [
     happiness: 27,
     salary: 'School credit (maybe)',
     outlook: 'Permanent position pending',
+    subject: 'woman',
     prompt:
-      'An eager intern in her early twenties, Indonesian, in a neat blouse, standing bolt upright in a busy office corridor holding a cardboard tray of six coffees at chest height with a hopeful smile, while full-time employees stream past her on both sides without a glance. Bright, even office light through glass partitions',
+      'An eager intern in her early twenties, an Indonesian woman in a neat blouse, standing bolt upright in a busy office corridor holding a cardboard tray of six coffees at chest height with a hopeful smile, while full-time employees stream past her on both sides without a glance. Bright, even office light through glass partitions',
+    altPrompt:
+      'An eager intern in his early twenties, a Lithuanian man in a neat shirt and tie, standing bolt upright in a busy office corridor holding a cardboard tray of six coffees at chest height with a hopeful smile, while full-time employees stream past him on both sides without a glance. Bright, even office light through glass partitions',
   },
   {
     title: 'Screenwriter Who Has Been on Page 30 Since 2021',
@@ -235,8 +292,11 @@ const CAREERS = [
     happiness: 57,
     salary: 'Option fee (theoretical)',
     outlook: 'Rewriting page 30',
+    subject: 'woman',
     prompt:
-      'A screenwriter in her forties, an Argentinian woman with a loose bun and reading glasses pushed up into her hair, sitting in a small cafe corner behind an open laptop turned away from the camera, staring into the middle distance with a pen between her teeth. A squared stack of thirty blank pages sits beside a cold, untouched cappuccino. Soft window light and one pendant lamp',
+      'A screenwriter in her forties, an Argentinian woman with a loose bun and reading glasses pushed up into her hair, sitting in a small cafe corner behind an open laptop turned away from the camera, holding a squared stack of thirty blank pages upright against her chest and staring into the middle distance with a pen between her teeth. A cold, untouched cappuccino sits beside the laptop. Soft window light and one pendant lamp',
+    altPrompt:
+      'A screenwriter in his forties, an Indian man with a loose topknot and reading glasses pushed up into his hair, sitting in a small cafe corner behind an open laptop turned away from the camera, holding a squared stack of thirty blank pages upright against his chest and staring into the middle distance with a pen between his teeth. A cold, untouched cappuccino sits beside the laptop. Soft window light and one pendant lamp',
   },
   // --- finance ---
   {
@@ -247,8 +307,11 @@ const CAREERS = [
     happiness: 11,
     salary: '$847 AUM',
     outlook: 'Waiting for the dip to recover',
+    subject: 'woman',
     prompt:
-      'A crypto hedge fund manager in her late twenties, Turkish, sleek dark ponytail and a sharp navy power suit, seated at a wobbly folding card table in a tiny rented kitchen, posing like a billionaire for a power portrait with chin raised and fingers steepled. On the table in front of her sits a small glass jar holding a few crumpled banknotes and coins, the whole fund. One bare ceiling bulb',
+      'A crypto hedge fund manager in her late twenties, a Turkish woman with a sleek dark ponytail and a sharp navy power suit, seated at a wobbly folding card table in a tiny rented kitchen, posing like a billionaire for a power portrait with chin raised, one hand presenting a small glass jar held up at shoulder height beside her face, a few crumpled banknotes and coins inside, the whole fund. One bare ceiling bulb',
+    altPrompt:
+      'A crypto hedge fund manager in his late twenties, a Filipino man with slicked-back hair and a sharp navy power suit, seated at a wobbly folding card table in a tiny rented kitchen, posing like a billionaire for a power portrait with chin raised, one hand presenting a small glass jar held up at shoulder height beside his face, a few crumpled banknotes and coins inside, the whole fund. One bare ceiling bulb',
   },
   {
     title: 'Offshore Tax Consultant (Legally Speaking)',
@@ -258,8 +321,11 @@ const CAREERS = [
     happiness: 69,
     salary: 'Tax-efficient',
     outlook: 'Cayman Islands adjacent',
+    subject: 'woman',
     prompt:
-      'An offshore tax consultant in her sixties, white, silver bob, cream linen suit, sitting perfectly composed at a polished wooden office desk that stands in the shallow surf of an empty white sand beach, hands folded, a closed leather briefcase and a cup of tea on a saucer on the desk. Gentle waves lap at the desk legs. Bright, hazy tropical daylight',
+      'An offshore tax consultant in her sixties, a white woman with a silver bob and a cream linen suit, sitting perfectly composed at a polished wooden office desk that stands in the shallow surf of an empty white sand beach, holding a cup of tea on its saucer at chest height, a closed leather briefcase on the desk. Gentle waves lap around the desk, the open sea behind her with the horizon at shoulder height. Bright, hazy tropical daylight',
+    altPrompt:
+      'An offshore tax consultant in his sixties, a Japanese man with neat silver hair and a cream linen suit, sitting perfectly composed at a polished wooden office desk that stands in the shallow surf of an empty white sand beach, holding a cup of tea on its saucer at chest height, a closed leather briefcase on the desk. Gentle waves lap around the desk, the open sea behind him with the horizon at shoulder height. Bright, hazy tropical daylight',
   },
   {
     title: 'Junior Analyst Who Ages 10 Years Per Quarter',
@@ -269,8 +335,11 @@ const CAREERS = [
     happiness: 15,
     salary: 'Golden handcuffs',
     outlook: 'Bonus season pending',
+    subject: 'man',
     prompt:
-      'A junior finance analyst aged twenty-three, Korean, already showing streaks of premature grey at his temples, loosened tie and rolled shirtsleeves, sitting at his desk at two in the morning, clutching a large paper coffee cup in both hands at chest height and staring straight ahead with hollow eyes. The open-plan office behind him is dark and empty. Lit by the cold light of his monitor and one fluorescent panel',
+      'A junior finance analyst aged twenty-three, a Korean man already showing streaks of premature grey at his temples, loosened tie and rolled shirtsleeves, sitting at his desk at two in the morning, clutching a large paper coffee cup in both hands at chest height and staring straight ahead with hollow eyes. The open-plan office behind him is dark and empty. Lit by the cold light of his monitor and one fluorescent panel',
+    altPrompt:
+      'A junior finance analyst aged twenty-three, a Colombian woman already showing streaks of premature grey at her temples, loosened tie and rolled shirtsleeves, sitting at her desk at two in the morning, clutching a large paper coffee cup in both hands at chest height and staring straight ahead with hollow eyes. The open-plan office behind her is dark and empty. Lit by the cold light of her monitor and one fluorescent panel',
   },
   {
     title: 'Day Trader Who Calls It "Research"',
@@ -280,8 +349,11 @@ const CAREERS = [
     happiness: 44,
     salary: 'Unrealized gains',
     outlook: 'Diamond hands',
+    subject: 'man',
     prompt:
       'A day trader in his forties, a Black man in reading glasses, wearing a terry bathrobe over a shirt and tie, sitting at a kitchen table and leaning toward his laptop with the furrowed focus of a scholar, chin on fist, the screen facing away from the camera. In the soft-focus doorway behind him his elderly mother stands holding a mug, watching him with quiet concern. Morning window light',
+    altPrompt:
+      'A day trader in her forties, a Romanian woman in reading glasses, wearing a terry bathrobe over a silk blouse and blazer, sitting at a kitchen table and leaning toward her laptop with the furrowed focus of a scholar, chin on fist, the screen facing away from the camera. In the soft-focus doorway behind her, her elderly mother stands holding a mug, watching her with quiet concern. Morning window light',
   },
   {
     title: 'Senior Associate of Quiet Desperation',
@@ -291,8 +363,11 @@ const CAREERS = [
     happiness: 19,
     salary: 'Competitive (for 2008)',
     outlook: 'Stable',
+    subject: 'woman',
     prompt:
-      'A senior associate in her forties, Korean American, in a cardigan and pearl earrings, sitting perfectly upright at a beige cubicle desk, holding a small slice of someone else\'s farewell cake on a paper plate and wearing a practised, hollow, polite smile. A drooping succulent sits beside her keyboard. Fluorescent panels overhead, colleagues chatting far away in the background',
+      'A senior associate in her forties, a Korean American woman in a cardigan and pearl earrings, sitting perfectly upright at a beige cubicle desk, holding up a small slice of someone else\'s farewell cake on a paper plate at shoulder height beside her face and wearing a practised, hollow, polite smile. A drooping succulent sits on the cubicle shelf beside her shoulder. Fluorescent panels overhead, colleagues chatting far away in the background',
+    altPrompt:
+      'A senior associate in his forties, a Samoan man in a cardigan and a neat tie, sitting perfectly upright at a beige cubicle desk, holding up a small slice of someone else\'s farewell cake on a paper plate at shoulder height beside his face and wearing a practised, hollow, polite smile. A drooping succulent sits on the cubicle shelf beside his shoulder. Fluorescent panels overhead, colleagues chatting far away in the background',
   },
   {
     title: 'Retired Management Consultant (Age 29)',
@@ -302,8 +377,11 @@ const CAREERS = [
     happiness: 82,
     salary: 'Savings running out',
     outlook: 'Advising from the hammock',
+    subject: 'man',
     prompt:
-      'A former management consultant aged twenty-nine, Brazilian, in a crisp blue oxford shirt with the tie loosened and swim shorts, lying back in a hammock strung between two palms, eyes closed in complete peace, a whiteboard marker still tucked behind one ear and a closed laptop resting on his chest. His head and shoulders sit in the centre of the frame. Dappled shade under the palm leaves',
+      'A former management consultant aged twenty-nine, a Brazilian man in a crisp blue oxford shirt with the tie loosened and swim shorts, lying back in a hammock strung between two palms, eyes closed in complete peace, a whiteboard marker still tucked behind one ear and a closed laptop resting on his chest. His head and shoulders sit in the centre of the frame. Dappled shade under the palm leaves',
+    altPrompt:
+      'A former management consultant aged twenty-nine, a Chinese Canadian woman in a crisp blue oxford shirt with the tie loosened and swim shorts, lying back in a hammock strung between two palms, eyes closed in complete peace, a whiteboard marker still tucked behind one ear and a closed laptop resting on her chest. Her head and shoulders sit in the centre of the frame. Dappled shade under the palm leaves',
   },
   {
     title: 'Middle Manager Who Peaked at the Strategy Offsite',
@@ -313,8 +391,11 @@ const CAREERS = [
     happiness: 38,
     salary: 'Band 4 (ceiling reached)',
     outlook: 'Restructuring imminent',
+    subject: 'man',
     prompt:
-      'A middle manager in his fifties, white, in a tucked-in polo shirt and khakis, standing alone in an emptied hotel function room, holding a small blank crystal award against his chest with both hands and gazing wistfully into the middle distance. Behind him the chairs are stacked against the wall and a cleaner vacuums the carpet. Flat fluorescent light mixed with grey window light',
+      'A middle manager in his fifties, a white man in a tucked-in polo shirt and khakis, standing alone in an emptied hotel function room, holding a small blank crystal award against his chest with both hands and gazing wistfully into the middle distance. Behind him the chairs are stacked against the wall and a cleaner vacuums the carpet. Flat fluorescent light mixed with grey window light',
+    altPrompt:
+      'A middle manager in her fifties, a Haitian woman in a tucked-in polo shirt and khakis, standing alone in an emptied hotel function room, holding a small blank crystal award against her chest with both hands and gazing wistfully into the middle distance. Behind her the chairs are stacked against the wall and a cleaner vacuums the carpet. Flat fluorescent light mixed with grey window light',
   },
   {
     title: 'Strategy Consultant for Problems That Don\'t Exist',
@@ -324,8 +405,11 @@ const CAREERS = [
     happiness: 56,
     salary: 'Retainer-based fiction',
     outlook: 'Synergy pending',
+    subject: 'woman',
     prompt:
-      'A strategy consultant in her forties, Indian, in a tailored camel blazer, standing in a bright, sparse office and gesturing with grave urgency at a perfectly ordinary office water cooler as if presenting a crisis. A puzzled facilities worker in overalls stands on the other side of the water cooler, looking at it and then at her. Clean daylight from floor-to-ceiling windows',
+      'A strategy consultant in her forties, an Indian woman in a tailored camel blazer, standing in a bright, sparse office and gesturing with grave urgency at a perfectly ordinary office water cooler right beside her, its big water bottle level with her shoulder, as if presenting a crisis. A puzzled facilities worker in overalls stands on the other side of the water cooler, looking at it and then at her. Clean daylight from floor-to-ceiling windows',
+    altPrompt:
+      'A strategy consultant in his forties, a Czech man in a tailored camel blazer, standing in a bright, sparse office and gesturing with grave urgency at a perfectly ordinary office water cooler right beside him, its big water bottle level with his shoulder, as if presenting a crisis. A puzzled facilities worker in overalls stands on the other side of the water cooler, looking at it and then at him. Clean daylight from floor-to-ceiling windows',
   },
   {
     title: 'Senior Bureaucrat, Department of Doing Things Correctly',
@@ -335,8 +419,11 @@ const CAREERS = [
     happiness: 35,
     salary: 'Government grade (with pension)',
     outlook: 'Predictably stable',
+    subject: 'man',
     prompt:
-      'A civil servant in his sixties, Ghanaian, in an impeccable grey suit and tie, sitting at a perfectly ordered wooden desk with a rubber stamp raised mid-air at chest height above a single blank form, an exactly squared tower of identical blank forms beside him reaching his shoulder. Serene, precise expression. Institutional fluorescent light and a tall office window',
+      'A civil servant in his sixties, a Ghanaian man in an impeccable grey suit and tie, sitting at a perfectly ordered wooden desk with a rubber stamp raised mid-air at chest height above a single blank form, an exactly squared tower of identical blank forms beside him reaching his shoulder. Serene, precise expression. Institutional fluorescent light and a tall office window',
+    altPrompt:
+      'A civil servant in her sixties, a Belgian woman in an impeccable grey suit and silk neck bow, sitting at a perfectly ordered wooden desk with a rubber stamp raised mid-air at chest height above a single blank form, an exactly squared tower of identical blank forms beside her reaching her shoulder. Serene, precise expression. Institutional fluorescent light and a tall office window',
   },
   {
     title: 'Chief Coffee Officer and Meeting Survivor',
@@ -346,8 +433,11 @@ const CAREERS = [
     happiness: 31,
     salary: 'Benefits include free coffee',
     outlook: 'One more meeting',
+    subject: 'woman',
     prompt:
-      'An office worker in her fifties, Irish, auburn hair, reading glasses on a chain and a navy cardigan, walking out of one glass meeting room straight toward the next, carrying a cardboard tray of four coffees against her chest with a laptop clamped under one arm, eyes glazed with heroic fatigue. Colleagues sit in meetings behind every glass wall. Flat office daylight',
+      'An office worker in her fifties, an Irish woman with auburn hair, reading glasses on a chain and a navy cardigan, walking out of one glass meeting room straight toward the next, carrying a cardboard tray of four coffees against her chest with a laptop clamped under one arm, eyes glazed with heroic fatigue. Colleagues sit in meetings behind every glass wall. Flat office daylight',
+    altPrompt:
+      'An office worker in his fifties, a Tunisian man with a grey moustache, reading glasses on a chain and a navy cardigan, walking out of one glass meeting room straight toward the next, carrying a cardboard tray of four coffees against his chest with a laptop clamped under one arm, eyes glazed with heroic fatigue. Colleagues sit in meetings behind every glass wall. Flat office daylight',
   },
   // --- viral ---
   {
@@ -358,8 +448,11 @@ const CAREERS = [
     happiness: 62,
     salary: '$0.04 in ad revenue',
     outlook: 'The algorithm will come around',
+    subject: 'woman',
     prompt:
-      'An aspiring content creator in her early twenties, Nigerian, in a bright matching two-piece outfit, mid-performance in a small tidy bedroom, framing her face with both hands and giving a huge enthusiastic smile to a phone mounted in a ring light. Her entire live audience is her grandmother, sitting on the edge of the bed behind her and watching politely with folded hands. The ring light is the main light',
+      'An aspiring content creator in her early twenties, a Nigerian woman in a bright matching two-piece outfit, mid-performance in a small tidy bedroom, framing her face with both hands and beaming at a phone mounted in a ring light. Her entire live audience is her grandmother, sitting on the edge of the bed just behind her, the old lady\'s face level with the creator\'s shoulder, watching politely with folded hands. The ring light is the main light',
+    altPrompt:
+      'An aspiring content creator in his early twenties, a Bolivian man in a bright matching two-piece outfit, mid-performance in a small tidy bedroom, framing his face with both hands and beaming at a phone mounted in a ring light. His entire live audience is his grandmother, sitting on the edge of the bed just behind him, her face level with his shoulder, watching politely with folded hands. The ring light is the main light',
   },
   {
     title: 'LinkedIn Influencer Emeritus',
@@ -369,8 +462,11 @@ const CAREERS = [
     happiness: 41,
     salary: 'Paid in exposure',
     outlook: 'Open to opportunities',
+    subject: 'man',
     prompt:
-      'A veteran networking influencer in his sixties, a silver-haired Black man in a navy blazer over a turtleneck with a headset microphone, delivering an impassioned keynote from behind a lectern with both arms spread wide, to a conference room that is entirely empty except for one folding chair with a coat draped over it. One spotlight from above, the rest of the room dim',
+      'A veteran networking influencer in his sixties, a silver-haired Black man in a navy blazer over a turtleneck with a headset microphone, delivering an impassioned keynote from a lectern in the middle of a conference room set up in the round, both arms spread wide. The rows of folding chairs circling him are all empty except one just behind him, a coat draped over its back beside his shoulder. One spotlight from above, the rest of the room dim',
+    altPrompt:
+      'A veteran networking influencer in her sixties, a silver-haired Australian woman in a navy blazer over a turtleneck with a headset microphone, delivering an impassioned keynote from a lectern in the middle of a conference room set up in the round, both arms spread wide. The rows of folding chairs circling her are all empty except one just behind her, a coat draped over its back beside her shoulder. One spotlight from above, the rest of the room dim',
   },
   {
     title: 'Digital Nomad Coach (Currently Offline)',
@@ -380,8 +476,11 @@ const CAREERS = [
     happiness: 55,
     salary: 'Location-independent poverty',
     outlook: 'Vibes-based strategy',
+    subject: 'woman',
     prompt:
-      'A digital nomad coach in her thirties, Swedish, in a wide sun hat and white linen, sitting on a rock in a remote, empty cove with her laptop open on her knees, holding up the loose end of a long orange extension cable at chest height and studying it with serene confusion. The cable trails away across the sand to nothing. A few goats graze on the hillside behind her. Soft overcast light',
+      'A digital nomad coach in her thirties, a Swedish woman in a wide sun hat and white linen, sitting on a rock in a remote, empty cove with her laptop open on her knees, holding up the loose end of a long orange extension cable at chest height and studying it with serene confusion. The cable trails away across the sand to nothing. A few goats graze on the hillside behind her. Soft overcast light',
+    altPrompt:
+      'A digital nomad coach in his thirties, a Malaysian man in a wide sun hat and white linen, sitting on a rock in a remote, empty cove with his laptop open on his knees, holding up the loose end of a long orange extension cable at chest height and studying it with serene confusion. The cable trails away across the sand to nothing. A few goats graze on the hillside behind him. Soft overcast light',
   },
   {
     title: 'Productivity YouTuber With Zero Productivity',
@@ -391,8 +490,11 @@ const CAREERS = [
     happiness: 40,
     salary: 'Ad revenue: $1.23',
     outlook: 'Optimizing the optimization',
+    subject: 'man',
     prompt:
-      'A productivity creator in his twenties, white, neat side-parted hair and a crisp button-down, sitting at an immaculate minimalist desk with a camera on a boom arm pointed at him, using a steel ruler to align a single pen perfectly parallel to a closed notebook, a row of six identical pens already spaced evenly beside it. Soft window light and one desk lamp',
+      'A productivity creator in his twenties, a white man with neat side-parted hair and a crisp button-down, sitting at an immaculate minimalist desk with a camera on a boom arm pointed at him, holding a steel ruler and a single pen up at chest height and squinting to align them perfectly parallel. Six identical pens lie evenly spaced on a slim wall shelf beside his shoulder. Soft window light and one desk lamp',
+    altPrompt:
+      'A productivity creator in her twenties, a Kenyan woman with neat braids and a crisp button-down, sitting at an immaculate minimalist desk with a camera on a boom arm pointed at her, holding a steel ruler and a single pen up at chest height and squinting to align them perfectly parallel. Six identical pens lie evenly spaced on a slim wall shelf beside her shoulder. Soft window light and one desk lamp',
   },
   {
     title: 'Thought Leader Without the Thought',
@@ -402,8 +504,11 @@ const CAREERS = [
     happiness: 46,
     salary: 'Speaking fees (waived)',
     outlook: 'Disruption imminent',
+    subject: 'man',
     prompt:
-      'A thought leader in his thirties, white, in a black t-shirt under a blazer with a headset microphone, standing on a round red carpet on a conference stage, arms spread wide in a grand visionary gesture in front of a giant projection screen that is completely blank white. In the dim front row a single audience member is asleep. One spotlight on the speaker',
+      'A thought leader in his thirties, a white man in a black t-shirt under a blazer with a headset microphone, standing on a round red carpet on a conference stage, arms spread wide in a grand visionary gesture in front of a giant projection screen that is completely blank white. In the dim front row a single audience member is asleep. One spotlight on the speaker',
+    altPrompt:
+      'A thought leader in her thirties, a Pakistani woman in a black t-shirt under a blazer with a headset microphone, standing on a round red carpet on a conference stage, arms spread wide in a grand visionary gesture in front of a giant projection screen that is completely blank white. In the dim front row a single audience member is asleep. One spotlight on the speaker',
   },
   {
     title: 'VP of Hustle Culture, Self-Appointed',
@@ -413,8 +518,11 @@ const CAREERS = [
     happiness: 23,
     salary: '5am wake-up call (unpaid)',
     outlook: 'Grinding never stops',
+    subject: 'woman',
     prompt:
-      'A self-appointed hustle executive in her thirties, Black British, in a blazer over gym leggings, walking briskly on a treadmill desk at five in the morning in a dark apartment, wireless earbuds in, gripping a tall green smoothie at chest height, eyes wide with barely contained intensity. Blue pre-dawn light at the window and a single desk lamp',
+      'A self-appointed hustle executive in her thirties, a Black British woman in a blazer over gym leggings, walking briskly on a treadmill desk at five in the morning in a dark apartment, wireless earbuds in, gripping a tall green smoothie at chest height, eyes wide with barely contained intensity. Blue pre-dawn light at the window and a single desk lamp',
+    altPrompt:
+      'A self-appointed hustle executive in his thirties, a Dutch man in a blazer over gym shorts, walking briskly on a treadmill desk at five in the morning in a dark apartment, wireless earbuds in, gripping a tall green smoothie at chest height, eyes wide with barely contained intensity. Blue pre-dawn light at the window and a single desk lamp',
   },
   {
     title: 'Burnout Survivor Currently "Finding Themselves"',
@@ -424,8 +532,11 @@ const CAREERS = [
     happiness: 51,
     salary: 'Sabbatical (unpaid)',
     outlook: 'Recovering',
+    subject: 'man',
     prompt:
-      'A burnt-out professional in his forties, Chinese American, in a wrinkled white dress shirt and suit trousers, sitting cross-legged on a mat in a calm meditation retreat hall among serene people in loose linen who all have their eyes closed. His eyes are wide open in a thousand-yard stare, his phone face-down on the mat in front of him. Soft daylight through paper screens and wooden beams',
+      'A burnt-out professional in his forties, a Chinese American man in a wrinkled white dress shirt and suit trousers, sitting cross-legged on a mat in a calm meditation retreat hall among serene people in loose linen who all have their eyes closed. His eyes are wide open in a thousand-yard stare, his phone clutched face-down against his chest in both hands. Soft daylight through paper screens and wooden beams',
+    altPrompt:
+      'A burnt-out professional in her forties, an Armenian woman in a wrinkled white dress shirt and suit trousers, sitting cross-legged on a mat in a calm meditation retreat hall among serene people in loose linen who all have their eyes closed. Her eyes are wide open in a thousand-yard stare, her phone clutched face-down against her chest in both hands. Soft daylight through paper screens and wooden beams',
   },
   {
     title: 'Professional Taste Tester (Self-Appointed)',
@@ -435,8 +546,11 @@ const CAREERS = [
     happiness: 68,
     salary: 'Vending machine budget',
     outlook: 'Flavor matrix expanding',
+    subject: 'woman',
     prompt:
-      'A self-appointed taste tester in her forties, Peruvian, in a neat office blouse, standing in a corporate break room in front of a vending machine, holding a single plain foil packet of crisps up to the light and inspecting it through a jeweller\'s loupe with grave professional seriousness. Two colleagues watch from the doorway at a safe distance. Fluorescent break-room light',
+      'A self-appointed taste tester in her forties, a Peruvian woman in a neat office blouse, standing in a corporate break room in front of a vending machine, holding a single plain foil packet of crisps up to the light and inspecting it through a jeweller\'s loupe with grave professional seriousness. Two colleagues watch from the doorway at a safe distance. Fluorescent break-room light',
+    altPrompt:
+      'A self-appointed taste tester in his forties, a Nepali man in a neat office shirt, standing in a corporate break room in front of a vending machine, holding a single plain foil packet of crisps up to the light and inspecting it through a jeweller\'s loupe with grave professional seriousness. Two colleagues watch from the doorway at a safe distance. Fluorescent break-room light',
   },
   {
     title: 'Corporate Event Planner Nobody Invited',
@@ -446,8 +560,11 @@ const CAREERS = [
     happiness: 33,
     salary: 'Per-event basis',
     outlook: 'RSVP pending',
+    subject: 'man',
     prompt:
-      'A corporate event planner in his thirties, Puerto Rican, in a headset and a neat lilac shirt, standing under a sagging balloon arch in a hotel ballroom and holding out a large tray of identical cupcakes at chest height with a brave, hopeful smile. Behind him a long banquet table set for thirty has only three guests, standing far apart and avoiding eye contact. Ballroom chandeliers and grey window light',
+      'A corporate event planner in his thirties, a Puerto Rican man in a headset and a neat lilac shirt, standing under a sagging balloon arch in a hotel ballroom and holding out a large tray of identical cupcakes at chest height with a brave, hopeful smile. Behind him a long banquet table set for thirty has only three guests, standing far apart and avoiding eye contact. Ballroom chandeliers and grey window light',
+    altPrompt:
+      'A corporate event planner in her thirties, a Canadian woman with a red bob, in a headset and a neat lilac shirt, standing under a sagging balloon arch in a hotel ballroom and holding out a large tray of identical cupcakes at chest height with a brave, hopeful smile. Behind her a long banquet table set for thirty has only three guests, standing far apart and avoiding eye contact. Ballroom chandeliers and grey window light',
   },
   {
     title: 'Podcast Host, Listener Count: Mom',
@@ -457,8 +574,11 @@ const CAREERS = [
     happiness: 79,
     salary: 'Sponsored by your own savings',
     outlook: 'Renewed for season 9',
+    subject: 'man',
     prompt:
       'A podcast host in his thirties, a Mexican American man in a cardigan, leaning into a large studio microphone with headphones on in a spare bedroom lined with plain grey acoustic foam, mid-sentence and gesturing with real passion. Through the open doorway behind him his mother sits on a sofa with a single earbud in, giving him a supportive thumbs up. One warm desk lamp',
+    altPrompt:
+      'A podcast host in her thirties, a Vietnamese woman in a cardigan, leaning into a large studio microphone with headphones on in a spare bedroom lined with plain grey acoustic foam, mid-sentence and gesturing with real passion. Through the open doorway behind her, her mother sits on a sofa with a single earbud in, giving her a supportive thumbs up. One warm desk lamp',
   },
 ];
 

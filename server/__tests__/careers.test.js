@@ -130,3 +130,28 @@ test('surprise (or no choice) keeps the original prompt; a choice picks the matc
   assert.equal(promptFor(career, 'man'), 'A');
   assert.equal(mapCareer(answersFromIds(SAMPLE_ANSWERS[0][1])).portraitSubject, 'surprise');
 });
+// The subject of a scene is named in its first clause ("A day trader in his
+// forties, a Black man ..."), so the first standalone woman/man word says
+// who the photographer shoots.
+const firstGender = (prompt) => prompt.match(/\b(woman|man)\b/i)?.[1].toLowerCase();
+
+test('every career has a woman and a man version, and each names the right subject first', () => {
+  for (const c of CAREERS) {
+    assert.ok(['woman', 'man'].includes(c.subject), `${c.title}: subject`);
+    assert.equal(typeof c.altPrompt, 'string', `${c.title}: altPrompt`);
+    assert.notEqual(c.altPrompt, c.prompt, `${c.title}: altPrompt differs`);
+    assert.equal(firstGender(c.prompt), c.subject, `${c.title}: prompt subject`);
+    assert.equal(firstGender(c.altPrompt), c.subject === 'woman' ? 'man' : 'woman', `${c.title}: altPrompt subject`);
+    for (const p of [c.prompt, c.altPrompt]) {
+      assert.doesNotMatch(p, /[—()]/, `${c.title}: no em dash or parentheses`);
+    }
+  }
+});
+
+test('choosing a photo gets every career shot as that person', () => {
+  for (const answers of allAnswerSets()) {
+    for (const who of ['woman', 'man']) {
+      assert.equal(firstGender(mapCareer({ ...answers, portrait_subject: PHOTO[who] }).prompt), who);
+    }
+  }
+});

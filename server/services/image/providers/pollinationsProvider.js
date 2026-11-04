@@ -3,6 +3,10 @@ class PollinationsProvider {
     this.fetch = fetchImpl ?? globalThis.fetch;
     this.name = 'pollinations';
     this.dialect = 'flux';
+    // The keyless endpoint only serves its cheapest model, with a watermark.
+    // As a fallback its output is a stopgap, not a portrait to keep forever:
+    // ImageService holds it in memory and retries the better providers later.
+    this.provisional = true;
   }
 
   async generate({ prompt, seed, width, height, negativePrompt }) {
