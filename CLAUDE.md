@@ -22,13 +22,13 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
   - `routes/userRoutes.js` - `/api/user/onboarding` and `/api/user/result`.
   - `routes/sampleRoutes.js` - public `GET /api/samples`: the fixed landing-page samples with portrait URLs (kicks off generation, cached). `imageUrl.js` builds absolute image URLs for both routes.
   - `routes/imageRoutes.js` - `GET /api/image/:id` (16-hex id; 404 + `Retry-After: 8` while generating).
-  - `services/image/` - `ImageService` orchestrator (sync `kickoff`, in-flight dedup, fallback cascade), `promptBuilder` (seed, SDXL/FLUX dialects, content-hash id), `providers/` (realvisxl, cloudflare, huggingface_flux, together, pollinations), `storage/` (disk, r2), `__tests__/`.
+  - `services/image/` - `ImageService` orchestrator (sync `kickoff`, in-flight dedup, fallback cascade), `promptBuilder` (seed, SDXL/FLUX dialects, content-hash id), `providers/` (realvisxl, cloudflare, huggingface_flux, together, pollinations), `storage/` (disk, r2, turso, plus `WebpStore`, which wraps whichever backend and re-encodes portraits as WebP), `__tests__/`.
 - `docs/image-service-spec.md` - contract the image pipeline and its tests satisfy.
 - `.github/workflows/test.yml` (server tests on push/PR), `keep-alive.yml` (pings Render every 14 min).
 - Deploy: Render single service, https://career-predictor-cnvg.onrender.com, deploying `main` (`render.yaml`). Until November 2026 the dashboard deployed a separate branch (`claude/migrate-free-hosting-tvidw`, the Turso migration), so merges to main did not ship; check the service's branch if a merge doesn't appear.
 
 ## Commands
-- Server tests: `cd server && npm test` (node:test; runs `server/__tests__/` and `services/image/__tests__/`) - verified, 123/123 pass on Node 22 after `npm install`.
+- Server tests: `cd server && npm test` (node:test; runs `server/__tests__/` and `services/image/__tests__/`) - verified, 137/137 pass on Node 22 after `npm install`.
 - Client tests: `cd client && npm test` (node:test over pure modules in `src/lib/__tests__/`) - verified, 27/27 pass.
 - Client build: `cd client && npx vite build` - verified. CI (`test.yml`) runs server tests, client tests and the client build.
 - Likeness test for the planned personal portrait: `cd server && npm run check:likeness` (needs `POLLINATIONS_API_KEY`; spends pollen; writes an HTML contact sheet). Plan and pass criteria: `docs/personal-portrait.md`. Unverified against the real API (no key in the dev container).
@@ -52,7 +52,9 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
 - Quiz option text lives twice, `client/src/content.js` and `server/quiz.js`, and must match exactly (the client sends text, the server maps it to an id); `quiz.test.js` enforces it, so edit both together. The server rejects any answer that is not a current option with "The questionnaire was updated. Reload the page and answer again." (`validateOnboardingAnswers`), and the client drops stale draft answers (`lib/quiz.js`). Question ids are DB column names and keep their old names (`strength` holds the dead-laptop answer).
 - `getImageService()` runs inside `initDB().then(...)` in `server/index.js`, so a provider missing its key fails startup via the same catch (logged as "Startup failed ...").
 - `LocalDiskStore` default dir and `IMAGE_CACHE_DIR=./data/image-cache` resolve against `process.cwd()`. Root `npm start` writes to `<repo>/data/` (gitignored as `/data/`), not `server/data/`.
-- Persistence: Render free-tier disk is wiped on redeploy. The database survives only because production uses Turso; without `TURSO_DATABASE_URL` it falls back to a local file that is lost on deploy. The disk image cache is lost too (use `IMAGE_STORE=r2` for durable images), and sessions use the in-memory store and die on every restart.
+- Persistence: Render free-tier disk is wiped on redeploy. The database survives only because production uses Turso; without `TURSO_DATABASE_URL` it falls back to a local file that is lost on deploy. Portraits survive too: with `TURSO_DATABASE_URL` set, the image store defaults to `turso` (an `images` table in the same database; the log prints `[IMAGE] store: turso+webp`). Sessions still use the in-memory store and die on every restart.
+- Bandwidth: Render's free tier includes 5 GB outbound a month and, with no card on file, suspends the service for the rest of the month when it runs out. That is why every stored portrait is re-encoded as WebP (`storage/webpStore.js`, measured ~9% of the JPEG). Keep new image-heavy features on WebP and small sizes.
+- Running scripts that call Pollinations from a dev container whose proxy injects the key: Node's built-in fetch ignores HTTPS_PROXY unless started with `NODE_USE_ENV_PROXY=1`.
 - `SESSION_SECRET` falls back to a hardcoded dev string in `server/index.js` if unset (production logs a warning but still starts). Set it in every deployed env.
 - `docs/image-service-spec.md` links to a `.claude/plans/...` file outside the repo (dead link).
 - `@paper-design/shaders-react` must stay in `optimizeDeps.include` (`vite.config.js`): if Vite discovers it mid-session it pre-bundles a second React copy and the shader throws "Invalid hook call" (dev only). `HalftoneReveal`'s `size` is calibrated: 1 renders blurry blobs, ~0.55 is the coarsest that still reads as print dots.

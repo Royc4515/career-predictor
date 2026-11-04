@@ -85,7 +85,7 @@ upload or camera -> "Developing" -> the same cover, now with their face.
   image id hashes the scene prompt, the seed **and the user id**, so personal
   portraits never collide with the shared cache or with another user's.
 - Only the finished portrait is kept, in a durable store. **This requires
-  `IMAGE_STORE=r2`**: on Render's free tier the disk is wiped on every
+  the Turso image store** (the default in production since November 2026; R2 was ruled out because it needs a card): on Render's free tier the disk is wiped on every
   deploy, so a personal cover would vanish.
 - Delete: "Remove my portrait" deletes the stored result; retaking the
   questionnaire keeps or drops it explicitly.

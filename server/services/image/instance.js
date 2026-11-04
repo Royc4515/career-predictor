@@ -18,9 +18,12 @@ function getImageService() {
     // Names only, never keys: lets the Render log confirm at a glance that a
     // newly added POLLINATIONS_API_KEY was picked up.
     console.log(`[IMAGE] provider chain: ${providers.map((p) => p.name).join(' -> ')}`);
+    const blobStore = resolveBlobStore(process.env);
+    // e.g. "turso+webp": confirms in the Render log that portraits persist.
+    console.log(`[IMAGE] store: ${blobStore.label}`);
     instance = new ImageService({
       providers,
-      blobStore: resolveBlobStore(process.env),
+      blobStore,
       promptBuilder,
       size: COVER_SIZE,
     });
