@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { QUESTIONS } from '../../content.js';
+import { QUIZ_STEPS } from '../../content.js';
 import { currentAnswers, isComplete } from '../quiz.js';
 
-const full = Object.fromEntries(QUESTIONS.map((q) => [q.id, q.options[1]]));
+const full = Object.fromEntries(QUIZ_STEPS.map((q) => [q.id, q.options[1]]));
 
 test('currentAnswers keeps current options and drops stale or foreign values', () => {
   assert.deepEqual(currentAnswers(full), full);
@@ -20,7 +20,7 @@ test('currentAnswers tolerates junk input', () => {
   assert.deepEqual(currentAnswers('x'), {});
 });
 
-test('isComplete needs all five, the field question included', () => {
+test('isComplete needs every step, the field question included', () => {
   assert.equal(isComplete(full), true);
   assert.equal(isComplete({ ...full, desired_field: undefined }), false);
   assert.equal(isComplete({ ...full, strength: 'Strategic thinking' }), false);

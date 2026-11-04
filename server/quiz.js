@@ -57,10 +57,31 @@ const QUESTIONS = [
   },
 ];
 
+// Asked after the five questions, "for the photographer". It never affects
+// which career comes out (careers.test.js checks the mapping without it); it
+// only picks which version of the career's portrait is shot. Optional on the
+// wire: a tab opened before it existed sends nothing and gets 'surprise'.
+// The client copy is client/src/content.js PORTRAIT_STEP; quiz.test.js keeps
+// the two identical.
+const PORTRAIT_QUESTION = {
+  id: 'portrait_subject',
+  options: [
+    { id: 'woman', text: 'Shoot me as a woman' },
+    { id: 'man', text: 'Shoot me as a man' },
+    { id: 'surprise', text: 'Surprise me. The desk will cast someone' },
+  ],
+};
+const DEFAULT_PORTRAIT = 'surprise';
+
 const QUESTION_IDS = QUESTIONS.map((q) => q.id);
 
 const byText = new Map(QUESTIONS.map((q) => [q.id, new Map(q.options.map((o) => [o.text, o.id]))]));
 const byId = new Map(QUESTIONS.map((q) => [q.id, new Map(q.options.map((o) => [o.id, o.text]))]));
+
+/** 'woman' | 'man' | 'surprise' for the photographer's answer, or null if unknown. */
+function portraitIdFor(text) {
+  return PORTRAIT_QUESTION.options.find((o) => o.text === text)?.id ?? null;
+}
 
 /** Option id for an answer's text, or null if it is not a current option. */
 function optionIdFor(questionId, text) {
@@ -88,4 +109,13 @@ function resolveAnswers(answers) {
   return ids;
 }
 
-module.exports = { QUESTIONS, QUESTION_IDS, optionIdFor, optionText, resolveAnswers };
+module.exports = {
+  QUESTIONS,
+  QUESTION_IDS,
+  PORTRAIT_QUESTION,
+  DEFAULT_PORTRAIT,
+  optionIdFor,
+  optionText,
+  portraitIdFor,
+  resolveAnswers,
+};

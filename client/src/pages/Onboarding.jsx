@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { useAuth } from '../app/AuthContext';
 import Masthead from '../components/Masthead';
-import { QUESTIONS } from '../content';
+import { QUESTIONS, QUIZ_STEPS } from '../content';
 import { firstName } from '../lib/issue';
 import { draftAnswers } from '../lib/storage';
 import { currentAnswers } from '../lib/quiz';
@@ -22,9 +22,13 @@ const questionMotion = {
   exit: (d) => ({ opacity: 0, transform: `translateY(${-8 * d}px)`, transition: { duration: 0.15 } }),
 };
 
+// The five questions plus the photographer's step: all screens use STEPS, and
+// only the progress label tells the photographer's step apart.
+const STEPS = QUIZ_STEPS;
+
 function firstUnanswered(answers) {
-  const i = QUESTIONS.findIndex((q) => !answers[q.id]);
-  return i === -1 ? QUESTIONS.length - 1 : i;
+  const i = STEPS.findIndex((q) => !answers[q.id]);
+  return i === -1 ? STEPS.length - 1 : i;
 }
 
 /** Which question to show: the one in ?q= if the reader has earned it. */
@@ -41,7 +45,7 @@ function AnswerFile({ answers }) {
         Your file so far
       </h2>
       <dl className="mt-5 space-y-4">
-        {QUESTIONS.map((q) => (
+        {STEPS.map((q) => (
           <div key={q.id}>
             <dt className="meta">{q.label}</dt>
             <dd className="mt-1">
@@ -81,9 +85,10 @@ export default function Onboarding() {
     prevStep.current = step;
   });
 
-  const current = QUESTIONS[step];
+  const current = STEPS[step];
   const selected = answers[current.id];
-  const answeredCount = QUESTIONS.filter((q) => answers[q.id]).length;
+  const answeredCount = STEPS.filter((q) => answers[q.id]).length;
+  const isQuestion = step < QUESTIONS.length;
 
   // Normalize a missing or out-of-range ?q= without adding a history entry.
   useEffect(() => {
@@ -107,7 +112,7 @@ export default function Onboarding() {
 
       advanceTimer.current = setTimeout(() => {
         setLocked(false);
-        if (step < QUESTIONS.length - 1) {
+        if (step < STEPS.length - 1) {
           setParams({ q: String(step + 2) });
         } else {
           setNavDirection('forward');
@@ -187,7 +192,7 @@ export default function Onboarding() {
         <div className="mx-auto max-w-[1240px]">
           <div className="flex items-center justify-between gap-4">
             <p className="meta tabular" aria-live="polite">
-              Question {step + 1} of {QUESTIONS.length}
+              {isQuestion ? `Question ${step + 1} of ${QUESTIONS.length}` : 'For the photographer'}
             </p>
             <button
               type="button"
@@ -203,13 +208,13 @@ export default function Onboarding() {
             role="progressbar"
             aria-label="Questionnaire progress"
             aria-valuemin={0}
-            aria-valuemax={QUESTIONS.length}
+            aria-valuemax={STEPS.length}
             aria-valuenow={answeredCount}
           >
             <m.div
               className="h-full origin-left bg-ink"
               initial={false}
-              animate={{ transform: `scaleX(${answeredCount / QUESTIONS.length})` }}
+              animate={{ transform: `scaleX(${answeredCount / STEPS.length})` }}
               transition={{ duration: 0.3, ease: EASE_IN_OUT }}
             />
           </div>
@@ -276,7 +281,9 @@ export default function Onboarding() {
                 </m.div>
               </AnimatePresence>
 
-              <p className="meta mt-6 hidden [@media(pointer:fine)]:block">Keys A to D answer. Backspace goes back.</p>
+              <p className="meta mt-6 hidden [@media(pointer:fine)]:block">
+                Keys A to {LETTERS[current.options.length - 1]} answer. Backspace goes back.
+              </p>
             </div>
 
             <div className="hidden lg:col-span-4 lg:block">

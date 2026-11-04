@@ -28,6 +28,7 @@ const SDXL_SUFFIX =
   'editorial magazine cover photograph, medium format camera, 80mm lens, ' +
   'soft natural window light, subtle film grain, muted true-to-life colors, ' +
   'medium shot, generous headroom, subject centred, top of head a third of the way down the frame, ' +
+  'key props held at chest to shoulder height beside the face, nothing important near the bottom edge, ' +
   'face just above the middle, plain backdrop above head, deadpan expression, ' +
   'documentary realism, photorealistic, sharp focus, plain unmarked surfaces';
 
@@ -43,6 +44,10 @@ const FLUX_SUFFIX =
   'muted true-to-life colors, realistic skin texture. ' +
   'Vertical medium shot with generous headroom: one main subject near the horizontal centre, the top of their head about a third of the way down the frame ' +
   'and their face just above the middle, with calm, plain backdrop filling the space above them and the details that tell the story kept in the middle of the picture. ' +
+  // don't touch / The bottom ~40% sits under the headline gradient: on the
+  // live covers a cake held at waist height and a falafel tower on a counter
+  // disappeared behind the title.
+  'Any prop that carries the story is held or placed at chest to shoulder height, close beside the face, never down near the bottom edge of the frame. ' +
   'Played completely straight: sincere, deadpan expression, candid documentary realism. ' +
   'Screens show only soft blank light, and every paper, wall, garment and object is plain and unmarked. ' +
   'No text, no logos, no watermark anywhere in the image.';

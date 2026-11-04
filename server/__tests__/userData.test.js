@@ -120,3 +120,21 @@ test('validateOnboardingAnswers: missing or non-object body is rejected', () => 
   assert.ok(validateOnboardingAnswers(null).error);
   assert.ok(validateOnboardingAnswers('strength=x').error);
 });
+
+// --- the photographer's answer (portrait_subject) ---
+
+test('validateOnboardingAnswers: the photo choice is optional (older clients send none)', () => {
+  const { answers, error } = validateOnboardingAnswers(VALID);
+  assert.equal(error, undefined);
+  assert.equal('portrait_subject' in answers, false);
+});
+
+test('validateOnboardingAnswers: a current photo choice is kept, trimmed', () => {
+  const { answers } = validateOnboardingAnswers({ ...VALID, portrait_subject: '  Shoot me as a man ' });
+  assert.equal(answers.portrait_subject, 'Shoot me as a man');
+});
+
+test('validateOnboardingAnswers: an unknown or non-string photo choice is rejected', () => {
+  assert.equal(validateOnboardingAnswers({ ...VALID, portrait_subject: 'man' }).error, STALE_ANSWERS_ERROR);
+  assert.match(validateOnboardingAnswers({ ...VALID, portrait_subject: 7 }).error, /must be a string/);
+});

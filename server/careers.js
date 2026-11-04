@@ -13,7 +13,7 @@
 // Cue ids are option ids from quiz.js. careers.test.js checks that every
 // career is reachable and that none is picked for more than 4% of all answer
 // sets, so a cue edit that unbalances the table fails CI.
-const { QUESTION_IDS, optionText, resolveAnswers } = require('./quiz');
+const { QUESTION_IDS, DEFAULT_PORTRAIT, optionText, portraitIdFor, resolveAnswers } = require('./quiz');
 
 const CAREERS = [
   // --- tech ---
@@ -491,8 +491,25 @@ function mapCareer(answers) {
   const best = Math.max(...shelf.map(score));
   const tied = shelf.filter((c) => score(c) === best);
   const career = tied[answersHash(QUESTION_IDS.map((q) => ids[q])) % tied.length];
+  const portraitSubject = portraitIdFor(answers.portrait_subject) ?? DEFAULT_PORTRAIT;
 
-  return { ...publicFields(career), evidence: evidenceFor(career, ids) };
+  return {
+    ...publicFields(career),
+    prompt: promptFor(career, portraitSubject),
+    portraitSubject,
+    evidence: evidenceFor(career, ids),
+  };
+}
+
+/**
+ * The scene for the photographer's answer. Each career is written once with a
+ * woman or a man as its subject (`subject`, `prompt`) and once with the other
+ * (`altPrompt`). "Surprise me" keeps the hand-picked original, which is what
+ * keeps the series varied. The career itself never depends on this choice.
+ */
+function promptFor(career, portraitSubject) {
+  if (portraitSubject === DEFAULT_PORTRAIT || portraitSubject === career.subject) return career.prompt;
+  return career.altPrompt || career.prompt;
 }
 
 // The user's answers that matched this career's cues, topped up with their
@@ -543,4 +560,4 @@ function sampleCareers() {
   return SAMPLE_ANSWERS.map(([, ids]) => mapCareer(answersFromIds(ids)));
 }
 
-module.exports = { mapCareer, CAREERS, FALLBACK, SAMPLE_ANSWERS, answersFromIds, sampleCareers };
+module.exports = { mapCareer, promptFor, CAREERS, FALLBACK, SAMPLE_ANSWERS, answersFromIds, sampleCareers };

@@ -57,3 +57,17 @@ test('resolveAnswers needs every question answered with a current option', () =>
   assert.equal(resolveAnswers({ ...full, strength: 'Raw creativity' }), null);
   assert.equal(resolveAnswers(null), null);
 });
+
+test("the photographer's question matches the client copy exactly", async () => {
+  const client = await import(CLIENT_CONTENT);
+  const { PORTRAIT_QUESTION } = require('../quiz');
+  assert.equal(client.PORTRAIT_STEP.id, PORTRAIT_QUESTION.id);
+  assert.deepEqual(client.PORTRAIT_STEP.options, PORTRAIT_QUESTION.options.map((o) => o.text));
+});
+
+test('portraitIdFor maps the three answers and nothing else', () => {
+  const { PORTRAIT_QUESTION, portraitIdFor } = require('../quiz');
+  assert.deepEqual(PORTRAIT_QUESTION.options.map((o) => portraitIdFor(o.text)), ['woman', 'man', 'surprise']);
+  assert.equal(portraitIdFor('woman'), null, 'ids are not accepted as text');
+  assert.equal(portraitIdFor(undefined), null);
+});

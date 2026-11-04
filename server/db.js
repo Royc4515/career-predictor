@@ -58,6 +58,9 @@ async function initDB(config = connectionConfig()) {
   // image_id (16-hex content hash) for new rows; image_url is kept for legacy
   // rows that point at the Pollinations CDN, and reads fall back to it.
   await addColumnIfMissing('onboarding', 'image_id', 'TEXT');
+  // The photographer's answer ('woman' | 'man' | 'surprise'), so a future
+  // gallery or reshoot knows which version of the portrait a result used.
+  await addColumnIfMissing('onboarding', 'portrait_subject', 'TEXT');
 
   console.log('[DB] Schema ready');
   return client;
@@ -120,13 +123,14 @@ async function saveOnboarding({
   careerResult,
   imageUrl,
   imageId,
+  portraitSubject,
 }) {
   await client.batch(
     [
       { sql: 'DELETE FROM onboarding WHERE user_id = ?', args: [userId] },
       {
-        sql: `INSERT INTO onboarding (user_id, strength, monday_vibe, coworker_desc, five_year_goal, desired_field, career_result, image_url, image_id)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        sql: `INSERT INTO onboarding (user_id, strength, monday_vibe, coworker_desc, five_year_goal, desired_field, career_result, image_url, image_id, portrait_subject)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           userId,
           strength,
@@ -137,6 +141,7 @@ async function saveOnboarding({
           careerResult,
           imageUrl || null,
           imageId || null,
+          portraitSubject || null,
         ],
       },
     ],

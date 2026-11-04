@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { mapCareer, CAREERS, FALLBACK, SAMPLE_ANSWERS, answersFromIds, sampleCareers } = require('../careers');
+const { mapCareer, promptFor, CAREERS, FALLBACK, SAMPLE_ANSWERS, answersFromIds, sampleCareers } = require('../careers');
 const { QUESTIONS, QUESTION_IDS, optionIdFor } = require('../quiz');
 
 // Every possible submission: 4^5 = 1,024 answer sets, as the text the client sends.
@@ -105,4 +105,28 @@ test('each landing-page sample answer set produces the title it is labeled with'
   }
   const titles = sampleCareers().map((c) => c.title);
   assert.equal(new Set(titles).size, titles.length, 'samples must be distinct');
+});
+
+// --- the photographer's answer ---
+
+const PHOTO = { woman: 'Shoot me as a woman', man: 'Shoot me as a man', surprise: 'Surprise me. The desk will cast someone' };
+
+test('the photo choice never changes the career, the evidence or the stats', () => {
+  for (const answers of allAnswerSets()) {
+    const base = mapCareer(answers);
+    for (const text of Object.values(PHOTO)) {
+      const shot = mapCareer({ ...answers, portrait_subject: text });
+      assert.equal(shot.title, base.title);
+      assert.deepEqual(shot.evidence, base.evidence);
+      assert.equal(shot.happiness, base.happiness);
+    }
+  }
+});
+
+test('surprise (or no choice) keeps the original prompt; a choice picks the matching version', () => {
+  const career = { prompt: 'P', altPrompt: 'A', subject: 'woman' };
+  assert.equal(promptFor(career, 'surprise'), 'P');
+  assert.equal(promptFor(career, 'woman'), 'P');
+  assert.equal(promptFor(career, 'man'), 'A');
+  assert.equal(mapCareer(answersFromIds(SAMPLE_ANSWERS[0][1])).portraitSubject, 'surprise');
 });

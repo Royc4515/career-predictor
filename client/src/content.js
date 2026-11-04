@@ -64,6 +64,20 @@ export const QUESTIONS = [
   },
 ];
 
+// Asked after the five questions. It never changes the career, only which
+// version of the portrait is shot, so it is not one of the "five questions"
+// in the copy and has no finding. Option text must match server/quiz.js
+// PORTRAIT_QUESTION (server/__tests__/quiz.test.js checks it).
+export const PORTRAIT_STEP = {
+  id: 'portrait_subject',
+  label: 'Cover photo',
+  question: 'Last one, for the photographer. Who are we shooting?',
+  options: ['Shoot me as a woman', 'Shoot me as a man', 'Surprise me. The desk will cast someone'],
+};
+
+// Every screen of the questionnaire, in order.
+export const QUIZ_STEPS = [...QUESTIONS, PORTRAIT_STEP];
+
 // The analyst's note printed under each quoted answer in the report's
 // "Evidence on file". The joke is the gap between trivial evidence and a
 // confident conclusion, so keep them dry: no exclamation marks, no winking.

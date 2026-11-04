@@ -52,6 +52,7 @@ router.post(
           evidence: career.evidence,
         }),
         imageId,
+        portraitSubject: career.portraitSubject,
       });
 
       res.json({
