@@ -1,4 +1,4 @@
-import { QUESTIONS } from '../content.js';
+import { QUIZ_STEPS } from '../content.js';
 
 /**
  * The draft with only answers that are current options. A draft saved
@@ -9,13 +9,13 @@ import { QUESTIONS } from '../content.js';
 export function currentAnswers(answers) {
   const kept = {};
   if (!answers || typeof answers !== 'object') return kept;
-  for (const q of QUESTIONS) {
+  for (const q of QUIZ_STEPS) {
     if (q.options.includes(answers[q.id])) kept[q.id] = answers[q.id];
   }
   return kept;
 }
 
-/** True when every question holds a current option. */
+/** True when every step, the photographer's included, holds a current option. */
 export function isComplete(answers) {
-  return QUESTIONS.every((q) => q.options.includes(answers?.[q.id]));
+  return QUIZ_STEPS.every((q) => q.options.includes(answers?.[q.id]));
 }

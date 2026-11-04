@@ -255,3 +255,71 @@ test('constructor rejects sizes not every provider can accept', () => {
   assert.throws(() => new ImageService({ ...base, size: { width: 2048, height: 2048 } }), /size/);
   assert.throws(() => new ImageService({ ...base, size: { width: '896', height: 1120 } }), /size/);
 });
+
+// ── Provisional fallback (keyless stopgap is never stored durably) ──────────
+
+function provisional(provider) {
+  provider.provisional = true;
+  return provider;
+}
+
+async function waitFor(fn, timeoutMs = 1000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (await fn()) return;
+    await new Promise((r) => setTimeout(r, 5));
+  }
+  throw new Error('condition not met');
+}
+
+test('a provisional fallback is served but not written to the durable store', async () => {
+  const good = fakeProvider('good', 'flux', { error: new Error('out of pollen') });
+  const keyless = provisional(fakeProvider('keyless', 'flux', { ok: { buffer: Buffer.from('stopgap'), mimeType: 'image/jpeg' } }));
+  const blobStore = inMemoryBlobStore();
+  const svc = new ImageService({ providers: [good, keyless], blobStore, promptBuilder: fakePromptBuilder(), logger: silentLogger() });
+  const { id } = svc.kickoff({ scenePrompt: 'a', title: 't' });
+  await waitFor(async () => svc.fetchIfReady(id));
+  assert.equal((await svc.fetchIfReady(id)).buffer.toString(), 'stopgap');
+  assert.equal(await blobStore.get(id), null, 'durable store untouched');
+  // While it is fresh, another kickoff does not burn another generation.
+  svc.kickoff({ scenePrompt: 'a', title: 't' });
+  await microtaskFlush();
+  await microtaskFlush();
+  assert.equal(good.calls.length, 1);
+});
+
+test('after the stopgap expires, the next kickoff retries the good provider and stores its result', async () => {
+  let clock = 0;
+  let goodUp = false;
+  const good = fakeProvider('good', 'flux', async () => {
+    if (!goodUp) throw new Error('out of pollen');
+    return { buffer: Buffer.from('good'), mimeType: 'image/webp' };
+  });
+  const keyless = provisional(fakeProvider('keyless', 'flux', { ok: { buffer: Buffer.from('stopgap'), mimeType: 'image/jpeg' } }));
+  const blobStore = inMemoryBlobStore();
+  const svc = new ImageService({
+    providers: [good, keyless], blobStore, promptBuilder: fakePromptBuilder(), logger: silentLogger(),
+    provisionalTtlMs: 100, now: () => clock,
+  });
+  const { id } = svc.kickoff({ scenePrompt: 'a', title: 't' });
+  await waitFor(async () => svc.fetchIfReady(id));
+  clock = 101;
+  goodUp = true;
+  assert.equal(await svc.fetchIfReady(id), null, 'expired stopgap is no longer served');
+  svc.kickoff({ scenePrompt: 'a', title: 't' });
+  await waitForBlob(blobStore, id);
+  assert.equal((await svc.fetchIfReady(id)).buffer.toString(), 'good');
+});
+
+test('a provisional provider that is the only one in the chain is stored as before', async () => {
+  const keyless = provisional(fakeProvider('keyless', 'flux', { ok: { buffer: Buffer.from('k'), mimeType: 'image/jpeg' } }));
+  const blobStore = inMemoryBlobStore();
+  const svc = new ImageService({ providers: [keyless], blobStore, promptBuilder: fakePromptBuilder(), logger: silentLogger() });
+  const { id } = svc.kickoff({ scenePrompt: 'a', title: 't' });
+  await waitForBlob(blobStore, id);
+});
+
+test('the keyless Pollinations provider is marked provisional', () => {
+  const { PollinationsProvider } = require('../providers/pollinationsProvider');
+  assert.equal(new PollinationsProvider().provisional, true);
+});
