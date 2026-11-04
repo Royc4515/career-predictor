@@ -90,6 +90,7 @@ initDB().then(() => {
   app.listen(PORT, () => {
     console.log(`[SERVER] Running on port ${PORT}`);
     console.log(`[SERVER] Auth URL: ${process.env.SERVER_URL}/auth/google`);
+    require('./keepAlive').startKeepAlive();
   });
 }).catch((err) => {
   // This chain also builds the image service, so a provider missing its API
