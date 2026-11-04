@@ -1,21 +1,26 @@
 name: Keep Alive
 
+# Layer 1 of 3 (see docs/keep-alive.md). GitHub cron is best-effort and gets
+# disabled after 60 days without repo activity, so it is not the only layer.
 on:
   schedule:
-    - cron: '*/14 * * * *'
+    - cron: '*/10 * * * *'
   workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    timeout-minutes: 5
     steps:
-      - name: Ping Render
+      - name: Ping Render (retry through a cold start)
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 https://career-predictor-cnvg.onrender.com/api/health)
-          echo "Response status: $STATUS"
-          if [ "$STATUS" -eq 200 ]; then
-            echo "Service is healthy"
-          else
-            echo "Warning: Unexpected status code $STATUS"
-          fi
+          # A sleeping free service needs up to ~60s to wake, so retry a few
+          # times before calling it a failure. A red run emails the repo owner.
+          for attempt in 1 2 3 4; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 75 https://career-predictor-cnvg.onrender.com/api/health || echo 000)
+            echo "Attempt $attempt: HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then exit 0; fi
+            sleep 15
+          done
+          echo "Service did not answer 200"
+          exit 1
