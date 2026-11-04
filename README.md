@@ -144,7 +144,7 @@ CLOUDFLARE_ACCOUNT_ID=                 # used by cloudflare AND cloudflare_flux2
 CLOUDFLARE_API_TOKEN=
 TOGETHER_API_KEY=
 
-IMAGE_STORE=disk                       # or 'r2' for durable Cloudflare R2 storage
+# IMAGE_STORE=turso                    # default when TURSO_DATABASE_URL is set; else disk. Also: r2
 # R2_ACCOUNT_ID= / R2_ACCESS_KEY_ID= / R2_SECRET_ACCESS_KEY= / R2_BUCKET=
 ```
 
@@ -171,7 +171,8 @@ Express builds the React frontend and serves it as static files - single service
 | `POLLINATIONS_API_KEY` | *(recommended)* `sk_` key; upgrades portraits to current models |
 | `IMAGE_PROVIDER_CHAIN` | *(optional)* e.g. `pollinations_gen,cloudflare_flux2,pollinations` |
 | `HUGGINGFACE_API_TOKEN` / `CLOUDFLARE_*` / `TOGETHER_API_KEY` | *(optional)* keys for the providers in your chain |
-| `IMAGE_STORE` | *(optional)* `disk` (default) or `r2` |
+| `IMAGE_STORE` | *(optional)* `turso` (default when `TURSO_DATABASE_URL` is set), `disk` (default otherwise) or `r2` |
+| `IMAGE_WEBP` | *(optional)* `off` stores provider output as-is; by default portraits are re-encoded as WebP |
 | `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` | *(when `IMAGE_STORE=r2`)* |
 
 ---
