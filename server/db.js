@@ -91,6 +91,10 @@ async function initDB(config = connectionConfig()) {
   // Pollinations CDN link). If its career has also left the table, that URL is
   // the only portrait it has, so the archive keeps it like /result does.
   await addColumnIfMissing('covers', 'image_url', 'TEXT');
+  // The user's own portrait for this issue, when they shot one under the
+  // consent wording that says it is kept in the archive (consent v2). Older
+  // uploads were promised deletion on a retake and are never linked here.
+  await addColumnIfMissing('covers', 'personal_image_id', 'TEXT');
   // One-time import: users whose result predates the archive start with it as
   // their first back issue. Idempotent (only users with no archived cover).
   const imported = await client.execute(`
@@ -174,6 +178,15 @@ async function saveOnboarding({
   imageId,
   portraitSubject,
 }) {
+  // Personal portraits of the back issues the cap is about to prune: their
+  // images must go too, and only the caller can reach the image store. One
+  // new row is inserted, so MAX_BACK_ISSUES - 1 existing ones survive.
+  const pruned = await client.execute({
+    sql: `SELECT personal_image_id FROM covers WHERE user_id = ? AND personal_image_id IS NOT NULL AND id NOT IN (
+            SELECT id FROM covers WHERE user_id = ? ORDER BY id DESC LIMIT ?
+          )`,
+    args: [userId, userId, MAX_BACK_ISSUES - 1],
+  });
   await client.batch(
     [
       { sql: 'DELETE FROM onboarding WHERE user_id = ?', args: [userId] },
@@ -209,21 +222,31 @@ async function saveOnboarding({
     'write',
   );
   console.log('[DB] Onboarding saved for user ID:', userId);
+  return { prunedPersonalImageIds: pruned.rows.map((row) => row.personal_image_id) };
 }
 
 /** A user's back issues, newest first. */
 async function getCovers(userId) {
   const result = await client.execute({
-    sql: 'SELECT id, career_result, image_id, image_url, portrait_subject, created_at FROM covers WHERE user_id = ? ORDER BY id DESC',
+    sql: `SELECT id, career_result, image_id, image_url, portrait_subject, personal_image_id, created_at
+          FROM covers WHERE user_id = ? ORDER BY id DESC`,
     args: [userId],
   });
   return result.rows.map(plain);
 }
 
-/** Remove one back issue; true if it existed and was the user's. */
+/**
+ * Remove one back issue. Returns null if it wasn't the user's, otherwise
+ * { personalImageId } so the caller can delete that portrait's image too.
+ */
 async function deleteCover(userId, coverId) {
-  const result = await client.execute({ sql: 'DELETE FROM covers WHERE id = ? AND user_id = ?', args: [coverId, userId] });
-  return result.rowsAffected > 0;
+  const found = await client.execute({
+    sql: 'SELECT personal_image_id FROM covers WHERE id = ? AND user_id = ?',
+    args: [coverId, userId],
+  });
+  if (!found.rows.length) return null;
+  await client.execute({ sql: 'DELETE FROM covers WHERE id = ? AND user_id = ?', args: [coverId, userId] });
+  return { personalImageId: found.rows[0].personal_image_id ?? null };
 }
 
 /** Point a saved result at its current shared portrait id. */
@@ -249,6 +272,35 @@ async function updatePersonalStatus(userId, imageId, status) {
     sql: 'UPDATE onboarding SET personal_status = ? WHERE user_id = ? AND personal_image_id = ?',
     args: [status, userId, imageId],
   });
+}
+
+/**
+ * Keep a personal portrait with the user's current issue in the archive (the
+ * newest cover, written in the same batch as the current result).
+ */
+async function archivePersonalPortrait(userId, imageId) {
+  await client.execute({
+    sql: `UPDATE covers SET personal_image_id = ?
+          WHERE id = (SELECT MAX(id) FROM covers WHERE user_id = ?)`,
+    args: [imageId, userId],
+  });
+}
+
+/** Drop a personal portrait from every back issue that shows it. */
+async function unarchivePersonalPortrait(userId, imageId) {
+  await client.execute({
+    sql: 'UPDATE covers SET personal_image_id = NULL WHERE user_id = ? AND personal_image_id = ?',
+    args: [userId, imageId],
+  });
+}
+
+/** True if this personal portrait is on one of the user's back issues. */
+async function isPersonalPortraitArchived(userId, imageId) {
+  const result = await client.execute({
+    sql: 'SELECT 1 FROM covers WHERE user_id = ? AND personal_image_id = ? LIMIT 1',
+    args: [userId, imageId],
+  });
+  return result.rows.length > 0;
 }
 
 async function clearPersonalPortrait(userId) {
@@ -282,4 +334,7 @@ module.exports = {
   setPersonalPortrait,
   updatePersonalStatus,
   clearPersonalPortrait,
+  archivePersonalPortrait,
+  unarchivePersonalPortrait,
+  isPersonalPortraitArchived,
 };

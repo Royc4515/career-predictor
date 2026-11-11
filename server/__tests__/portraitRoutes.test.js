@@ -26,7 +26,7 @@ before(async () => {
   process.env.TURSO_DATABASE_URL = `file:${path.join(dir, 'app.db')}`;
   const db = require('../db');
   await db.initDB({ url: process.env.TURSO_DATABASE_URL });
-  for (const googleId of ['g1', 'g2']) await db.upsertUser({ googleId, email: `${googleId}@x`, name: googleId });
+  for (const googleId of ['g1', 'g2', 'g3']) await db.upsertUser({ googleId, email: `${googleId}@x`, name: googleId });
   const instance = require('../services/image/instance');
   instance._resetForTests();
   images = instance.getImageService();
@@ -70,7 +70,7 @@ const selfie = () => sharp({ create: { width: 800, height: 1000, channels: 3, ba
 const upload = async (opts = {}) =>
   fetch(base + '/api/user/portrait', {
     method: 'POST',
-    headers: { 'Content-Type': opts.type || 'image/jpeg', ...(opts.consent === false ? {} : { 'X-Portrait-Consent': 'yes' }) },
+    headers: { 'Content-Type': opts.type || 'image/jpeg', ...(opts.consent === false ? {} : { 'X-Portrait-Consent': opts.consent || 'yes' }) },
     body: opts.body || (await selfie()),
   });
 
@@ -123,7 +123,7 @@ test('the full personal portrait flow', async () => {
   assert.equal(body.personal, null);
 });
 
-test('a retake deletes the personal portrait of the replaced result', async () => {
+test('a retake deletes a portrait shot under the v1 consent ("deleted on a retake")', async () => {
   currentUser = 1;
   const res = await upload();
   const id = (await res.json()).personal.imageUrl.split('/').pop();
@@ -219,4 +219,50 @@ test('the quiz can choose "Use my own photo": accepted, shared portrait is the o
   assert.equal(body.personal, null);
   const db = require('../db');
   assert.equal((await db.getOnboardingByUserId(1)).portrait_subject, 'photo');
+});
+
+// --- Consent v2: the portrait is kept on its back issue ---
+
+const idOf = (url) => url.split('/').pop();
+async function shootV2() {
+  const res = await upload({ consent: 'v2' });
+  assert.equal(res.status, 202);
+  const id = idOf((await res.json()).personal.imageUrl);
+  releaseRender();
+  await new Promise((r) => setTimeout(r, 50));
+  return id;
+}
+
+test('a v2 portrait stays on its back issue after a retake, private to its owner', async () => {
+  currentUser = 3;
+  assert.equal((await json('POST', '/api/user/onboarding', ANSWERS)).status, 200);
+  const id = await shootV2();
+  let { covers } = await (await fetch(base + '/api/user/covers')).json();
+  assert.equal(idOf(covers[0].personalImageUrl), id, 'the current issue shows it');
+
+  assert.equal((await json('POST', '/api/user/onboarding', ANSWERS)).status, 200);
+  assert.ok(await images.blobStore.get(id), 'a retake keeps it');
+  ({ covers } = await (await fetch(base + '/api/user/covers')).json());
+  assert.equal(covers[0].personalImageUrl, null, 'the new issue has none yet');
+  assert.equal(idOf(covers[1].personalImageUrl), id, 'the earlier issue keeps it');
+  assert.equal((await (await fetch(base + '/api/user/result')).json()).personal, null);
+
+  assert.equal((await fetch(`${base}/api/user/portrait/image/${id}`)).status, 200, 'served to its owner');
+  currentUser = 2;
+  assert.equal((await fetch(`${base}/api/user/portrait/image/${id}`)).status, 404, 'and nobody else');
+  currentUser = 3;
+
+  assert.equal((await fetch(`${base}/api/user/covers/${covers[0].id}`, { method: 'DELETE' })).status, 409, 'the current issue stays');
+  assert.equal((await fetch(`${base}/api/user/covers/${covers[1].id}`, { method: 'DELETE' })).status, 204);
+  assert.equal(await images.blobStore.get(id), null, 'removing the issue deletes its portrait');
+  assert.equal((await fetch(`${base}/api/user/portrait/image/${id}`)).status, 404);
+});
+
+test('"Remove my photo" on the result page removes a v2 portrait from the archive too', async () => {
+  currentUser = 3;
+  const id = await shootV2();
+  assert.equal(idOf((await (await fetch(base + '/api/user/covers')).json()).covers[0].personalImageUrl), id);
+  assert.equal((await fetch(base + '/api/user/portrait', { method: 'DELETE' })).status, 204);
+  assert.equal((await (await fetch(base + '/api/user/covers')).json()).covers[0].personalImageUrl, null);
+  assert.equal(await images.blobStore.get(id), null);
 });

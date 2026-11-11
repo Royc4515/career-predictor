@@ -8,6 +8,9 @@ const {
   updateImageId,
   getCovers,
   deleteCover,
+  archivePersonalPortrait,
+  unarchivePersonalPortrait,
+  isPersonalPortraitArchived,
 } = require('../db');
 const { getImageService, getPersonalPortraitService } = require('../services/image/instance');
 const { normalizePhoto, PhotoError, MAX_UPLOAD_BYTES } = require('../photoUpload');
@@ -33,6 +36,12 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const perUserPortraits = new SlidingWindowLimiter({ limit: 3, windowMs: DAY_MS });
 const siteWidePortraits = new SlidingWindowLimiter({ limit: 40, windowMs: DAY_MS });
 const PERSONAL_ID_RE = /^[0-9a-f]{16}$/;
+// The X-Portrait-Consent value says which consent wording the reader agreed
+// to. 'yes' (v1, until November 2026): the portrait is deleted on a retake.
+// 'v2': it is kept on its back issue until the reader removes it. A tab
+// opened before the change still sends 'yes' and gets what it promised.
+const CONSENT_V1 = 'yes';
+const CONSENT_KEEP = 'v2';
 
 function personalImageUrl(id) {
   const base = (process.env.SERVER_URL || '').replace(/\/$/, '');
@@ -110,11 +119,14 @@ router.post(
       const userId = req.user.id;
 
       const career = mapCareer(answers);
-      // A retake replaces the result, and a personal portrait belongs to the
-      // result it was shot for: delete it rather than leave a private image
-      // nobody can reach.
+      // A retake replaces the result. A personal portrait shot under consent
+      // v2 stays on its back issue; an older one was promised deletion here,
+      // and is deleted rather than left as a private image nobody can reach.
       const previous = await getOnboardingByUserId(userId);
-      await deletePersonalImage(previous?.personal_image_id);
+      const previousPersonal = previous?.personal_image_id;
+      if (previousPersonal && !(await isPersonalPortraitArchived(userId, previousPersonal))) {
+        await deletePersonalImage(previousPersonal);
+      }
       console.log('[ROUTE] Career mapped:', career.title);
 
       // kickoff() returns synchronously with the deterministic id; generation,
@@ -122,7 +134,7 @@ router.post(
       // route answers 404 + Retry-After until the bytes exist.
       const { id: imageId } = getImageService().kickoff({ scenePrompt: career.prompt, title: career.title });
 
-      await saveOnboarding({
+      const { prunedPersonalImageIds } = await saveOnboarding({
         userId,
         strength,
         mondayVibe: monday_vibe,
@@ -140,6 +152,8 @@ router.post(
         imageId,
         portraitSubject: career.portraitSubject,
       });
+      // Back issues past the cap take their personal portraits with them.
+      for (const id of prunedPersonalImageIds) await deletePersonalImage(id);
 
       res.json({
         careerTitle: career.title,
@@ -219,8 +233,10 @@ function portraitUrlFor(title, portraitSubject, storedImageId, legacyImageUrl) {
 }
 
 // GET /api/user/covers - "Your back issues": every cover the user has been
-// given, newest first (the first is the current result). Shared portraits
-// only: personal portraits are never archived.
+// given, newest first (the first is the current result). imageUrl is the
+// shared portrait; personalImageUrl, when set, is the reader's own portrait
+// for that issue (consent v2), which the gallery shows instead, falling back
+// to imageUrl if it failed.
 router.get(
   '/covers',
   requireAuth,
@@ -235,6 +251,7 @@ router.get(
           caption: parsed.caption || null,
           happiness: parsed.happiness ?? null,
           imageUrl: portraitUrlFor(parsed.title, row.portrait_subject, row.image_id, row.image_url),
+          personalImageUrl: row.personal_image_id ? personalImageUrl(row.personal_image_id) : null,
           filedAt: row.created_at,
           current: i === 0,
         };
@@ -256,9 +273,15 @@ router.delete(
       if (!Number.isInteger(id) || id <= 0 || String(id) !== req.params.id) {
         return res.status(400).json({ error: 'Invalid cover id' });
       }
+      const [newest] = await getCovers(req.user.id);
+      // The current issue is the result page's; removing it here would leave
+      // the result with no archive row (and personal portraits link to the
+      // newest row). Retake, or remove the photo on the result page.
+      if (newest?.id === id) return res.status(409).json({ error: 'The current issue stays. Retake the questionnaire to replace it.' });
       const removed = await deleteCover(req.user.id, id);
       // 404 for someone else's cover too: don't confirm it exists.
       if (!removed) return res.status(404).json({ error: 'Not found' });
+      await deletePersonalImage(removed.personalImageId);
       res.status(204).end();
     },
     { label: 'DELETE /api/user/covers', message: 'Could not remove that back issue. Please try again.' },
@@ -275,7 +298,8 @@ router.post(
   photoBody,
   asyncRoute(
     async (req, res) => {
-      if (req.get('X-Portrait-Consent') !== 'yes') {
+      const consent = req.get('X-Portrait-Consent');
+      if (consent !== CONSENT_V1 && consent !== CONSENT_KEEP) {
         return res.status(400).json({ error: 'Please confirm the consent statement before uploading.' });
       }
       const service = getPersonalPortraitService();
@@ -312,7 +336,11 @@ router.post(
 
       perUserPortraits.record(userKey);
       siteWidePortraits.record('site');
-      await deletePersonalImage(row.personal_image_id);
+      // A reshoot of the same issue replaces its portrait everywhere.
+      if (row.personal_image_id) {
+        await deletePersonalImage(row.personal_image_id);
+        await unarchivePersonalPortrait(userId, row.personal_image_id);
+      }
 
       let imageId;
       ({ id: imageId } = service.start({
@@ -325,6 +353,7 @@ router.post(
           ),
       }));
       await setPersonalPortrait(userId, { imageId, status: 'generating', consentAt: new Date().toISOString() });
+      if (consent === CONSENT_KEEP) await archivePersonalPortrait(userId, imageId);
       res.status(202).json({ personal: personalView({ id: imageId, status: 'generating' }) });
     },
     { label: 'POST /api/user/portrait', message: 'Could not start your portrait. Please try again.' },
@@ -340,6 +369,7 @@ router.delete(
     async (req, res) => {
       const row = await getOnboardingByUserId(req.user.id);
       await deletePersonalImage(row?.personal_image_id);
+      if (row?.personal_image_id) await unarchivePersonalPortrait(req.user.id, row.personal_image_id);
       if (row) await clearPersonalPortrait(req.user.id);
       res.status(204).end();
     },
@@ -347,9 +377,10 @@ router.delete(
   ),
 );
 
-// GET/HEAD /api/user/portrait/image/:id - the personal portrait, to its owner
-// only. Same contract as /api/image/:id (404 + Retry-After while generating)
-// so the client's polling works unchanged; 410 when generation failed.
+// GET/HEAD /api/user/portrait/image/:id - a personal portrait (the current
+// one or one kept on a back issue), to its owner only. Same contract as
+// /api/image/:id (404 + Retry-After while generating) so the client's polling
+// works unchanged; 410 when generation failed.
 router.get(
   '/portrait/image/:id',
   requireAuth,
@@ -358,8 +389,11 @@ router.get(
       const { id } = req.params;
       if (!PERSONAL_ID_RE.test(id)) return res.status(400).send('invalid id');
       const row = await getOnboardingByUserId(req.user.id);
+      const isCurrent = row?.personal_image_id === id;
       // 404, not 403: don't confirm that someone else's id exists.
-      if (row?.personal_image_id !== id) return res.status(404).send('not found');
+      if (!isCurrent && !(await isPersonalPortraitArchived(req.user.id, id))) {
+        return res.status(404).send('not found');
+      }
       const blob = await getImageService().blobStore.get(id);
       if (blob) {
         res.set('Content-Type', blob.mimeType);
@@ -367,8 +401,12 @@ router.get(
         res.set('Cache-Control', 'private, max-age=86400');
         return res.send(blob.buffer);
       }
-      const state = await personalState(row);
-      if (state?.status === 'failed') return res.status(410).send('failed');
+      // An archived portrait from an earlier issue has no status row: no bytes
+      // and no job running means it failed.
+      const failed = isCurrent
+        ? (await personalState(row))?.status === 'failed'
+        : !getPersonalPortraitService().isGenerating(id);
+      if (failed) return res.status(410).send('failed');
       res.set('Retry-After', '8');
       res.set('Cache-Control', 'no-store');
       return res.status(404).send('generating');

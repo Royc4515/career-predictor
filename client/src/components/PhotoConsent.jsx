@@ -47,7 +47,7 @@ export default function PhotoConsent({ onPhoto, onCancel, busyLabel = null, clas
       <ul className="mt-3 list-disc space-y-1 pl-5 text-[0.95rem] leading-normal sm:space-y-1.5 sm:text-body">
         <li>Your photo goes to Pollinations and the Microsoft image model behind it, once, to make this cover.</li>
         <li>We keep it in memory only, never on disk, and delete it within ten minutes.</li>
-        <li>We keep the finished cover, visible only to you, until you remove it or retake the questionnaire.</li>
+        <li>We keep the finished cover in your back issues, visible only to you, until you remove it.</li>
         <li>Only send a photo of yourself.</li>
       </ul>
       <label htmlFor={consentId} className="mt-4 flex cursor-pointer items-start gap-3">
