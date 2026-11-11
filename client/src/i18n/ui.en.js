@@ -25,6 +25,7 @@ export const UI_EN = {
     issues: 'Your back issues | CareerPredict',
     notFound: 'Page not found | CareerPredict',
     share: 'A shared issue | CareerPredict',
+    issue: 'A back issue | CareerPredict',
   },
   footer: {
     madeBy: 'Made by',
@@ -181,6 +182,7 @@ export const UI_EN = {
     you: 'You',
     desk: 'The desk’s pick',
     remove: 'Remove my photo from every issue',
+    removeFromIssue: 'Remove my photo from this issue',
     removing: 'Removing…',
     failed:
       'The darkroom could not develop this one, so your cover keeps the desk’s portrait. A clear, front-facing photo in good light works best.',
@@ -206,13 +208,14 @@ export const UI_EN = {
     keep: 'Keep it',
     filed: (date) => `Filed ${date}.`,
     fromArchive: 'From the archive.',
-    dialogLabel: (number, title) => `Issue ${number}: ${title}`,
-    openIt: 'Open it',
     makeCurrent: 'Make this my current issue',
     switching: 'Switching…',
     download: 'Download',
     preparing: 'Preparing…',
-    close: 'Close',
+    issueMeta: (number, date) => `Back issue No. ${number}, filed ${date}.`,
+    opening: 'Opening the issue…',
+    goneTitle: 'This issue is no longer on file',
+    goneBody: 'It was removed from your back issues, or the link is wrong.',
   },
   share: {
     heading: 'Share this issue',

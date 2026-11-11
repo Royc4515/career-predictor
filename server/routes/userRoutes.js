@@ -7,6 +7,8 @@ const {
   clearPersonalPortrait,
   updateImageId,
   getCovers,
+  getCover,
+  setCoverPersonalPortrait,
   deleteCover,
   makeCoverCurrent,
   archivePersonalPortrait,
@@ -110,6 +112,39 @@ function photoBody(req, res, next) {
       error: tooLarge ? 'That photo is too large. Try one under 8 MB.' : 'Could not read the upload. Try another photo.',
     });
   });
+}
+
+/**
+ * The checks every personal-portrait upload goes through, current issue or
+ * back issue: the daily limits, then the photo itself (validated, metadata
+ * stripped). Answers the request and returns null when one fails; otherwise
+ * counts the shoot against both limits and returns the normalized photo.
+ */
+async function acceptPhoto(req, res, userId) {
+  const userKey = `user:${userId}`;
+  for (const [limiter, key, message] of [
+    [perUserPortraits, userKey, 'That is three shoots today. The photographer is back tomorrow.'],
+    [siteWidePortraits, 'site', 'The darkroom is fully booked today. Try again tomorrow.'],
+  ]) {
+    if (!limiter.allows(key)) {
+      res.set('Retry-After', String(Math.ceil(limiter.retryAfterMs(key) / 1000)));
+      res.status(429).json({ error: message });
+      return null;
+    }
+  }
+  let photo;
+  try {
+    photo = await normalizePhoto(req.body);
+  } catch (err) {
+    if (err instanceof PhotoError) {
+      res.status(err.status).json({ error: err.message });
+      return null;
+    }
+    throw err;
+  }
+  perUserPortraits.record(userKey);
+  siteWidePortraits.record('site');
+  return photo;
 }
 
 // POST /api/user/onboarding - save answers, kick off the portrait, return result
@@ -308,6 +343,115 @@ router.delete(
   ),
 );
 
+// GET /api/user/covers/:id - one back issue in full: the cover and its
+// report (figures, analysis, the quoted answers), as the result page shows
+// the current one. Everything is in the stored snapshot, so an old issue
+// reads exactly as it did when it was printed.
+router.get(
+  '/covers/:id',
+  requireAuth,
+  asyncRoute(
+    async (req, res) => {
+      const id = parseCoverId(req.params.id);
+      if (!id) return res.status(400).json({ error: 'Invalid cover id' });
+      const cover = await getCover(req.user.id, id);
+      if (!cover) return res.status(404).json({ error: 'Not found' });
+      const parsed = JSON.parse(cover.career_result);
+      res.json({
+        id: cover.id,
+        number: cover.number,
+        current: cover.current,
+        title: parsed.title,
+        caption: parsed.caption || null,
+        stats: { happiness: parsed.happiness, salary: parsed.salary, outlook: parsed.outlook },
+        evidence: Array.isArray(parsed.evidence) ? parsed.evidence : [],
+        imageUrl: portraitUrlFor(parsed.title, cover.portrait_subject, cover.image_id, cover.image_url),
+        personalImageUrl: cover.personal_image_id ? personalImageUrl(cover.personal_image_id) : null,
+        coverGender: coverGenderFor(parsed.title, cover.portrait_subject || 'surprise'),
+        filedAt: cover.created_at,
+        ...personalAvailability(parsed.title),
+      });
+    },
+    { label: 'GET /api/user/covers/:id', message: 'Could not load that back issue. Please try again.' },
+  ),
+);
+
+// The current issue's portrait belongs to the result page, which also
+// tracks it on the current result; these two routes are for back issues.
+const CURRENT_ISSUE_PORTRAIT = 'This is your current issue. Change its portrait on the result page.';
+
+// POST /api/user/covers/:id/portrait - put the reader's own face on a back
+// issue, in place of the desk's portrait (or of an earlier selfie on it).
+// Same consent, checks and limits as /portrait. Only consent v2, whose
+// wording says the portrait stays on its issue, can file it in the archive.
+router.post(
+  '/covers/:id/portrait',
+  requireAuth,
+  photoBody,
+  asyncRoute(
+    async (req, res) => {
+      if (req.get('X-Portrait-Consent') !== CONSENT_KEEP) {
+        return res.status(400).json({ error: 'Please confirm the consent statement before uploading.' });
+      }
+      const service = getPersonalPortraitService();
+      if (!service.available) {
+        return res.status(503).json({ error: 'Personal portraits are not available right now.' });
+      }
+      const id = parseCoverId(req.params.id);
+      if (!id) return res.status(400).json({ error: 'Invalid cover id' });
+      const userId = req.user.id;
+      const cover = await getCover(userId, id);
+      if (!cover) return res.status(404).json({ error: 'Not found' });
+      if (cover.current) return res.status(409).json({ error: CURRENT_ISSUE_PORTRAIT });
+      const title = JSON.parse(cover.career_result).title;
+      const scene = personalSceneFor(title);
+      if (!scene) {
+        return res.status(409).json({ error: 'This cover is from an older issue. Retake the questionnaire to put your face on it.' });
+      }
+
+      const photo = await acceptPhoto(req, res, userId);
+      if (!photo) return undefined;
+
+      // A reshoot replaces the issue's earlier portrait. Unlinked before the
+      // new one is filed, so the issue never points at a deleted image.
+      if (cover.personal_image_id) {
+        await setCoverPersonalPortrait(userId, id, null);
+        await deletePersonalImage(cover.personal_image_id);
+      }
+      // A back issue has no status row: the image route reads "still
+      // developing" from the running job and "failed" from missing bytes.
+      const { id: imageId } = service.start({ photo, scene, title, onDone: () => {} });
+      await setCoverPersonalPortrait(userId, id, imageId);
+      res.status(202).json({ personalImageUrl: personalImageUrl(imageId) });
+    },
+    { label: 'POST /api/user/covers/:id/portrait', message: 'Could not start your portrait. Please try again.' },
+  ),
+);
+
+// DELETE /api/user/covers/:id/portrait - take the reader's face off one back
+// issue (it goes back to the desk's portrait). "Remove my photo" on the
+// result page still removes it from every issue at once.
+router.delete(
+  '/covers/:id/portrait',
+  requireAuth,
+  asyncRoute(
+    async (req, res) => {
+      const id = parseCoverId(req.params.id);
+      if (!id) return res.status(400).json({ error: 'Invalid cover id' });
+      const userId = req.user.id;
+      const cover = await getCover(userId, id);
+      if (!cover) return res.status(404).json({ error: 'Not found' });
+      if (cover.current) return res.status(409).json({ error: CURRENT_ISSUE_PORTRAIT });
+      if (cover.personal_image_id) {
+        await setCoverPersonalPortrait(userId, id, null);
+        await deletePersonalImage(cover.personal_image_id);
+      }
+      res.status(204).end();
+    },
+    { label: 'DELETE /api/user/covers/:id/portrait', message: 'Could not remove your portrait. Please try again.' },
+  ),
+);
+
 // POST /api/user/portrait - shoot the user's own face into their cover.
 // Body: the photo bytes (image/jpeg, png or webp). Header X-Portrait-Consent:
 // yes, sent only after the consent screen. Answers 202 at once; the image
@@ -335,27 +479,8 @@ router.post(
         return res.status(409).json({ error: 'This cover is from an older issue. Retake the questionnaire to put your face on it.' });
       }
 
-      const userKey = `user:${userId}`;
-      for (const [limiter, key, message] of [
-        [perUserPortraits, userKey, 'That is three shoots today. The photographer is back tomorrow.'],
-        [siteWidePortraits, 'site', 'The darkroom is fully booked today. Try again tomorrow.'],
-      ]) {
-        if (!limiter.allows(key)) {
-          res.set('Retry-After', String(Math.ceil(limiter.retryAfterMs(key) / 1000)));
-          return res.status(429).json({ error: message });
-        }
-      }
-
-      let photo;
-      try {
-        photo = await normalizePhoto(req.body);
-      } catch (err) {
-        if (err instanceof PhotoError) return res.status(err.status).json({ error: err.message });
-        throw err;
-      }
-
-      perUserPortraits.record(userKey);
-      siteWidePortraits.record('site');
+      const photo = await acceptPhoto(req, res, userId);
+      if (!photo) return undefined;
       // A reshoot of the same issue replaces its portrait everywhere.
       if (row.personal_image_id) {
         await deletePersonalImage(row.personal_image_id);

@@ -1,4 +1,5 @@
 import { API_URL } from '../config';
+import { cachedResult } from './storage';
 
 // Every server call goes through here so credentials, JSON handling and error
 // shape are decided once. Pages never call fetch() for the API directly.
@@ -141,6 +142,56 @@ export async function makeCoverCurrent(id) {
     throw new ApiError(0, 'Could not reach the newsroom. Check your connection and try again.');
   }
   if (!res.ok) throw new ApiError(res.status, 'Could not switch to that issue. Try again.');
+  // don't touch / The result page reads its session copy first and only
+  // fetches when there is none: without this, it kept showing the issue
+  // that was just replaced until the tab was closed.
+  cachedResult.clear();
+}
+
+/** One back issue in full (cover and report), or null if it is gone. */
+export async function fetchCover(id) {
+  try {
+    return await request(`/api/user/covers/${encodeURIComponent(id)}`);
+  } catch (err) {
+    if (err instanceof ApiError && (err.status === 404 || err.status === 400)) return null;
+    throw err;
+  }
+}
+
+/**
+ * Put the reader's own face on a back issue. Same consent wording ('v2', the
+ * portrait stays on its issue) and the same photo Blob as uploadPortrait.
+ * Returns the personal portrait in the shape PersonalPortrait takes.
+ */
+export async function uploadCoverPortrait(id, photo) {
+  let res;
+  try {
+    res = await fetch(`${API_URL}/api/user/covers/${encodeURIComponent(id)}/portrait`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': photo.type || 'image/jpeg', 'X-Portrait-Consent': 'v2' },
+      body: photo,
+    });
+  } catch {
+    throw new ApiError(0, 'Could not reach the newsroom. Check your connection and try again.');
+  }
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new ApiError(res.status, data?.error || `Upload failed (${res.status}). Try again.`);
+  return { status: 'generating', imageUrl: data.personalImageUrl };
+}
+
+/** Take the reader's face off one back issue. */
+export async function deleteCoverPortrait(id) {
+  let res;
+  try {
+    res = await fetch(`${API_URL}/api/user/covers/${encodeURIComponent(id)}/portrait`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+  } catch {
+    throw new ApiError(0, 'Could not reach the newsroom. Check your connection and try again.');
+  }
+  if (!res.ok && res.status !== 404) throw new ApiError(res.status, 'Could not remove your portrait. Try again.');
 }
 
 /**

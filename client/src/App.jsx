@@ -107,6 +107,7 @@ const router = createBrowserRouter([
           { path: '/loading', lazy: page(() => import('./pages/Loading')), handle: { title: 'loading' } },
           { path: '/result', lazy: page(() => import('./pages/Result')), handle: { title: 'result' } },
           { path: '/issues', lazy: page(() => import('./pages/Issues')), handle: { title: 'issues' } },
+          { path: '/issues/:id', lazy: page(() => import('./pages/IssuePage')), handle: { title: 'issue' } },
         ],
       },
       // Public: a shared issue needs no sign-in. The server writes this
