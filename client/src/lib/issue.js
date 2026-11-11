@@ -3,14 +3,22 @@
 // a hand-edited constant.
 const FIRST_ISSUE = { year: 2024, month: 0 };
 
-export function issueFor(date = new Date()) {
+const LOCALES = { en: 'en-US', he: 'he-IL' };
+
+export function issueFor(date = new Date(), lang = 'en') {
   const number = (date.getFullYear() - FIRST_ISSUE.year) * 12 + (date.getMonth() - FIRST_ISSUE.month) + 1;
-  const month = date.toLocaleString('en-US', { month: 'long' });
+  const locale = LOCALES[lang] ?? LOCALES.en;
+  const month = date.toLocaleString(locale, { month: 'long' });
   return {
     number: Math.max(1, number),
     label: `${month} ${date.getFullYear()}`,
-    short: date.toLocaleString('en-US', { month: 'short', year: 'numeric' }),
+    short: date.toLocaleString(locale, { month: 'short', year: 'numeric' }),
   };
+}
+
+/** A date in the reader's language, e.g. "Nov 9, 2026" / "9 בנוב׳ 2026". */
+export function formatDate(date, lang = 'en', style = { month: 'short', day: 'numeric', year: 'numeric' }) {
+  return date.toLocaleDateString(LOCALES[lang] ?? LOCALES.en, style);
 }
 
 export function firstName(name) {

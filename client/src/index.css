@@ -24,8 +24,11 @@
   --color-mark: #f6e24a;
   --color-alert: #b42318;
 
-  --font-serif: 'Newsreader Variable', 'Iowan Old Style', Georgia, serif;
-  --font-sans: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+  /* The Hebrew faces come second: Newsreader and Schibsted have no Hebrew
+     letters, so Hebrew falls through to Frank Ruhl Libre / Heebo while any
+     Latin word on a Hebrew page keeps the house faces. */
+  --font-serif: 'Newsreader Variable', 'Frank Ruhl Libre Variable', 'Iowan Old Style', Georgia, serif;
+  --font-sans: 'Schibsted Grotesk Variable', 'Heebo Variable', ui-sans-serif, system-ui, sans-serif;
 
   --ease-press: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-move: cubic-bezier(0.77, 0, 0.175, 1);
@@ -248,6 +251,17 @@ html:is([data-nav='forward'], [data-nav='back'])::view-transition-new(root) {
 }
 .develop {
   animation: develop 2.2s var(--ease-press) both;
+}
+
+/* Hebrew has no italic and no tradition of tight display tracking: a slanted
+   Frank Ruhl is the browser faking an oblique, and negative tracking jams
+   the letters. Emphasis stays in the weight and the size. */
+:lang(he) .italic {
+  font-style: normal;
+}
+:lang(he) .font-display,
+:lang(he) [class*='tracking-'] {
+  letter-spacing: 0;
 }
 
 /* The result cover, sized to the screen as well as the column: its 4:5 height

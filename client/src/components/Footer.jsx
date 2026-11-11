@@ -1,23 +1,25 @@
 import { LINKS } from '../content';
+import { useCopy } from '../i18n/LangContext';
 
 export default function Footer() {
+  const { footer } = useCopy();
   return (
     <footer className="px-4 pb-10 sm:px-8">
       <div className="mx-auto flex max-w-[1240px] flex-col gap-6 border-t border-ink pt-6 sm:flex-row sm:items-baseline sm:justify-between">
         <p className="meta max-w-md">
-          Made by{' '}
+          {footer.madeBy}{' '}
           <a href={LINKS.linkedin} target="_blank" rel="noopener noreferrer" className="link-ink tap text-ink">
-            Roy Carmelli
+            {footer.author}
           </a>
-          . Satire: the forecast is a hand-written lookup table, and only the portrait comes from an image model.
+          {footer.satire}
         </p>
-        <nav aria-label="Elsewhere">
+        <nav aria-label={footer.elsewhere}>
           <ul className="meta flex flex-wrap gap-x-5 gap-y-4">
             {[
-              ['LinkedIn', LINKS.linkedin],
-              ['GitHub', LINKS.github],
-              ['Portfolio', LINKS.portfolio],
-              ['Source code', LINKS.source],
+              [footer.links.linkedin, LINKS.linkedin],
+              [footer.links.github, LINKS.github],
+              [footer.links.portfolio, LINKS.portfolio],
+              [footer.links.source, LINKS.source],
             ].map(([label, href]) => (
               <li key={label}>
                 <a href={href} target="_blank" rel="noopener noreferrer" className="link-ink tap">

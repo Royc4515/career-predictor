@@ -1,3 +1,5 @@
+import { useLang } from '../i18n/LangContext';
+import { localizeError } from '../lib/errors';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
 import { PhotoInputError, preparePhoto } from '../lib/photo';
@@ -13,6 +15,8 @@ import { PhotoInputError, preparePhoto } from '../lib/photo';
 export default function PhotoConsent({ onPhoto, onCancel, busyLabel = null, className = '', headingLevel = 3 }) {
   // h3 under the result page's h2 section; h2 on the quiz, right under its h1.
   const Heading = `h${headingLevel}`;
+  const { lang, copy } = useLang();
+  const t = copy.consent;
   const panelRef = useRef(null);
   const reduce = useReducedMotion();
   // On a phone the panel opens below the fold; bring it into view so the
@@ -35,7 +39,7 @@ export default function PhotoConsent({ onPhoto, onCancel, busyLabel = null, clas
     try {
       await onPhoto(await preparePhoto(file));
     } catch (err) {
-      setError(err instanceof PhotoInputError || err?.message ? err.message : 'Something went wrong. Try again.');
+      setError(err instanceof PhotoInputError || err?.message ? localizeError(lang, err.message) : t.unknownError);
     } finally {
       setPreparing(false);
     }
@@ -45,12 +49,11 @@ export default function PhotoConsent({ onPhoto, onCancel, busyLabel = null, clas
 
   return (
     <div ref={panelRef} className={`max-w-[36rem] scroll-mb-6 bg-paper-2 p-5 sm:p-6 ${className}`}>
-      <Heading className="font-display text-[1.25rem] leading-tight">Before you send a selfie</Heading>
-      <ul className="mt-3 list-disc space-y-1 pl-5 text-[0.95rem] leading-normal sm:space-y-1.5 sm:text-body">
-        <li>Your photo goes to Pollinations and the Microsoft image model behind it, once, to make this cover.</li>
-        <li>We keep it in memory only, never on disk, and delete it within ten minutes.</li>
-        <li>We keep the finished cover in your back issues, visible only to you, until you remove it.</li>
-        <li>Only send a photo of yourself.</li>
+      <Heading className="font-display text-[1.25rem] leading-tight">{t.heading}</Heading>
+      <ul className="mt-3 list-disc space-y-1 ps-5 text-[0.95rem] leading-normal sm:space-y-1.5 sm:text-body">
+        {t.points.map((point) => (
+          <li key={point}>{point}</li>
+        ))}
       </ul>
       <label htmlFor={consentId} className="mt-4 flex cursor-pointer items-start gap-3">
         <input
@@ -60,7 +63,7 @@ export default function PhotoConsent({ onPhoto, onCancel, busyLabel = null, clas
           onChange={(e) => setAgreed(e.target.checked)}
           className="mt-1 size-5 shrink-0 accent-[var(--color-ink)]"
         />
-        <span className="text-body">This is a photo of me, and I agree to it being used this way.</span>
+        <span className="text-body">{t.agree}</span>
       </label>
       <input
         ref={fileRef}
@@ -78,11 +81,11 @@ export default function PhotoConsent({ onPhoto, onCancel, busyLabel = null, clas
           disabled={!agreed || busy}
           onClick={() => fileRef.current?.click()}
         >
-          {preparing ? 'Preparing…' : busyLabel || 'Choose a photo'}
+          {preparing ? t.preparing : busyLabel || t.choose}
         </button>
         {onCancel && (
           <button type="button" className="link-ink tap meta min-h-[44px] text-ink" onClick={onCancel}>
-            Cancel
+            {t.cancel}
           </button>
         )}
       </div>

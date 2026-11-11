@@ -2,6 +2,8 @@ import { useRef, useSyncExternalStore } from 'react';
 import { m, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import Cover from '../Cover';
 import { useImageReady } from '../../hooks/useImageReady';
+import { useLang } from '../../i18n/LangContext';
+import { careerTitle } from '../../i18n/content';
 
 const COUNT = 5;
 
@@ -23,6 +25,7 @@ const isWide = () => window.matchMedia(WIDE_QUERY).matches;
 
 function StackedCover({ sample, index, progress, reduce, fan }) {
   const status = useImageReady(sample.imageUrl);
+  const { lang } = useLang();
   const offset = index - (COUNT - 1) / 2; // -2 .. 2
   // Stacked like a pile of back issues, then fanned out across the table.
   const x = useTransform(progress, [0, 1], ['0%', `${offset * fan.x}%`]);
@@ -40,7 +43,7 @@ function StackedCover({ sample, index, progress, reduce, fan }) {
       className="absolute inset-0 origin-bottom"
       style={{ ...style, zIndex: COUNT - Math.abs(Math.round(offset)) }}
     >
-      <Cover title={sample.title} imageUrl={sample.imageUrl} imageStatus={status} specimen />
+      <Cover title={careerTitle(lang, sample.title)} imageUrl={sample.imageUrl} imageStatus={status} specimen />
     </m.div>
   );
 }
@@ -54,6 +57,7 @@ function StackedCover({ sample, index, progress, reduce, fan }) {
 // it for about half a screen of scrolling. 220vh read as dead scroll on a
 // phone, where it was a third of the landing page.
 export default function IssueStack({ samples }) {
+  const { copy } = useLang();
   const reduce = useReducedMotion();
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
@@ -67,11 +71,9 @@ export default function IssueStack({ samples }) {
         className={`${reduce ? '' : 'sticky top-0 h-dvh'} flex flex-col items-center justify-center overflow-hidden px-4 py-10 sm:py-16`}
       >
         <h2 id="issues-heading" className="font-display text-section text-center text-balance">
-          Back issues
+          {copy.landing.stackHeading}
         </h2>
-        <p className="text-body mt-3 max-w-[30rem] text-center">
-          Every headline here is a real outcome from the table. Yours is in there somewhere.
-        </p>
+        <p className="text-body mt-3 max-w-[30rem] text-center">{copy.landing.stackBody}</p>
         <div className="relative mt-8 aspect-[4/5] sm:mt-12 w-[min(46vw,220px)] sm:w-[min(24vw,270px)]">
           {shown.map((sample, i) => (
             // Keyed on the fan too: useTransform's scroll subscription keeps the

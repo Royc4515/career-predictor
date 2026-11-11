@@ -709,6 +709,19 @@ function mapCareer(answers) {
  * (`altPrompt`). "Surprise me" keeps the hand-picked original, which is what
  * keeps the series varied. The career itself never depends on this choice.
  */
+/**
+ * Who is on the cover, for languages whose job titles are gendered (the
+ * Hebrew edition picks the title's form from it): an explicit woman/man
+ * choice, else the shared scene's subject for 'surprise'. 'photo' is the
+ * reader's own face, which nothing here knows, so null (the client's
+ * default form). Null for a career no longer in the table.
+ */
+function coverGenderFor(title, portraitSubject) {
+  if (portraitSubject === 'woman' || portraitSubject === 'man') return portraitSubject;
+  if (portraitSubject === 'photo') return null;
+  return careerForTitle(title)?.subject ?? null;
+}
+
 function promptFor(career, portraitSubject) {
   // Only an explicit woman/man choice picks a version; 'surprise' and
   // 'photo' (whose shared portrait is the fallback) keep the original.
@@ -782,4 +795,4 @@ function personalSceneFor(title) {
   return CAREERS.find((c) => c.title === title)?.personalScene ?? null;
 }
 
-module.exports = { mapCareer, promptFor, personalSceneFor, careerForTitle, CAREERS, FALLBACK, SAMPLE_ANSWERS, answersFromIds, sampleCareers };
+module.exports = { mapCareer, promptFor, coverGenderFor, personalSceneFor, careerForTitle, CAREERS, FALLBACK, SAMPLE_ANSWERS, answersFromIds, sampleCareers };

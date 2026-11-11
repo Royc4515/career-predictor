@@ -27,7 +27,7 @@ function requireAuth(req, res, next) {
   res.status(401).json({ error: 'Not authenticated' });
 }
 
-const { mapCareer, personalSceneFor, careerForTitle, promptFor } = require('../careers');
+const { mapCareer, personalSceneFor, careerForTitle, promptFor, coverGenderFor } = require('../careers');
 
 // --- Personal portraits (the user's own face; docs/personal-portrait.md) ---
 
@@ -162,6 +162,7 @@ router.post(
         imageUrl: imageUrlFor(imageId),
         stats: { happiness: career.happiness, salary: career.salary, outlook: career.outlook },
         evidence: career.evidence,
+        coverGender: coverGenderFor(career.title, career.portraitSubject),
         personal: null,
         ...personalAvailability(career.title),
       });
@@ -206,6 +207,7 @@ router.get(
         stats: { happiness: parsed.happiness, salary: parsed.salary, outlook: parsed.outlook },
         // Results saved before the quiz redesign have no evidence.
         evidence: Array.isArray(parsed.evidence) ? parsed.evidence : [],
+        coverGender: coverGenderFor(parsed.title, row.portrait_subject || 'surprise'),
         personal: personalView(await personalState(row)),
         ...personalAvailability(parsed.title),
       });
@@ -253,6 +255,7 @@ router.get(
           happiness: parsed.happiness ?? null,
           imageUrl: portraitUrlFor(parsed.title, row.portrait_subject, row.image_id, row.image_url),
           personalImageUrl: row.personal_image_id ? personalImageUrl(row.personal_image_id) : null,
+          coverGender: coverGenderFor(parsed.title, row.portrait_subject || 'surprise'),
           filedAt: row.created_at,
           current: i === 0,
         };

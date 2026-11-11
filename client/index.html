@@ -3,6 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Same rule as i18n/LangContext initialLang, before first paint, so a
+         Hebrew reader never sees the page laid out left to right first. -->
+    <script>
+      try {
+        var l = localStorage.getItem('lang');
+        if (l !== 'en' && l !== 'he') l = /^(he|iw)\b/i.test(navigator.language || '') ? 'he' : 'en';
+        document.documentElement.lang = l;
+        document.documentElement.dir = l === 'he' ? 'rtl' : 'ltr';
+      } catch (e) {}
+    </script>
     <title>CareerPredict | The Forecast Issue</title>
     <meta
       name="description"

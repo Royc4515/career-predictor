@@ -71,3 +71,33 @@ test('portraitIdFor maps the four answers and nothing else', () => {
   assert.equal(portraitIdFor('woman'), null, 'ids are not accepted as text');
   assert.equal(portraitIdFor(undefined), null);
 });
+
+const CLIENT_I18N = (name) => pathToFileURL(path.join(__dirname, '..', '..', 'client', 'src', 'i18n', name)).href;
+
+test('the Hebrew edition has copy for every career, with both title forms', async () => {
+  const { CAREERS, FALLBACK } = require('../careers');
+  const { CAREERS_HE } = await import(CLIENT_I18N('careers.he.js'));
+  for (const c of [...CAREERS, FALLBACK]) {
+    const he = CAREERS_HE[c.title];
+    assert.ok(he, `missing Hebrew copy for ${c.title}`);
+    for (const key of ['title', 'titleF', 'caption', 'salary', 'outlook']) {
+      assert.equal(typeof he[key], 'string', `${c.title} ${key}`);
+      assert.ok(he[key].length > 0, `${c.title} ${key}`);
+      assert.doesNotMatch(he[key], /—/, `${c.title} ${key}: no em dash`);
+    }
+  }
+  assert.equal(Object.keys(CAREERS_HE).length, CAREERS.length + 1, 'no stale entries');
+});
+
+test('the Hebrew questionnaire mirrors the English one option for option', async () => {
+  const client = await import(CLIENT_CONTENT);
+  const he = await import(CLIENT_I18N('quiz.he.js'));
+  const steps = [...client.QUESTIONS, client.PORTRAIT_STEP];
+  const stepsHe = [...he.QUESTIONS_HE, he.PORTRAIT_STEP_HE];
+  assert.equal(stepsHe.length, steps.length);
+  for (const [i, step] of steps.entries()) {
+    assert.equal(stepsHe[i].id, step.id);
+    assert.equal(stepsHe[i].options.length, step.options.length, step.id);
+  }
+  assert.deepEqual(Object.keys(he.FINDINGS_HE).sort(), Object.keys(client.FINDINGS).sort());
+});

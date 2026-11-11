@@ -12,7 +12,7 @@ import { AuthProvider, useAuth } from './app/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Wordmark } from './components/Masthead';
 import Landing from './pages/Landing';
-import { PAGE_TITLES } from './content';
+import { LangProvider, useCopy } from './i18n/LangContext';
 import NotFound from './pages/NotFound';
 
 // Landing ships in the entry chunk because it is what most visitors see
@@ -20,8 +20,9 @@ import NotFound from './pages/NotFound';
 const page = (load) => async () => ({ Component: (await load()).default });
 
 function Splash() {
+  const copy = useCopy();
   return (
-    <div className="grid min-h-dvh place-items-center" role="status" aria-label="Loading">
+    <div className="grid min-h-dvh place-items-center" role="status" aria-label={copy.common.loading}>
       <Wordmark className="animate-pulse text-3xl" />
     </div>
   );
@@ -37,7 +38,9 @@ function Splash() {
 function usePageChange() {
   const { pathname } = useLocation();
   const matches = useMatches();
-  const title = [...matches].reverse().find((m) => m.handle?.title)?.handle.title ?? PAGE_TITLES.landing;
+  const copy = useCopy();
+  const key = [...matches].reverse().find((m) => m.handle?.title)?.handle.title ?? 'landing';
+  const title = copy.pageTitles[key];
   const firstPath = useRef(pathname);
 
   useEffect(() => {
@@ -57,6 +60,7 @@ function usePageChange() {
 
 function RootLayout() {
   const { loading } = useAuth();
+  const copy = useCopy();
   usePageChange();
   return (
     // LazyMotion + <m.*> ships only the animation features we use (no layout
@@ -67,9 +71,9 @@ function RootLayout() {
       <MotionConfig reducedMotion="user">
         <a
           href="#main"
-          className="sr-only z-50 bg-ink px-4 py-2 text-paper focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+          className="sr-only z-50 bg-ink px-4 py-2 text-paper focus:not-sr-only focus:fixed focus:top-3 focus:start-3"
         >
-          Skip to content
+          {copy.common.skip}
         </a>
         {loading ? <Splash /> : <Outlet />}
         <ScrollRestoration />
@@ -87,7 +91,7 @@ const router = createBrowserRouter([
     element: <RootLayout />,
     hydrateFallbackElement: <Splash />,
     children: [
-      { path: '/', element: <Landing />, handle: { title: PAGE_TITLES.landing } },
+      { path: '/', element: <Landing />, handle: { title: 'landing' } },
       {
         element: (
           <ProtectedRoute>
@@ -98,22 +102,24 @@ const router = createBrowserRouter([
           {
             path: '/onboarding',
             lazy: page(() => import('./pages/Onboarding')),
-            handle: { title: PAGE_TITLES.onboarding },
+            handle: { title: 'onboarding' },
           },
-          { path: '/loading', lazy: page(() => import('./pages/Loading')), handle: { title: PAGE_TITLES.loading } },
-          { path: '/result', lazy: page(() => import('./pages/Result')), handle: { title: PAGE_TITLES.result } },
-          { path: '/issues', lazy: page(() => import('./pages/Issues')), handle: { title: PAGE_TITLES.issues } },
+          { path: '/loading', lazy: page(() => import('./pages/Loading')), handle: { title: 'loading' } },
+          { path: '/result', lazy: page(() => import('./pages/Result')), handle: { title: 'result' } },
+          { path: '/issues', lazy: page(() => import('./pages/Issues')), handle: { title: 'issues' } },
         ],
       },
-      { path: '*', element: <NotFound />, handle: { title: PAGE_TITLES.notFound } },
+      { path: '*', element: <NotFound />, handle: { title: 'notFound' } },
     ],
   },
 ]);
 
 export default function App() {
   return (
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <LangProvider>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </LangProvider>
   );
 }
