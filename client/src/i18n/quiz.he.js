@@ -15,23 +15,23 @@ export const QUESTIONS_HE = [
   {
     id: 'strength',
     label: 'תחת לחץ',
-    question: 'הדמו בעוד עשר דקות והלפטופ בדיוק מת. אתם…',
+    question: 'עשר דקות לדמו, והלפטופ מת הרגע. אתם…',
     options: [
       'אציג מהראש. השקפים רק עיכבו אותי',
       'אאלתר על הלוח עם ביטחון עצמי שלא הרווחתי',
-      'אתקן עם אטב ודווקאיות טהורה',
+      'אתקן עם אטב, רק מתוך דווקא',
       'אתקשר למישהו שמכיר מישהו',
     ],
   },
   {
     id: 'monday_vibe',
     label: 'ימי ראשון',
-    question: 'יום ראשון, 9:02 בבוקר. מה הדבר הראשון?',
+    question: 'יום ראשון, 9:02 בבוקר. מה עושים קודם?',
     options: [
-      'הפוך שלישי (והשעה 9:02)',
+      'הפוך שלישי (והשעה רק 9:02)',
       'אבהה בקיר עד הצהריים',
-      'בדיוק כמו בשבת, בכנות',
-      'יום ראשון הוא היום האהוב עליי (שקר)',
+      'האמת? בדיוק כמו בשבת',
+      'יום ראשון הוא באמת היום האהוב עליי (שקר)',
     ],
   },
   {
@@ -51,7 +51,7 @@ export const QUESTIONS_HE = [
     question: 'איפה אתם רואים את עצמכם בעוד חמש שנים?',
     options: [
       'אצלצל בפעמון בנאסד״ק. או בכל בורסה שתסכים',
-      'מתחת לעץ דקל עם Wi-Fi חלש',
+      'מתחת לדקל, עם Wi-Fi חלש',
       'באותו שולחן. בעזרת השם.',
       'האופק שלי נגמר ביום חמישי',
     ],
@@ -63,8 +63,8 @@ export const QUESTIONS_HE = [
     options: [
       'מצגות למשקיעים ואפליקציה שמוכנה ב-90%',
       'מודבורדים ופונטים שלעולם לא אשלם עליהם',
-      'גיליון אקסל שעוקב אחרי שאר גיליונות האקסל שלי',
-      'הטוקבקים לפוסט של עצמי',
+      'קובץ Excel שעוקב אחרי כל שאר קובצי ה-Excel שלי',
+      'הטוקבקים על הפוסט שלי',
     ],
   },
 ];
@@ -72,12 +72,13 @@ export const QUESTIONS_HE = [
 export const PORTRAIT_STEP_HE = {
   id: 'portrait_subject',
   label: 'תמונת שער',
-  question: 'שאלה אחרונה, לצילומי השער. את מי מצלמים?',
-  options: ['צלמו אותי כאישה', 'צלמו אותי כגבר', 'תפתיעו אותי. המערכת כבר תלהק מישהו', 'אשתמש בתמונה שלי'],
+  question: 'שאלה אחרונה, בשביל הצלם: את מי מצלמים?',
+  options: ['צלמו אותי כאישה', 'צלמו אותי כגבר', 'תפתיעו אותי. הדסק כבר ילהק מישהו', 'אשתמש בתמונה שלי'],
 };
 
 // Dry on purpose, like the English: the joke is trivial evidence meeting a
-// confident conclusion. "המערכת" is the magazine's editorial desk.
+// confident conclusion. "הדסק" is the magazine's editorial desk, as in the UI.
+// Findings and analysis notes are impersonal: they never address the reader.
 export const FINDINGS_HE = {
   // The demo is in ten minutes and the laptop just died.
   'Present from memory. Slides were holding me back':
@@ -85,16 +86,16 @@ export const FINDINGS_HE = {
   'Improvise with a whiteboard and unearned confidence':
     'הביטחון העצמי עלה על הראיות ביחס שהמכשירים שלנו לא מסוגלים להציג.',
   'Fix it with a paperclip and pure spite': 'התקלה טופלה. שורש הבעיה במקומו. קידום לא באופק.',
-  'Call a guy who knows a guy': 'גם המישהו שהוא מכיר קיבל טלפון. הוא בחו״ל.',
+  'Call a guy who knows a guy': 'גם המישהו של המישהו קיבל טלפון. הוא בחו״ל.',
   // Monday, 9:02 a.m.
-  "Third coffee (it's 9:02)": 'תואם דופק במנוחה שהמערכת החליטה לא למדוד.',
+  "Third coffee (it's 9:02)": 'מתיישב עם דופק במנוחה שהדסק העדיף לא למדוד.',
   'Stare at the wall until lunch': 'תפוקה לפני הצהריים: לא ניתנת למדידה. אחרי הצהריים: כנ״ל.',
   'Same as Sunday, honestly': 'לא אותר סוף שבוע. ייתכן שמעולם לא הותקן.',
-  'Genuinely love Mondays (liar)': 'הפוליגרף של המערכת סימן את זה. גם הפוליגרף שיקר.',
+  'Genuinely love Mondays (liar)': 'סומן על ידי הפוליגרף של הדסק, שגם הוא שיקר.',
   // Your coworkers know you as...
   'The one who can just quickly do it. Again.': 'חמש הדקות נמשכות כבר ארבע שנים.',
-  'The one whose ideas need a translator': 'הוגשו שלושה רעיונות. אף אחד לא הובן. אחד נרשם כפטנט בטעות.',
-  'Who? We have never met': 'משאבי אנוש מאשרים שאתם קיימים. הקולגות לא.',
+  'The one whose ideas need a translator': 'הוגשו שלושה רעיונות. אף אחד מהם לא הובן. אחד נרשם כפטנט בטעות.',
+  'Who? We have never met': 'משאבי אנוש מאשרים שהתקן מאויש. הקולגות לא.',
   'The one who knows when lunch arrives': 'מקור המידע האמין ביותר בבניין.',
   // Five years from now.
   'Ringing the bell at a stock exchange. Any stock exchange': 'הפעמון אותר. הבורסה עוד לא חזרה אלינו.',
@@ -102,10 +103,11 @@ export const FINDINGS_HE = {
   'Same desk. Hopefully.': 'השאפתנות נמדדה בגובה הכיסא.',
   "I can't see past Thursday": 'אופק תכנון: שלושה ימים. הממוצע בענף: גם שלושה ימים.',
   // 47 open tabs.
-  'Pitch decks and an app that is 90% done': 'ה-10% שנותרו צפויים לקחת את שארית חייכם.',
+  'Pitch decks and an app that is 90% done': 'ה-10% הנותרים צפויים לקחת את שארית החיים.',
   'Moodboards and fonts I will never pay for': 'מחלקת הרישוי עודכנה.',
-  'A spreadsheet tracking my other spreadsheets': 'הגיליונות כבר עוקבים זה אחרי זה. אחריכם אף אחד לא עוקב.',
-  'My own comments section': 'הטוקבק המוביל הוא שלכם. גם השני.',
+  'A spreadsheet tracking my other spreadsheets':
+    'קובצי ה-Excel כבר עוקבים זה אחרי זה. אחרי מי שבנה אותם אף אחד לא עוקב.',
+  'My own comments section': 'הטוקבק המוביל נכתב מאותו חשבון. גם השני.',
 };
 
 // Same keys and bands as ANALYSIS_NOTES; lib/analysis.js picks one per row.
@@ -113,17 +115,17 @@ export const FINDINGS_HE = {
 export const ANALYSIS_NOTES_HE = {
   dna: {
     low: 'ייתכן שהדגימה זוהמה באופטימיות.',
-    mid: 'ה-3% הנותרים הם החלק שבכם שחלם ללמוד וטרינריה.',
-    high: 'ה-3% הנותרים הם החלק שבכם שחלם ללמוד וטרינריה.',
+    mid: 'ה-3% הנותרים עדיין חולמים על וטרינריה.',
+    high: 'ה-3% הנותרים עדיין חולמים על וטרינריה.',
   },
   market: {
     low: 'השוק עודכן ומבקש לשמור על פרטיותו.',
     mid: 'יש ביקוש בשוק אחד לפחות. לא בזה.',
-    high: 'ביקוש חזק, בעיקר מצדכם.',
+    high: 'ביקוש חזק, רובו תוצרת בית.',
   },
   passion: {
     low: 'התשוקה אותרה. ההתאמה בטיפול.',
-    mid: 'לכם אכפת מזה יותר מאשר לתפקיד.',
+    mid: 'האהבה לתפקיד חד-צדדית.',
     high: 'כנות ברמה מדאיגה. המעקב נמשך.',
   },
   stability: {
