@@ -6,7 +6,11 @@ import { isOwnImageUrl } from '../lib/imageUrls';
 // image icon from ever flashing in an <img>, and lets the cover show a
 // deliberate "developing" state instead.
 const FIRST_DELAY_MS = 1200;
-const MAX_DELAY_MS = 6000;
+// The gap between checks once a portrait is slow. It is also the worst-case
+// delay between the bytes landing and the cover showing them: at 6 s a
+// personal portrait ready at 20 s appeared at about 25 s. A HEAD answered
+// 404 is a few hundred bytes, so checking every 2 s costs next to nothing.
+const MAX_DELAY_MS = 2000;
 const GIVE_UP_AFTER_MS = 120_000;
 
 export function useImageReady(url) {
