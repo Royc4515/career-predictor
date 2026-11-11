@@ -16,6 +16,7 @@ import { authUrls, fetchResult } from '../lib/api';
 import { analysisRows } from '../lib/analysis';
 import { renderCoverBlob } from '../lib/coverCanvas';
 import { coverFileName } from '../lib/coverLayout';
+import { downloadBlob } from '../lib/download';
 import { firstName } from '../lib/issue';
 import { EASE_OUT, rise } from '../lib/motion';
 import { setNavDirection } from '../lib/navDirection';
@@ -139,14 +140,7 @@ export default function Result() {
 
   const download = useCallback(() => {
     if (!coverBlob || !result) return;
-    const url = URL.createObjectURL(coverBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = coverFileName(result.careerTitle);
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    downloadBlob(coverBlob, coverFileName(result.careerTitle));
     // The confirmation lives on the button that was pressed, not in a toast
     // across the screen.
     setJustSaved(true);

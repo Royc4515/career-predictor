@@ -5,7 +5,12 @@ import Masthead from '../components/Masthead';
 import Cover from '../components/Cover';
 import Footer from '../components/Footer';
 import { useImageReady } from '../hooks/useImageReady';
+import { useAuth } from '../app/AuthContext';
 import { deleteCover, fetchCovers, makeCoverCurrent } from '../lib/api';
+import { renderCoverBlob } from '../lib/coverCanvas';
+import { coverFileName } from '../lib/coverLayout';
+import { downloadBlob } from '../lib/download';
+import { firstName } from '../lib/issue';
 import { EASE_OUT } from '../lib/motion';
 import { setNavDirection } from '../lib/navDirection';
 
@@ -103,7 +108,31 @@ function IssueDialog({ issue, onClose }) {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const { cover, number, imageUrl, status, mine, filed } = issue;
+  const { cover, number, imageUrl, mine, filed } = issue;
+  // Its own poll, so a portrait still developing when the dialog opened
+  // still arrives here (the card's status was a snapshot).
+  const status = useImageReady(imageUrl);
+  const { user } = useAuth();
+  const name = firstName(user?.name);
+  const [blob, setBlob] = useState(null);
+
+  // The PNG is rendered ahead of the click, as on the result page, so the
+  // download starts inside the tap.
+  useEffect(() => {
+    if (status === 'pending') return undefined;
+    let cancelled = false;
+    renderCoverBlob({
+      title: cover.title,
+      imageUrl: status === 'ready' ? imageUrl : null,
+      personName: name,
+      happiness: cover.happiness,
+    })
+      .then((b) => !cancelled && setBlob(b))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [status, imageUrl, cover.title, cover.happiness, name]);
 
   // don't touch / No close() in a cleanup: the close event fires a task later
   // and calls onClose, so under StrictMode's mount, unmount, mount the dialog
@@ -164,6 +193,14 @@ function IssueDialog({ issue, onClose }) {
               {busy ? 'Switching…' : 'Make this my current issue'}
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => downloadBlob(blob, coverFileName(cover.title))}
+            disabled={!blob}
+            className="btn btn-secondary"
+          >
+            {blob ? 'Download' : 'Preparing…'}
+          </button>
           <button
             type="button"
             onClick={() => ref.current?.close()}
