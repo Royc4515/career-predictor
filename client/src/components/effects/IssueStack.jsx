@@ -50,6 +50,9 @@ function StackedCover({ sample, index, progress, reduce, fan }) {
  * real headline from the table. Pinned with position: sticky, so scrolling is
  * never hijacked; reduced motion shows the fanned state without movement.
  */
+// The section's height is the scroll distance the fan plays over: 160vh pins
+// it for about half a screen of scrolling. 220vh read as dead scroll on a
+// phone, where it was a third of the landing page.
 export default function IssueStack({ samples }) {
   const reduce = useReducedMotion();
   const ref = useRef(null);
@@ -59,9 +62,9 @@ export default function IssueStack({ samples }) {
   const fan = useSyncExternalStore(subscribeWide, isWide, () => true) ? FAN_WIDE : FAN_NARROW;
 
   return (
-    <section ref={ref} aria-labelledby="issues-heading" className={reduce ? '' : 'h-[220vh]'}>
+    <section ref={ref} aria-labelledby="issues-heading" className={reduce ? '' : 'h-[160vh]'}>
       <div
-        className={`${reduce ? '' : 'sticky top-0 h-dvh'} flex flex-col items-center justify-center overflow-hidden px-4 py-16`}
+        className={`${reduce ? '' : 'sticky top-0 h-dvh'} flex flex-col items-center justify-center overflow-hidden px-4 py-10 sm:py-16`}
       >
         <h2 id="issues-heading" className="font-display text-section text-center text-balance">
           Back issues
@@ -69,7 +72,7 @@ export default function IssueStack({ samples }) {
         <p className="text-body mt-3 max-w-[30rem] text-center">
           Every headline here is a real outcome from the table. Yours is in there somewhere.
         </p>
-        <div className="relative mt-12 aspect-[4/5] w-[min(46vw,220px)] sm:w-[min(24vw,270px)]">
+        <div className="relative mt-8 aspect-[4/5] sm:mt-12 w-[min(46vw,220px)] sm:w-[min(24vw,270px)]">
           {shown.map((sample, i) => (
             // Keyed on the fan too: useTransform's scroll subscription keeps the
             // ranges it started with, so a breakpoint change remounts instead.
