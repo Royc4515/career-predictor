@@ -143,3 +143,23 @@ test('a stale "generating" row after a restart reads as failed', async () => {
   assert.equal(body.personal.status, 'failed');
   assert.equal((await fetch(`${base}/api/user/portrait/image/abcdefabcdefabcd`)).status, 410);
 });
+
+test('loading a saved result re-kicks its portrait and repoints a stale image id', async () => {
+  currentUser = 1;
+  assert.equal((await json('POST', '/api/user/onboarding', ANSWERS)).status, 200);
+  const db = require('../db');
+  // As if the prompt changed since the result was saved (or the bytes were lost).
+  await db.updateImageId(1, '0000000000000000');
+  const calls = [];
+  const original = images.kickoff.bind(images);
+  images.kickoff = (input) => { calls.push(input); return original(input); };
+  try {
+    const body = await (await fetch(base + '/api/user/result')).json();
+    assert.equal(calls.length, 1, 'kickoff on every result load (idempotent)');
+    const id = body.imageUrl.split('/').pop();
+    assert.notEqual(id, '0000000000000000');
+    assert.equal((await db.getOnboardingByUserId(1)).image_id, id, 'row repointed');
+  } finally {
+    images.kickoff = original;
+  }
+});

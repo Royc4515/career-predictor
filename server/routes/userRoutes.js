@@ -5,6 +5,7 @@ const {
   setPersonalPortrait,
   updatePersonalStatus,
   clearPersonalPortrait,
+  updateImageId,
 } = require('../db');
 const { getImageService, getPersonalPortraitService } = require('../services/image/instance');
 const { normalizePhoto, PhotoError, MAX_UPLOAD_BYTES } = require('../photoUpload');
@@ -20,7 +21,7 @@ function requireAuth(req, res, next) {
   res.status(401).json({ error: 'Not authenticated' });
 }
 
-const { mapCareer, personalSceneFor } = require('../careers');
+const { mapCareer, personalSceneFor, careerForTitle, promptFor } = require('../careers');
 
 // --- Personal portraits (the user's own face; docs/personal-portrait.md) ---
 
@@ -148,9 +149,25 @@ router.get(
       if (!row) return res.status(404).json({ error: 'No result found' });
 
       const parsed = JSON.parse(row.career_result);
+      // Make sure the saved result's portrait exists. kickoff is idempotent and
+      // costs one store lookup when it does, but regenerates a portrait whose
+      // bytes were lost (disk wiped by a deploy before images moved to Turso)
+      // or whose stopgap expired, which nothing else would ever retry. Uses
+      // the career's current scene, so a result keeps up with prompt fixes;
+      // the row is repointed when that changes the id.
+      let imageId = row.image_id;
+      const career = careerForTitle(parsed.title);
+      if (career) {
+        ({ id: imageId } = getImageService().kickoff({
+          scenePrompt: promptFor(career, row.portrait_subject || 'surprise'),
+          title: career.title,
+        }));
+        if (imageId !== row.image_id) await updateImageId(req.user.id, imageId);
+      }
       // Prefer the image_id route; fall back to the legacy image_url for rows
-      // written before the provider abstraction (Pollinations CDN links).
-      const imageUrl = row.image_id ? imageUrlFor(row.image_id) : row.image_url;
+      // written before the provider abstraction (Pollinations CDN links), and
+      // for careers no longer in the table.
+      const imageUrl = imageId ? imageUrlFor(imageId) : row.image_url;
       res.json({
         careerTitle: parsed.title,
         caption: parsed.caption || 'Your career destiny has been sealed by the algorithm.',

@@ -156,6 +156,11 @@ async function saveOnboarding({
   console.log('[DB] Onboarding saved for user ID:', userId);
 }
 
+/** Point a saved result at its current shared portrait id. */
+async function updateImageId(userId, imageId) {
+  await client.execute({ sql: 'UPDATE onboarding SET image_id = ? WHERE user_id = ?', args: [imageId, userId] });
+}
+
 /** Attach a newly started personal portrait to the user's current result. */
 async function setPersonalPortrait(userId, { imageId, status, consentAt }) {
   await client.execute({
@@ -200,6 +205,7 @@ module.exports = {
   findUserById,
   saveOnboarding,
   getOnboardingByUserId,
+  updateImageId,
   setPersonalPortrait,
   updatePersonalStatus,
   clearPersonalPortrait,

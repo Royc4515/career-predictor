@@ -767,9 +767,15 @@ function sampleCareers() {
  * or null for a title no longer in the table (results saved before the quiz
  * redesign): those users retake the questionnaire first.
  */
+/** The career entry for a saved result's title, or null if it left the table. */
+function careerForTitle(title) {
+  if (title === FALLBACK.title) return FALLBACK;
+  return CAREERS.find((c) => c.title === title) ?? null;
+}
+
 function personalSceneFor(title) {
   if (title === FALLBACK.title) return FALLBACK.personalScene;
   return CAREERS.find((c) => c.title === title)?.personalScene ?? null;
 }
 
-module.exports = { mapCareer, promptFor, personalSceneFor, CAREERS, FALLBACK, SAMPLE_ANSWERS, answersFromIds, sampleCareers };
+module.exports = { mapCareer, promptFor, personalSceneFor, careerForTitle, CAREERS, FALLBACK, SAMPLE_ANSWERS, answersFromIds, sampleCareers };

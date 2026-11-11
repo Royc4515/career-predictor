@@ -19,7 +19,7 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
   - `userData.js` - pure edge helpers: `profileToUserFields` (Google profile in), `toPublicUser` (whitelist for `/auth/me`), `validateOnboardingAnswers`. Tested in `server/__tests__/`.
   - `quiz.js` - the answer catalog: option text the client sends to stable option ids. `__tests__/quiz.test.js` imports `client/src/content.js` and fails if the two copies differ by a character.
   - `careers.js` - `CAREERS` table (40 careers, 10 per field, each with two cue option ids) and `mapCareer`: the tabs answer picks the field's shelf, the career matching most cues wins, an FNV hash of the option ids breaks ties; returns `evidence` (two of the user's answers, quoted on the report). Plus `SAMPLE_ANSWERS` for the landing page. Pure, tested in `__tests__/careers.test.js` (all reachable, each 1-4% of the 1,024 answer sets). Rationale: `docs/quiz-redesign.md`.
-  - `routes/userRoutes.js` - `/api/user/onboarding` and `/api/user/result`.
+  - `routes/userRoutes.js` - `/api/user/onboarding` and `/api/user/result`. Loading a result calls `kickoff` for its career's current scene (idempotent), so a portrait lost in a deploy, whose stopgap expired or whose prompt changed is regenerated, and the row is repointed to the new id.
   - `routes/sampleRoutes.js` - public `GET /api/samples`: the fixed landing-page samples with portrait URLs (kicks off generation, cached). `imageUrl.js` builds absolute image URLs for both routes.
   - `routes/imageRoutes.js` - `GET /api/image/:id` (16-hex id; 404 + `Retry-After: 8` while generating).
   - Personal portraits (the user's own face, opt-in; `docs/personal-portrait.md`): `POST/DELETE /api/user/portrait` and owner-only `GET /api/user/portrait/image/:id` in `userRoutes.js`; `routes/refRoutes.js` serves the uploaded photo to the model at `/api/ref/:token`; `photoUpload.js` (validate, strip metadata), `rateLimit.js`, `services/image/personalPortraits.js` + `referencePhotos.js`. Client: `components/PersonalPortrait.jsx`, `lib/photo.js`.
@@ -29,7 +29,7 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
 - Deploy: Render single service, https://career-predictor-cnvg.onrender.com, deploying `main` (`render.yaml`). Until November 2026 the dashboard deployed a separate branch (`claude/migrate-free-hosting-tvidw`, the Turso migration), so merges to main did not ship; check the service's branch if a merge doesn't appear.
 
 ## Commands
-- Server tests: `cd server && npm test` (node:test; runs `server/__tests__/` and `services/image/__tests__/`) - verified, 170/170 pass on Node 22 after `npm install`.
+- Server tests: `cd server && npm test` (node:test; runs `server/__tests__/` and `services/image/__tests__/`) - verified, 175/175 pass on Node 22 after `npm install`.
 - Client tests: `cd client && npm test` (node:test over pure modules in `src/lib/__tests__/`) - verified, 32/32 pass.
 - Client build: `cd client && npx vite build` - verified. CI (`test.yml`) runs server tests, client tests and the client build.
 - Likeness test for the planned personal portrait: `cd server && npm run check:likeness` (needs `POLLINATIONS_API_KEY`; spends pollen; writes an HTML contact sheet). Plan and pass criteria: `docs/personal-portrait.md`. Unverified against the real API (no key in the dev container).
