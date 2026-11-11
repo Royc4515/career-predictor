@@ -28,6 +28,7 @@ export const UI_HE = {
     issues: 'הגיליונות הקודמים | CareerPredict',
     notFound: 'העמוד לא נמצא | CareerPredict',
     share: 'גיליון משותף | CareerPredict',
+    issue: 'גיליון מהארכיון | CareerPredict',
   },
   footer: {
     madeBy: 'נוצר על ידי',
@@ -179,6 +180,7 @@ export const UI_HE = {
     you: 'אתם',
     desk: 'הבחירה של הדסק',
     remove: 'מחיקת התמונה שלי מכל הגיליונות',
+    removeFromIssue: 'מחיקת התמונה שלי מהגיליון הזה',
     removing: 'מוחקים…',
     failed:
       'חדר החושך לא הצליח לפתח את התמונה, ולכן השער יישאר עם הפורטרט של הדסק. מומלץ להשתמש בתמונה ברורה, עם הפנים לכיוון המצלמה ובתאורה טובה.',
@@ -204,13 +206,14 @@ export const UI_HE = {
     keep: 'להשאיר',
     filed: (date) => `הוגש ב-${date}.`,
     fromArchive: 'מהארכיון.',
-    dialogLabel: (number, title) => `גיליון ${number}: ${title}`,
-    openIt: 'פתיחה',
     makeCurrent: 'הגדרה כגיליון הנוכחי',
     switching: 'מחליפים…',
     download: 'הורדה',
     preparing: 'מכינים…',
-    close: 'סגירה',
+    issueMeta: (number, date) => `גיליון מס׳ ${number} מהארכיון, הוגש ב-${date}.`,
+    opening: 'פותחים את הגיליון…',
+    goneTitle: 'הגיליון הזה כבר לא בארכיון',
+    goneBody: 'הוא נמחק מהגיליונות הקודמים, או שהקישור שגוי.',
   },
   share: {
     heading: 'שיתוף הגיליון',
@@ -269,6 +272,9 @@ export const UI_HE = {
     'Request body must be a JSON object': 'מבנה הבקשה אינו תקין. רעננו את העמוד ונסו שוב.',
     'The questionnaire was updated. Reload the page and answer again.': 'השאלון עודכן. רעננו את העמוד וענו שוב.',
     'Could not load your back issues. Please try again.': 'לא הצלחנו לטעון את הגיליונות הקודמים. נסו שוב.',
+    'Could not load that back issue. Please try again.': 'לא הצלחנו לטעון את הגיליון הזה. נסו שוב.',
+    'This is your current issue. Change its portrait on the result page.':
+      'זה הגיליון הנוכחי שלכם. את הפורטרט שלו משנים בעמוד התוצאה.',
     'Could not load your portrait.': 'לא הצלחנו לטעון את הפורטרט.',
     'Could not load your result. Please try again.': 'לא הצלחנו לטעון את התוצאה. נסו שוב.',
     'Could not remove that back issue. Please try again.': 'לא הצלחנו למחוק את הגיליון. נסו שוב.',

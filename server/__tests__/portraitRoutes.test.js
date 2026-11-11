@@ -26,7 +26,7 @@ before(async () => {
   process.env.TURSO_DATABASE_URL = `file:${path.join(dir, 'app.db')}`;
   const db = require('../db');
   await db.initDB({ url: process.env.TURSO_DATABASE_URL });
-  for (const googleId of ['g1', 'g2', 'g3', 'g4']) await db.upsertUser({ googleId, email: `${googleId}@x`, name: googleId });
+  for (const googleId of ['g1', 'g2', 'g3', 'g4', 'g5']) await db.upsertUser({ googleId, email: `${googleId}@x`, name: googleId });
   const instance = require('../services/image/instance');
   instance._resetForTests();
   images = instance.getImageService();
@@ -317,4 +317,64 @@ test('choosing a back issue makes it current again, with its own portrait', asyn
   assert.equal(result.personal.status, 'ready', 'its portrait comes back with it');
   assert.equal((await fetch(`${base}/api/user/portrait/image/${id}`)).status, 200);
   assert.equal((await choose(covers[0].id)).status, 204, 'choosing the current issue is a no-op');
+});
+
+test('a back issue opens in full and takes its own selfie in place of the desk portrait', async () => {
+  currentUser = 5;
+  assert.equal((await json('POST', '/api/user/onboarding', ANSWERS)).status, 200);
+  assert.equal((await json('POST', '/api/user/onboarding', { ...ANSWERS, desired_field: 'My own comments section' })).status, 200);
+  const { covers } = await (await fetch(base + '/api/user/covers')).json();
+  const [current, back] = covers;
+  const get = (coverId) => fetch(`${base}/api/user/covers/${coverId}`);
+
+  // The full issue: report included, numbered as the gallery numbers it.
+  const issue = await (await get(back.id)).json();
+  assert.equal(issue.title, back.title);
+  assert.equal(issue.number, 1);
+  assert.equal(issue.current, false);
+  assert.ok(issue.evidence.length === 2 && typeof issue.stats.happiness === 'number');
+  assert.equal(issue.personalImageUrl, null);
+  assert.equal(issue.personalAvailable, true);
+  assert.equal((await (await get(current.id)).json()).current, true);
+  assert.equal((await get('abc')).status, 400);
+  currentUser = 2;
+  assert.equal((await get(back.id)).status, 404, "someone else's issue");
+  currentUser = 5;
+
+  const shoot = (coverId, consent = 'v2') =>
+    selfie().then((body) =>
+      fetch(`${base}/api/user/covers/${coverId}/portrait`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'image/jpeg', 'X-Portrait-Consent': consent },
+        body,
+      }),
+    );
+  assert.equal((await shoot(back.id, 'yes')).status, 400, 'v1 wording promised deletion on a retake');
+  assert.equal((await shoot(current.id)).status, 409, 'the current issue is the result page’s');
+
+  let res = await shoot(back.id);
+  assert.equal(res.status, 202);
+  const first = idOf((await res.json()).personalImageUrl);
+  assert.equal((await fetch(`${base}/api/user/portrait/image/${first}`)).status, 404, 'still developing');
+  releaseRender();
+  await new Promise((r) => setTimeout(r, 50));
+  assert.equal((await fetch(`${base}/api/user/portrait/image/${first}`)).status, 200);
+  assert.equal(idOf((await (await get(back.id)).json()).personalImageUrl), first);
+  const result = await (await fetch(base + '/api/user/result')).json();
+  assert.equal(result.personal, null, 'the current issue is untouched');
+
+  // A reshoot replaces the issue's earlier selfie.
+  res = await shoot(back.id);
+  const second = idOf((await res.json()).personalImageUrl);
+  releaseRender();
+  await new Promise((r) => setTimeout(r, 50));
+  assert.notEqual(second, first);
+  assert.equal(await images.blobStore.get(first), null, 'the earlier selfie is deleted');
+  assert.equal((await fetch(`${base}/api/user/portrait/image/${first}`)).status, 404);
+
+  // Taking it off one issue: back to the desk's portrait, the face deleted.
+  assert.equal((await fetch(`${base}/api/user/covers/${current.id}/portrait`, { method: 'DELETE' })).status, 409);
+  assert.equal((await fetch(`${base}/api/user/covers/${back.id}/portrait`, { method: 'DELETE' })).status, 204);
+  assert.equal((await (await get(back.id)).json()).personalImageUrl, null);
+  assert.equal(await images.blobStore.get(second), null);
 });

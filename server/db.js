@@ -258,6 +258,33 @@ async function getCovers(userId) {
 }
 
 /**
+ * One back issue with its place in the archive: number counts from the
+ * user's first issue (as the gallery numbers them), current is the newest.
+ * Null if it isn't the user's.
+ */
+async function getCover(userId, coverId) {
+  const result = await client.execute({
+    sql: `SELECT id, career_result, image_id, image_url, portrait_subject, personal_image_id, created_at,
+            (SELECT COUNT(*) FROM covers c2 WHERE c2.user_id = covers.user_id AND c2.id <= covers.id) AS number,
+            (SELECT MAX(id) FROM covers c3 WHERE c3.user_id = covers.user_id) AS newest_id
+          FROM covers WHERE id = ? AND user_id = ?`,
+    args: [coverId, userId],
+  });
+  const row = plain(result.rows[0]);
+  if (!row) return null;
+  const { newest_id: newestId, ...cover } = row;
+  return { ...cover, number: Number(cover.number), current: Number(newestId) === Number(cover.id) };
+}
+
+/** Put a personal portrait on one back issue, or take it off (null). */
+async function setCoverPersonalPortrait(userId, coverId, imageId) {
+  await client.execute({
+    sql: 'UPDATE covers SET personal_image_id = ? WHERE id = ? AND user_id = ?',
+    args: [imageId, coverId, userId],
+  });
+}
+
+/**
  * Remove one back issue. Returns null if it wasn't the user's, otherwise
  * { personalImageId } so the caller can delete that portrait's image too.
  */
@@ -453,6 +480,8 @@ module.exports = {
   getOnboardingByUserId,
   updateImageId,
   getCovers,
+  getCover,
+  setCoverPersonalPortrait,
   deleteCover,
   makeCoverCurrent,
   MAX_BACK_ISSUES,

@@ -15,8 +15,21 @@ import { localizeError } from '../lib/errors';
  * blocked: why it isn't available ('old-issue' | 'off'); an old issue says
  * so instead of the section silently missing. notice: a message carried over
  * from the questionnaire (a selfie that couldn't be sent).
+ * upload / remove: where the photo goes; the current issue by default, a
+ * back issue's own routes on its page (removeLabel then says "this issue").
  */
-export default function PersonalPortrait({ personal, available, blocked, notice, showing, onShow, onChange }) {
+export default function PersonalPortrait({
+  personal,
+  available,
+  blocked,
+  notice,
+  showing,
+  onShow,
+  onChange,
+  upload = uploadPortrait,
+  remove: removeIt = deletePortrait,
+  removeLabel = null,
+}) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(null); // 'uploading' | 'removing'
   const [error, setError] = useState(null);
@@ -29,7 +42,7 @@ export default function PersonalPortrait({ personal, available, blocked, notice,
     setError(null);
     setBusy('uploading');
     try {
-      const next = await uploadPortrait(photo);
+      const next = await upload(photo);
       setOpen(false);
       onChange(next);
       onShow('mine');
@@ -42,7 +55,7 @@ export default function PersonalPortrait({ personal, available, blocked, notice,
     setError(null);
     setBusy('removing');
     try {
-      await deletePortrait();
+      await removeIt();
       onChange(null);
       onShow('desk');
     } catch (err) {
@@ -105,7 +118,7 @@ export default function PersonalPortrait({ personal, available, blocked, notice,
             ))}
           </div>
           <button type="button" className="link-ink tap meta min-h-[44px] text-ink" onClick={remove} disabled={!!busy}>
-            {busy === 'removing' ? t.removing : t.remove}
+            {busy === 'removing' ? t.removing : removeLabel || t.remove}
           </button>
         </div>
       )}
