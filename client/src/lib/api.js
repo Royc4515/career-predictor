@@ -129,6 +129,20 @@ export async function deleteCover(id) {
   if (!res.ok && res.status !== 404) throw new ApiError(res.status, 'Could not remove that issue. Try again.');
 }
 
+/** Make a back issue the current result again ("choose your issue"). */
+export async function makeCoverCurrent(id) {
+  let res;
+  try {
+    res = await fetch(`${API_URL}/api/user/covers/${encodeURIComponent(id)}/current`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } catch {
+    throw new ApiError(0, 'Could not reach the newsroom. Check your connection and try again.');
+  }
+  if (!res.ok) throw new ApiError(res.status, 'Could not switch to that issue. Try again.');
+}
+
 /** What this deployment supports. Never throws: unknown means "off". */
 export async function fetchFeatures() {
   try {

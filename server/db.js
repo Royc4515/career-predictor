@@ -249,6 +249,44 @@ async function deleteCover(userId, coverId) {
   return { personalImageId: found.rows[0].personal_image_id ?? null };
 }
 
+/**
+ * Make a back issue the user's current result again ("choose your issue").
+ * The archive's newest row is the current issue (and personal portraits link
+ * to it), so the chosen row moves to the top: a copy with a new id keeps its
+ * filing date, then the old row goes. Answers are not archived, so the
+ * restored result has none; nothing reads them after the career is mapped.
+ * Returns false if the cover isn't the user's.
+ */
+async function makeCoverCurrent(userId, coverId) {
+  const found = await client.execute({
+    sql: `SELECT career_result, image_id, image_url, portrait_subject, personal_image_id, created_at
+          FROM covers WHERE id = ? AND user_id = ?`,
+    args: [coverId, userId],
+  });
+  const cover = plain(found.rows[0]);
+  if (!cover) return false;
+  await client.batch(
+    [
+      { sql: 'DELETE FROM onboarding WHERE user_id = ?', args: [userId] },
+      {
+        // personal_status stays NULL: the result route reads the store and
+        // records ready or failed on first load.
+        sql: `INSERT INTO onboarding (user_id, career_result, image_url, image_id, portrait_subject, personal_image_id)
+              VALUES (?, ?, ?, ?, ?, ?)`,
+        args: [userId, cover.career_result, cover.image_url, cover.image_id, cover.portrait_subject, cover.personal_image_id],
+      },
+      {
+        sql: `INSERT INTO covers (user_id, career_result, image_id, image_url, portrait_subject, personal_image_id, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        args: [userId, cover.career_result, cover.image_id, cover.image_url, cover.portrait_subject, cover.personal_image_id, cover.created_at],
+      },
+      { sql: 'DELETE FROM covers WHERE id = ? AND user_id = ?', args: [coverId, userId] },
+    ],
+    'write',
+  );
+  return true;
+}
+
 /** Point a saved result at its current shared portrait id. */
 async function updateImageId(userId, imageId) {
   await client.execute({ sql: 'UPDATE onboarding SET image_id = ? WHERE user_id = ?', args: [imageId, userId] });
@@ -330,6 +368,7 @@ module.exports = {
   updateImageId,
   getCovers,
   deleteCover,
+  makeCoverCurrent,
   MAX_BACK_ISSUES,
   setPersonalPortrait,
   updatePersonalStatus,

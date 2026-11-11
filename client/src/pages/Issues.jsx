@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { m } from 'motion/react';
 import Masthead from '../components/Masthead';
 import Cover from '../components/Cover';
 import Footer from '../components/Footer';
 import { useImageReady } from '../hooks/useImageReady';
-import { deleteCover, fetchCovers } from '../lib/api';
+import { deleteCover, fetchCovers, makeCoverCurrent } from '../lib/api';
 import { EASE_OUT } from '../lib/motion';
 import { setNavDirection } from '../lib/navDirection';
 
@@ -17,7 +17,7 @@ function filedOn(value) {
     : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function BackIssue({ cover, number, onRemove, removing }) {
+function BackIssue({ cover, number, onRemove, removing, onOpen }) {
   // The reader's own portrait when they shot one for this issue; the desk's
   // shared portrait otherwise, or if theirs could not be made. The shared one
   // is only polled when it is needed.
@@ -32,13 +32,24 @@ function BackIssue({ cover, number, onRemove, removing }) {
   const [confirming, setConfirming] = useState(false);
   return (
     <li>
-      <Cover
-        title={cover.title}
-        imageUrl={imageUrl}
-        imageStatus={status}
-        deck={filed ? `Filed ${filed}.` : 'From the archive.'}
-        lazy
-      />
+      <div className="relative">
+        <Cover
+          title={cover.title}
+          imageUrl={imageUrl}
+          imageStatus={status}
+          deck={filed ? `Filed ${filed}.` : 'From the archive.'}
+          lazy
+        />
+        {/* The whole cover opens the issue. A button laid over it, rather than
+            one wrapping it, keeps the cover's markup valid and gives screen
+            readers one clear name for the action. */}
+        <button
+          type="button"
+          onClick={() => onOpen({ cover, number, imageUrl, status, mine, filed })}
+          aria-label={`Open issue ${number}: ${cover.title}`}
+          className="absolute inset-0 cursor-pointer focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        />
+      </div>
       <div className="mt-3 flex items-baseline justify-between gap-3">
         <p className="meta">
           No. {number}
@@ -83,14 +94,105 @@ function BackIssue({ cover, number, onRemove, removing }) {
 }
 
 /**
+ * One back issue, large, in a modal dialog (native <dialog>: focus is kept
+ * inside, Esc closes, and focus returns to the cover that opened it). From
+ * here the reader can make it their current issue again.
+ */
+function IssueDialog({ issue, onClose }) {
+  const ref = useRef(null);
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const { cover, number, imageUrl, status, mine, filed } = issue;
+
+  // don't touch / No close() in a cleanup: the close event fires a task later
+  // and calls onClose, so under StrictMode's mount, unmount, mount the dialog
+  // closed itself right after opening. Unmounting removes it from the top
+  // layer anyway.
+  useEffect(() => {
+    if (!ref.current?.open) ref.current?.showModal();
+  }, []);
+
+  async function choose() {
+    setBusy(true);
+    setError(null);
+    try {
+      await makeCoverCurrent(cover.id);
+      setNavDirection('forward');
+      navigate('/result', { viewTransition: true });
+    } catch (err) {
+      setError(err.message);
+      setBusy(false);
+    }
+  }
+
+  function openCurrent() {
+    setNavDirection('forward');
+    navigate('/result', { viewTransition: true });
+  }
+
+  return (
+    <dialog
+      ref={ref}
+      onClose={onClose}
+      // A click on the backdrop lands on the dialog element itself.
+      onClick={(e) => e.target === e.currentTarget && ref.current?.close()}
+      aria-label={`Issue ${number}: ${cover.title}`}
+      className="m-auto max-h-[100dvh] w-[min(100vw-2rem,28rem)] bg-paper p-0 text-ink backdrop:bg-ink/60"
+    >
+      <div className="p-4 sm:p-5">
+        <div className="mx-auto w-[min(100%,max(12rem,calc((100dvh-13rem)*0.8)))]">
+          <Cover
+            title={cover.title}
+            imageUrl={imageUrl}
+            imageStatus={status}
+            deck={filed ? `Filed ${filed}.` : 'From the archive.'}
+          />
+        </div>
+        <p className="meta mt-3">
+          No. {number}
+          {mine && <span className="text-ink-3"> · You</span>}
+          {cover.current && <span className="ml-2 bg-mark px-1.5 text-ink">Current issue</span>}
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          {cover.current ? (
+            <button type="button" onClick={openCurrent} className="btn btn-primary">
+              Open it
+            </button>
+          ) : (
+            <button type="button" onClick={choose} disabled={busy} className="btn btn-primary">
+              {busy ? 'Switching…' : 'Make this my current issue'}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => ref.current?.close()}
+            className="link-ink tap meta min-h-[44px] text-ink"
+          >
+            Close
+          </button>
+        </div>
+        {error && (
+          <p className="text-body mt-3" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+    </dialog>
+  );
+}
+
+/**
  * "Your back issues": every cover the desk has printed for you, newest first,
- * each with your own portrait if you shot one for it. Removing a back issue
- * deletes that portrait too.
+ * each with your own portrait if you shot one for it. Tapping one opens it
+ * and lets you make it your current issue again; removing one deletes its
+ * portrait too.
  */
 export default function Issues() {
   const [covers, setCovers] = useState(null);
   const [error, setError] = useState(null);
   const [removing, setRemoving] = useState(null);
+  const [opened, setOpened] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -162,6 +264,7 @@ export default function Issues() {
                   number={covers.length - i}
                   onRemove={remove}
                   removing={removing === cover.id}
+                  onOpen={setOpened}
                 />
               ))}
             </ol>
@@ -179,6 +282,7 @@ export default function Issues() {
           </p>
         </div>
       </main>
+      {opened && <IssueDialog issue={opened} onClose={() => setOpened(null)} />}
       <Footer />
     </div>
   );

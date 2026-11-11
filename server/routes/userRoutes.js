@@ -8,6 +8,7 @@ const {
   updateImageId,
   getCovers,
   deleteCover,
+  makeCoverCurrent,
   archivePersonalPortrait,
   unarchivePersonalPortrait,
   isPersonalPortraitArchived,
@@ -262,6 +263,36 @@ router.get(
   ),
 );
 
+function parseCoverId(raw) {
+  const id = Number.parseInt(raw, 10);
+  return Number.isInteger(id) && id > 0 && String(id) === raw ? id : null;
+}
+
+// POST /api/user/covers/:id/current - "choose your issue": make a back issue
+// the current result again. The replaced result is treated like a retake: its
+// personal portrait stays on its back issue (consent v2) or is deleted (v1).
+router.post(
+  '/covers/:id/current',
+  requireAuth,
+  asyncRoute(
+    async (req, res) => {
+      const id = parseCoverId(req.params.id);
+      if (!id) return res.status(400).json({ error: 'Invalid cover id' });
+      const userId = req.user.id;
+      const [newest] = await getCovers(userId);
+      if (newest?.id === id) return res.status(204).end(); // already current
+      const previous = await getOnboardingByUserId(userId);
+      if (!(await makeCoverCurrent(userId, id))) return res.status(404).json({ error: 'Not found' });
+      const previousPersonal = previous?.personal_image_id;
+      if (previousPersonal && !(await isPersonalPortraitArchived(userId, previousPersonal))) {
+        await deletePersonalImage(previousPersonal);
+      }
+      res.status(204).end();
+    },
+    { label: 'POST /api/user/covers/current', message: 'Could not switch to that issue. Please try again.' },
+  ),
+);
+
 // DELETE /api/user/covers/:id - drop one back issue from the archive. The
 // current result itself stays (retake or remove that from the result page).
 router.delete(
@@ -269,10 +300,8 @@ router.delete(
   requireAuth,
   asyncRoute(
     async (req, res) => {
-      const id = Number.parseInt(req.params.id, 10);
-      if (!Number.isInteger(id) || id <= 0 || String(id) !== req.params.id) {
-        return res.status(400).json({ error: 'Invalid cover id' });
-      }
+      const id = parseCoverId(req.params.id);
+      if (!id) return res.status(400).json({ error: 'Invalid cover id' });
       const [newest] = await getCovers(req.user.id);
       // The current issue is the result page's; removing it here would leave
       // the result with no archive row (and personal portraits link to the
