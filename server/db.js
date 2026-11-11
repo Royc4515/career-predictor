@@ -365,13 +365,36 @@ async function getShare(token) {
   return plain(result.rows[0]);
 }
 
-/** End a link. True if it was the user's and still live. */
+/** A share by token whether live or ended, or null. */
+async function findShareByToken(token) {
+  const result = await client.execute({ sql: 'SELECT * FROM shares WHERE token = ?', args: [token] });
+  return plain(result.rows[0]);
+}
+
+/** Put the owner's own portrait on a live link, or take it off (null). */
+async function setSharePortrait(userId, token, personalImageId) {
+  await client.execute({
+    sql: 'UPDATE shares SET personal_image_id = ? WHERE token = ? AND user_id = ? AND revoked_at IS NULL',
+    args: [personalImageId, token, userId],
+  });
+}
+
+/**
+ * "Stop sharing": end this link and every other live link of the same
+ * issue, so the reader stops sharing the issue, not just the last link they
+ * happened to make. True if the token was the user's and still live.
+ */
 async function revokeShare(userId, token) {
-  const result = await client.execute({
-    sql: 'UPDATE shares SET revoked_at = CURRENT_TIMESTAMP WHERE token = ? AND user_id = ? AND revoked_at IS NULL',
+  const share = await client.execute({
+    sql: 'SELECT career_result FROM shares WHERE token = ? AND user_id = ? AND revoked_at IS NULL',
     args: [token, userId],
   });
-  return result.rowsAffected > 0;
+  if (!share.rows.length) return false;
+  await client.execute({
+    sql: 'UPDATE shares SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = ? AND career_result = ? AND revoked_at IS NULL',
+    args: [userId, share.rows[0].career_result],
+  });
+  return true;
 }
 
 /** A deleted personal portrait leaves every shared page it was on. */
@@ -496,6 +519,8 @@ module.exports = {
   findLiveShare,
   getShare,
   revokeShare,
+  findShareByToken,
+  setSharePortrait,
   unlinkSharedPortrait,
   unarchiveAllPersonalPortraits,
 };

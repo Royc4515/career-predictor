@@ -1,124 +1,229 @@
-import { useId, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useReducedMotion } from 'motion/react';
 import { useLang } from '../i18n/LangContext';
-import { createShare, stopShare } from '../lib/api';
+import { createShare, setShareFace, stopShare } from '../lib/api';
 import { localizeError } from '../lib/errors';
+import { newShareToken, shareUrlFor } from '../lib/shareLink';
+import { shareLinks } from '../lib/storage';
 
 /**
- * "Share": a public link to this issue (its own page with the cover and the
- * report, and a preview with the cover when pasted into a chat), created
- * only when the reader asks. Two steps on purpose: Safari refuses a native
- * share that starts after a network wait, so the link is made first and
- * the share sheet opens from a second, fresh tap.
+ * One-tap sharing of the current issue: a public link to its own page (the
+ * cover and the report, with a preview in chats).
  *
- * hasFace: the cover carries the reader's own portrait; then a box (unticked
- * by default) decides whether the public page shows it.
+ * The browser names the link's token, so the share sheet (or, without one,
+ * the clipboard) gets the finished link inside the tap, while the server
+ * files it in parallel. Safari refuses a share that starts after a network
+ * wait; this used to cost a second tap.
+ *
+ * key: the issue's English title (one live link per issue this session).
+ * text: the line the share sheet sends with the link.
  */
-export default function SharePanel({ title, hasFace, onClose }) {
-  const { lang, copy } = useLang();
-  const t = copy.share;
-  const faceId = useId();
-  const [withFace, setWithFace] = useState(false);
-  const [link, setLink] = useState(null); // { url, token }
-  const [busy, setBusy] = useState(null); // 'creating' | 'stopping'
+export function useShareLink({ key, text, lang }) {
+  const [link, setLink] = useState(() => shareLinks.get(key)); // { token, url, withFace, state }
   const [note, setNote] = useState(null);
   const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(null); // 'stopping' | 'face'
 
-  async function create() {
-    setBusy('creating');
-    setError(null);
+  useEffect(() => {
+    setLink(shareLinks.get(key));
     setNote(null);
-    try {
-      setLink(await createShare({ withFace, lang }));
-    } catch (err) {
-      setError(localizeError(lang, err.message));
-    } finally {
-      setBusy(null);
-    }
-  }
+    setError(null);
+  }, [key]);
 
-  async function send() {
-    const text = copy.result.shareText(title);
-    try {
-      if (navigator.share) await navigator.share({ title, text, url: link.url });
-      else await copyLink();
-    } catch (err) {
-      if (err?.name !== 'AbortError') await copyLink();
-    }
-  }
+  const update = useCallback(
+    (next) => {
+      setLink(next);
+      // Only a link the server has filed is worth reusing after a reload.
+      shareLinks.set(key, next && next.state === 'live' ? next : null);
+    },
+    [key],
+  );
 
-  async function copyLink() {
+  const file = useCallback(
+    (draft) =>
+      createShare({ token: draft.token, withFace: draft.withFace, lang })
+        .then((made) => {
+          update({ ...draft, url: made.url || draft.url, withFace: made.withFace, state: 'live' });
+          return true;
+        })
+        .catch((err) => {
+          setLink({ ...draft, state: 'failed' });
+          setError(localizeError(lang, err.message));
+          return false;
+        }),
+    [lang, update],
+  );
+
+  const copyLink = useCallback(async (url) => {
     try {
-      await navigator.clipboard.writeText(link.url);
-      setNote(t.copied);
+      await navigator.clipboard.writeText(url);
+      setNote('copied');
     } catch {
       setNote(null);
     }
-  }
+  }, []);
 
-  async function stop() {
+  // don't touch / Nothing may be awaited before navigator.share or the
+  // clipboard write below: either one has to start inside the tap.
+  const share = useCallback(() => {
+    setError(null);
+    setNote(null);
+    const reused = link?.state === 'live';
+    const token = link?.token || newShareToken();
+    const draft = { token, url: shareUrlFor(token, window.location.origin), withFace: Boolean(link?.withFace) };
+    if (!reused) setLink({ ...draft, state: 'filing' });
+    const filed = reused ? Promise.resolve(true) : file(draft);
+    if (navigator.share) {
+      navigator.share({ title: text, text, url: draft.url }).catch(async (err) => {
+        if (err?.name === 'AbortError') {
+          // Dismissed without sending: a link made for this tap goes again,
+          // so nothing public is left behind that nobody chose to share.
+          if (!reused && (await filed)) {
+            await stopShare(token).catch(() => {});
+            update(null);
+          }
+          return;
+        }
+        copyLink(draft.url);
+      });
+    } else {
+      copyLink(draft.url);
+    }
+  }, [link, text, file, copyLink, update]);
+
+  const retry = useCallback(() => {
+    if (!link) return;
+    setError(null);
+    setLink({ ...link, state: 'filing' });
+    file(link);
+  }, [link, file]);
+
+  const stop = useCallback(async () => {
+    if (!link) return;
     setBusy('stopping');
     setError(null);
     try {
-      await stopShare(link.token);
-      setLink(null);
-      setNote(t.stopped);
+      if (link.state === 'live') await stopShare(link.token);
+      update(null);
+      setNote('stopped');
     } catch (err) {
       setError(localizeError(lang, err.message));
     } finally {
       setBusy(null);
     }
-  }
+  }, [link, lang, update]);
+
+  const setFace = useCallback(
+    async (withFace) => {
+      if (!link || link.state !== 'live') return;
+      setBusy('face');
+      setError(null);
+      try {
+        const made = await setShareFace(link.token, withFace);
+        update({ ...link, withFace: made.withFace });
+      } catch (err) {
+        setError(localizeError(lang, err.message));
+      } finally {
+        setBusy(null);
+      }
+    },
+    [link, lang, update],
+  );
+
+  return { link, note, error, busy, share, retry, stop, setFace, copy: () => link && copyLink(link.url) };
+}
+
+/**
+ * What happens after Share: the link, its state, Copy and Stop sharing, and
+ * (when the cover carries the reader's face) a box that shows or hides it on
+ * the shared page, unticked by default. It opens right under the buttons and
+ * scrolls itself into view, so nothing has to be scrolled to.
+ *
+ * hasFace: the cover carries the reader's own portrait.
+ */
+export default function ShareStrip({ share, hasFace }) {
+  const { lang, copy } = useLang();
+  const t = copy.share;
+  const id = useId();
+  const ref = useRef(null);
+  const reduce = useReducedMotion();
+  const { link, note, error, busy } = share;
+  const visible = Boolean(link || note || error);
+
+  // Again whenever the strip's content changes: "Making the link…" is one
+  // line, and the longer "Shared…" that follows grew it past the screen.
+  const phase = `${link?.state}|${note}|${error}|${Boolean(link?.withFace)}`;
+  useEffect(() => {
+    if (visible) ref.current?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+  }, [visible, phase, reduce]);
+
+  if (!visible) return null;
+
+  const status = error
+    ? null
+    : note === 'stopped'
+      ? t.stopped
+      : link?.state === 'filing'
+        ? t.making
+        : note === 'copied'
+          ? t.copied
+          : link
+            ? t.live
+            : null;
 
   return (
-    <section aria-labelledby="share-heading" className="mt-5 max-w-[36rem] bg-paper-2 p-5 sm:p-6">
-      <h2 id="share-heading" className="font-display text-[1.25rem] leading-tight">
-        {t.heading}
-      </h2>
-      <p className="mt-2 text-[0.95rem] leading-normal sm:text-body">{t.explain}</p>
-
-      {hasFace && (
-        <label htmlFor={faceId} className="mt-4 flex cursor-pointer items-start gap-3">
-          <input
-            id={faceId}
-            type="checkbox"
-            checked={withFace}
-            onChange={(e) => {
-              setWithFace(e.target.checked);
-              // A link made for the other choice would show the wrong portrait.
-              setLink(null);
-            }}
-            className="mt-1 size-5 shrink-0 accent-[var(--color-ink)]"
-          />
-          <span>
-            <span className="text-body">{t.withFace}</span>
-            <span className="meta block">{t.withFaceNote}</span>
-          </span>
-        </label>
+    <section ref={ref} aria-label={t.heading} className="mt-4 max-w-[36rem] scroll-mb-4 bg-paper-2 p-4 sm:p-5">
+      {status && (
+        <p className="text-[0.95rem] leading-normal text-ink sm:text-body" role="status">
+          {status}
+        </p>
+      )}
+      {error && (
+        <p className="text-[0.95rem] leading-normal text-ink sm:text-body" role="alert">
+          {error}
+        </p>
       )}
 
-      {link ? (
+      {link && (
         <>
-          <label className="meta mt-4 block" htmlFor={`${faceId}-url`}>
-            {t.linkLabel}
-          </label>
           <input
-            id={`${faceId}-url`}
+            id={`${id}-url`}
+            aria-label={t.linkLabel}
             readOnly
             dir="ltr"
             value={link.url}
             onFocus={(e) => e.target.select()}
-            className="mt-1 w-full border border-rule bg-paper px-3 py-2 font-sans text-[0.9rem] text-ink"
+            className="mt-3 w-full border border-rule bg-paper px-3 py-2 font-sans text-[0.9rem] text-ink"
           />
-          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
-            <button type="button" onClick={send} className="btn btn-primary">
-              {t.send}
-            </button>
-            <button type="button" onClick={copyLink} className="btn btn-secondary">
-              {t.copy}
-            </button>
+          {hasFace && link.state === 'live' && (
+            <label htmlFor={`${id}-face`} className="mt-3 flex cursor-pointer items-start gap-3">
+              <input
+                id={`${id}-face`}
+                type="checkbox"
+                checked={link.withFace}
+                disabled={busy === 'face'}
+                onChange={(e) => share.setFace(e.target.checked)}
+                className="mt-1 size-5 shrink-0 accent-[var(--color-ink)]"
+              />
+              <span>
+                <span className="text-body">{t.withFace}</span>
+                <span className="meta block">{t.withFaceNote}</span>
+              </span>
+            </label>
+          )}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+            {link.state === 'failed' ? (
+              <button type="button" onClick={share.retry} className="btn btn-secondary">
+                {t.retry}
+              </button>
+            ) : (
+              <button type="button" onClick={share.copy} className="btn btn-secondary">
+                {t.copy}
+              </button>
+            )}
             <button
               type="button"
-              onClick={stop}
+              onClick={share.stop}
               disabled={busy === 'stopping'}
               className="link-ink tap meta min-h-[44px] text-ink"
             >
@@ -126,21 +231,6 @@ export default function SharePanel({ title, hasFace, onClose }) {
             </button>
           </div>
         </>
-      ) : (
-        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
-          <button type="button" onClick={create} disabled={busy === 'creating'} className="btn btn-primary">
-            {busy === 'creating' ? t.creating : t.create}
-          </button>
-          <button type="button" onClick={onClose} className="link-ink tap meta min-h-[44px] text-ink">
-            {t.close}
-          </button>
-        </div>
-      )}
-
-      {(note || error) && (
-        <p className="meta mt-3 text-ink" role={error ? 'alert' : 'status'}>
-          {error || note}
-        </p>
       )}
     </section>
   );

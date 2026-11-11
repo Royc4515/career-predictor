@@ -195,13 +195,18 @@ export async function deleteCoverPortrait(id) {
 }
 
 /**
- * Create (or reuse) a public link to the current issue. withFace puts the
- * reader's own portrait on the shared page; lang picks the preview's
- * language. Returns { url, token, withFace }.
+ * File a public link to the current issue under `token` (lib/shareLink.js;
+ * idempotent, so a retry is safe). withFace puts the reader's own portrait
+ * on the shared page; lang picks the preview's language.
+ * Returns { url, token, withFace }.
  */
-export async function createShare({ withFace = false, lang = 'en' } = {}) {
-  const data = await request('/api/user/share', { method: 'POST', body: { withFace, lang } });
-  return data;
+export async function createShare({ token, withFace = false, lang = 'en' }) {
+  return request('/api/user/share', { method: 'POST', body: { token, withFace, lang } });
+}
+
+/** Show or hide the reader's own portrait on a link already sent. */
+export async function setShareFace(token, withFace) {
+  return request(`/api/user/share/${encodeURIComponent(token)}`, { method: 'PATCH', body: { withFace } });
 }
 
 /** End a public link. */

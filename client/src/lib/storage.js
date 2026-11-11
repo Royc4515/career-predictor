@@ -61,3 +61,14 @@ export const stampSeen = {
   has: (title) => read(`cp:stamped:${title}`) === true,
   mark: (title) => write(`cp:stamped:${title}`, true),
 };
+
+// The live share link of each issue this session (keyed by English title),
+// so sharing again reuses the link already sent instead of making another.
+export const shareLinks = {
+  get: (title) => {
+    const value = read(`cp:share:${title}`);
+    return value && typeof value.token === 'string' ? value : null;
+  },
+  set: (title, link) => write(`cp:share:${title}`, link),
+  clear: (title) => write(`cp:share:${title}`, null),
+};
