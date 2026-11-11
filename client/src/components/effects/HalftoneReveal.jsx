@@ -21,7 +21,9 @@ const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
  * Overlay that plays once over an already-decoded image, then calls onDone.
  * The caller keeps the real <img> hidden until onDone fires.
  */
-export default function HalftoneReveal({ image, onDone }) {
+// pace scales the whole run: 1 is the hero's full press check; a row of
+// covers (the back-issue rack) uses a quicker pass so it finishes together.
+export default function HalftoneReveal({ image, onDone, pace = 1 }) {
   const [size, setSize] = useState(SIZE_FROM);
   const [lifting, setLifting] = useState(false);
   const done = useRef(onDone);
@@ -32,13 +34,13 @@ export default function HalftoneReveal({ image, onDone }) {
     let liftTimer;
     const start = performance.now();
     const tick = (now) => {
-      const t = Math.min(Math.max(now - start - HOLD_MS, 0) / TIGHTEN_MS, 1);
+      const t = Math.min(Math.max(now - start - HOLD_MS * pace, 0) / (TIGHTEN_MS * pace), 1);
       setSize(SIZE_FROM + (SIZE_TO - SIZE_FROM) * ease(t));
       if (t < 1) {
         frame = requestAnimationFrame(tick);
       } else {
         setLifting(true);
-        liftTimer = setTimeout(() => done.current?.(), LIFT_MS);
+        liftTimer = setTimeout(() => done.current?.(), LIFT_MS * pace);
       }
     };
     frame = requestAnimationFrame(tick);
@@ -52,7 +54,7 @@ export default function HalftoneReveal({ image, onDone }) {
     <div
       aria-hidden="true"
       className="absolute inset-0 -z-10"
-      style={{ opacity: lifting ? 0 : 1, transition: `opacity ${LIFT_MS}ms ease-out` }}
+      style={{ opacity: lifting ? 0 : 1, transition: `opacity ${LIFT_MS * pace}ms ease-out` }}
     >
       <HalftoneCmyk
         image={image}
