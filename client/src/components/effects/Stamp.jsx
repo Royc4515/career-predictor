@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { m, useInView, useReducedMotion } from 'motion/react';
+import { useCopy } from '../../i18n/LangContext';
 
 // Lifted and slightly rotated before the hit; landed is the resting state.
 const LIFTED = { opacity: 0, scale: 1.4, rotate: -1 };
@@ -19,6 +20,7 @@ const SLAM = { type: 'spring', stiffness: 560, damping: 28, mass: 0.8 };
  * Space is reserved from the start so landing never shifts the layout.
  */
 export default function Stamp({ ready = true, play = true, className = '' }) {
+  const { stamp } = useCopy();
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, amount: 0.8 });
   const reduce = useReducedMotion();
@@ -29,9 +31,9 @@ export default function Stamp({ ready = true, play = true, className = '' }) {
     <m.div
       ref={ref}
       role="img"
-      aria-label="Stamped: approved, not career advice"
+      aria-label={stamp.label}
       aria-hidden={ready ? undefined : true}
-      className={`pointer-events-none inline-block origin-left select-none ${className}`}
+      className={`pointer-events-none inline-block origin-left select-none rtl:origin-right ${className}`}
       initial={animate ? LIFTED : false}
       animate={landed ? LANDED : animate ? LIFTED : { ...LANDED, opacity: 0 }}
       transition={animate ? SLAM : { duration: 0 }}
@@ -45,9 +47,9 @@ export default function Stamp({ ready = true, play = true, className = '' }) {
       </svg>
       <div className="border-2 border-ink p-[2px] text-ink">
         <div className="border border-ink px-3 py-1.5 text-center">
-          <p className="font-sans text-[1.05rem] leading-none font-extrabold tracking-[0.14em]">APPROVED</p>
+          <p className="font-sans text-[1.05rem] leading-none font-extrabold tracking-[0.14em]">{stamp.approved}</p>
           <p className="mt-1 font-sans text-[0.625rem] leading-none font-semibold tracking-[0.14em]">
-            NOT CAREER ADVICE
+            {stamp.notAdvice}
           </p>
         </div>
       </div>

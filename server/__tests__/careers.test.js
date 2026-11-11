@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { mapCareer, promptFor, CAREERS, FALLBACK, SAMPLE_ANSWERS, answersFromIds, sampleCareers } = require('../careers');
+const { mapCareer, promptFor, coverGenderFor, CAREERS, FALLBACK, SAMPLE_ANSWERS, answersFromIds, sampleCareers } = require('../careers');
 const { QUESTIONS, QUESTION_IDS, optionIdFor } = require('../quiz');
 
 // Every possible submission: 4^5 = 1,024 answer sets, as the text the client sends.
@@ -164,4 +164,13 @@ test('"Use my own photo" keeps the career and shoots the original scene as the f
     assert.equal(photo.portraitSubject, 'photo');
     assert.equal(photo.prompt, base.prompt);
   }
+});
+
+test('coverGenderFor: the choice, else the scene\'s subject, unknown for your own photo', () => {
+  const c = CAREERS.find((x) => x.subject === 'woman');
+  assert.equal(coverGenderFor(c.title, 'man'), 'man');
+  assert.equal(coverGenderFor(c.title, 'woman'), 'woman');
+  assert.equal(coverGenderFor(c.title, 'surprise'), 'woman');
+  assert.equal(coverGenderFor(c.title, 'photo'), null);
+  assert.equal(coverGenderFor('A career that left the table', 'surprise'), null);
 });

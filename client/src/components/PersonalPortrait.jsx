@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { deletePortrait, uploadPortrait } from '../lib/api';
 import PhotoConsent from './PhotoConsent';
+import { useLang } from '../i18n/LangContext';
+import { localizeError } from '../lib/errors';
 
 /**
  * "Put your face on it": the opt-in personal portrait. Consent comes first
@@ -18,6 +20,8 @@ export default function PersonalPortrait({ personal, available, blocked, notice,
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(null); // 'uploading' | 'removing'
   const [error, setError] = useState(null);
+  const { lang, copy } = useLang();
+  const t = copy.personal;
 
   if (!available && !personal && blocked !== 'old-issue') return null;
 
@@ -53,46 +57,40 @@ export default function PersonalPortrait({ personal, available, blocked, notice,
   return (
     <section aria-labelledby="personal-heading" className="mt-12 border-t border-ink pt-6">
       <h2 id="personal-heading" className="font-display text-section">
-        Put your face on it
+        {t.heading}
       </h2>
 
       {notice && !personal && (
         <p className="text-body mt-3" role="status">
-          {notice}
+          {notice.kind === 'lost' ? copy.loading.selfieLost : t.selfieNotSent(localizeError(lang, notice.message))}
         </p>
       )}
 
       {!available && !personal && blocked === 'old-issue' && (
-        <p className="text-body mt-3 max-w-[34rem]">
-          This cover is from an older issue of the questionnaire. Retake it and pick &ldquo;Use my own photo&rdquo; on
-          the last step to be on the cover yourself.
-        </p>
+        <p className="text-body mt-3 max-w-[34rem]">{t.oldIssue}</p>
       )}
 
       {available && !personal && !open && (
         <>
-          <p className="text-body mt-3 max-w-[34rem]">
-            Send one selfie and the photographer reshoots this cover with you in it. Your photo is deleted from our
-            server within minutes.
-          </p>
+          <p className="text-body mt-3 max-w-[34rem]">{t.intro}</p>
           <button type="button" className="btn btn-secondary mt-5" onClick={() => setOpen(true)}>
-            Use my photo
+            {t.usePhoto}
           </button>
         </>
       )}
 
       {status === 'generating' && (
         <p className="text-body mt-3" role="status">
-          Developing your portrait. It takes about half a minute; the cover updates when it is ready.
+          {t.developing}
         </p>
       )}
 
       {status === 'ready' && (
         <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
-          <div role="radiogroup" aria-label="Portrait on the cover" className="flex gap-2">
+          <div role="radiogroup" aria-label={t.which} className="flex gap-2">
             {[
-              ['mine', 'You'],
-              ['desk', "The desk's pick"],
+              ['mine', t.you],
+              ['desk', t.desk],
             ].map(([value, label]) => (
               <button
                 key={value}
@@ -107,7 +105,7 @@ export default function PersonalPortrait({ personal, available, blocked, notice,
             ))}
           </div>
           <button type="button" className="link-ink tap meta min-h-[44px] text-ink" onClick={remove} disabled={!!busy}>
-            {busy === 'removing' ? 'Removing…' : 'Remove my photo'}
+            {busy === 'removing' ? t.removing : t.remove}
           </button>
         </div>
       )}
@@ -115,15 +113,14 @@ export default function PersonalPortrait({ personal, available, blocked, notice,
       {status === 'failed' && (
         <div className="mt-3">
           <p className="text-body" role="status">
-            The darkroom could not develop this one, so your cover keeps the desk&rsquo;s portrait. A clear,
-            front-facing photo in good light works best.
+            {t.failed}
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-6">
             <button type="button" className="btn btn-secondary" onClick={() => setOpen(true)} disabled={!available}>
-              Try another photo
+              {t.tryAnother}
             </button>
             <button type="button" className="link-ink tap meta min-h-[44px] text-ink" onClick={remove}>
-              Dismiss
+              {t.dismiss}
             </button>
           </div>
         </div>
@@ -133,7 +130,7 @@ export default function PersonalPortrait({ personal, available, blocked, notice,
         <PhotoConsent
           className="mt-5"
           onPhoto={send}
-          busyLabel={busy === 'uploading' ? 'Sending…' : null}
+          busyLabel={busy === 'uploading' ? t.sending : null}
           onCancel={() => {
             setOpen(false);
             setError(null);
@@ -143,7 +140,7 @@ export default function PersonalPortrait({ personal, available, blocked, notice,
 
       {error && (
         <p className="text-body mt-4 text-ink" role="alert">
-          {error}
+          {localizeError(lang, error)}
         </p>
       )}
     </section>

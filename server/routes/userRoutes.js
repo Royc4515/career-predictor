@@ -12,6 +12,8 @@ const {
   archivePersonalPortrait,
   unarchivePersonalPortrait,
   isPersonalPortraitArchived,
+  allPersonalPortraitIds,
+  unarchiveAllPersonalPortraits,
 } = require('../db');
 const { getImageService, getPersonalPortraitService } = require('../services/image/instance');
 const { normalizePhoto, PhotoError, MAX_UPLOAD_BYTES } = require('../photoUpload');
@@ -27,7 +29,7 @@ function requireAuth(req, res, next) {
   res.status(401).json({ error: 'Not authenticated' });
 }
 
-const { mapCareer, personalSceneFor, careerForTitle, promptFor } = require('../careers');
+const { mapCareer, personalSceneFor, careerForTitle, promptFor, coverGenderFor } = require('../careers');
 
 // --- Personal portraits (the user's own face; docs/personal-portrait.md) ---
 
@@ -162,6 +164,7 @@ router.post(
         imageUrl: imageUrlFor(imageId),
         stats: { happiness: career.happiness, salary: career.salary, outlook: career.outlook },
         evidence: career.evidence,
+        coverGender: coverGenderFor(career.title, career.portraitSubject),
         personal: null,
         ...personalAvailability(career.title),
       });
@@ -206,6 +209,7 @@ router.get(
         stats: { happiness: parsed.happiness, salary: parsed.salary, outlook: parsed.outlook },
         // Results saved before the quiz redesign have no evidence.
         evidence: Array.isArray(parsed.evidence) ? parsed.evidence : [],
+        coverGender: coverGenderFor(parsed.title, row.portrait_subject || 'surprise'),
         personal: personalView(await personalState(row)),
         ...personalAvailability(parsed.title),
       });
@@ -253,6 +257,7 @@ router.get(
           happiness: parsed.happiness ?? null,
           imageUrl: portraitUrlFor(parsed.title, row.portrait_subject, row.image_id, row.image_url),
           personalImageUrl: row.personal_image_id ? personalImageUrl(row.personal_image_id) : null,
+          coverGender: coverGenderFor(parsed.title, row.portrait_subject || 'surprise'),
           filedAt: row.created_at,
           current: i === 0,
         };
@@ -389,17 +394,23 @@ router.post(
   ),
 );
 
-// DELETE /api/user/portrait - remove the personal portrait; the cover goes
-// back to the desk's portrait.
+// DELETE /api/user/portrait - "Remove my photo": delete every portrait of the
+// reader's face, the current one and any kept on back issues, and the covers
+// go back to the desk's portrait. Their face is the thing being withdrawn,
+// so it goes everywhere at once; a single back issue (and its portrait) can
+// still be removed on its own from the gallery.
 router.delete(
   '/portrait',
   requireAuth,
   asyncRoute(
     async (req, res) => {
-      const row = await getOnboardingByUserId(req.user.id);
-      await deletePersonalImage(row?.personal_image_id);
-      if (row?.personal_image_id) await unarchivePersonalPortrait(req.user.id, row.personal_image_id);
-      if (row) await clearPersonalPortrait(req.user.id);
+      const userId = req.user.id;
+      const ids = await allPersonalPortraitIds(userId);
+      // Unlink first: a delete that fails half way leaves orphaned bytes
+      // nobody can reach, never a gallery link to a deleted image.
+      await unarchiveAllPersonalPortraits(userId);
+      await clearPersonalPortrait(userId);
+      for (const id of ids) await deletePersonalImage(id);
       res.status(204).end();
     },
     { label: 'DELETE /api/user/portrait', message: 'Could not remove your portrait. Please try again.' },

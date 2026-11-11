@@ -5,6 +5,7 @@ import { barcodeBars, issueFor } from '../lib/issue';
 import { supportsWebGL2 } from '../lib/capabilities';
 import EffectBoundary from './effects/EffectBoundary';
 import { isOwnImageUrl } from '../lib/imageUrls';
+import { useLang } from '../i18n/LangContext';
 
 // The shader library only loads when a cover actually prints a photo.
 const loadHalftone = () => import('./effects/HalftoneReveal');
@@ -52,7 +53,9 @@ export default function Cover({
   className = '',
 }) {
   const reduce = useReducedMotion();
-  const issue = issueFor();
+  const { lang, copy } = useLang();
+  const c = copy.cover;
+  const issue = issueFor(new Date(), lang);
   const bars = barcodeBars(title);
   // Tracks which URL has decoded rather than a boolean, so a new photo starts
   // undeveloped without an effect that could race a cached image's onLoad.
@@ -104,7 +107,7 @@ export default function Cover({
     <figure
       className={`relative isolate w-full overflow-hidden bg-[#0f1626] text-paper shadow-[0_28px_50px_-28px_rgba(19,32,58,.6)] ${className}`}
       style={{ aspectRatio: COVER_RATIO, containerType: 'inline-size' }}
-      aria-label={`Magazine cover: ${title}`}
+      aria-label={c.label(title)}
     >
       <AnimatePresence initial={false}>
         {darkroom && (
@@ -186,10 +189,10 @@ export default function Cover({
             className="mt-[2.6cqw] flex items-center justify-between border-t border-paper/50 pt-[1.2cqw] font-sans font-medium"
             style={{ fontSize: cqw(COVER.issueSize, 10) }}
           >
-            <span>Issue {issue.number}</span>
+            <span>{c.issue(issue.number)}</span>
             {/* Dropped on a small cover (the back-issues grid on a phone), where
                 three items at the legibility floor would collide. */}
-            <span className="@max-[15rem]:hidden">The Forecast</span>
+            <span className="@max-[15rem]:hidden">{c.forecast}</span>
             <span>{issue.short}</span>
           </div>
         </div>
@@ -200,7 +203,7 @@ export default function Cover({
             style={{ fontSize: cqw(0.026, 11) }}
             role="status"
           >
-            Developing your portrait…
+            {c.developing}
           </p>
         )}
 
@@ -209,7 +212,7 @@ export default function Cover({
             className="inline-block bg-mark px-[1.4cqw] py-[0.5cqw] font-sans font-semibold text-ink"
             style={{ fontSize: cqw(COVER.kickerSize, 10) }}
           >
-            Cover story
+            {c.kicker}
           </span>
           {/* A paragraph, not a heading: the figure's aria-label names the
               cover, and a heading here would sit above the page's own h1. */}
@@ -224,11 +227,11 @@ export default function Cover({
               className="min-w-0 font-sans leading-snug break-words text-paper/85"
               style={{ fontSize: cqw(COVER.deckSize, 11) }}
             >
-              {deck ?? (specimen ? 'Sample cover. Yours is shot for you.' : null)}
+              {deck ?? (specimen ? c.sample : null)}
               {deck == null && !specimen && (
                 <>
-                  {personName ? <>A forecast for {personName}. </> : null}
-                  Happiness index <span className="tabular">{happiness}</span>/100.
+                  {personName ? c.forecastFor(personName) : null}
+                  {c.happiness} <span className="tabular">{happiness}</span>/100.
                 </>
               )}
             </p>

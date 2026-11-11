@@ -1,9 +1,18 @@
-import { createBrowserRouter, Outlet, RouterProvider, ScrollRestoration } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import {
+  createBrowserRouter,
+  Outlet,
+  RouterProvider,
+  ScrollRestoration,
+  useLocation,
+  useMatches,
+} from 'react-router-dom';
 import { domAnimation, LazyMotion, MotionConfig } from 'motion/react';
 import { AuthProvider, useAuth } from './app/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Wordmark } from './components/Masthead';
 import Landing from './pages/Landing';
+import { LangProvider, useCopy } from './i18n/LangContext';
 import NotFound from './pages/NotFound';
 
 // Landing ships in the entry chunk because it is what most visitors see
@@ -11,15 +20,48 @@ import NotFound from './pages/NotFound';
 const page = (load) => async () => ({ Component: (await load()).default });
 
 function Splash() {
+  const copy = useCopy();
   return (
-    <div className="grid min-h-dvh place-items-center" role="status" aria-label="Loading">
+    <div className="grid min-h-dvh place-items-center" role="status" aria-label={copy.common.loading}>
       <Wordmark className="animate-pulse text-3xl" />
     </div>
   );
 }
 
+/**
+ * What a full page load does for free and a client-side navigation doesn't:
+ * the tab title changes (from the route's handle) and focus moves to the new
+ * page, so a screen reader announces it and Tab starts from the top instead
+ * of from wherever the old page left focus. Only the path counts: the quiz
+ * changes ?q= per question and manages its own focus.
+ */
+function usePageChange() {
+  const { pathname } = useLocation();
+  const matches = useMatches();
+  const copy = useCopy();
+  const key = [...matches].reverse().find((m) => m.handle?.title)?.handle.title ?? 'landing';
+  const title = copy.pageTitles[key];
+  const firstPath = useRef(pathname);
+
+  useEffect(() => {
+    document.title = title;
+  }, [title]);
+
+  useEffect(() => {
+    // The first load keeps the browser's own behavior (focus at the top).
+    if (pathname === firstPath.current) return;
+    firstPath.current = null;
+    const main = document.getElementById('main');
+    if (!main) return;
+    main.setAttribute('tabindex', '-1');
+    main.focus({ preventScroll: true });
+  }, [pathname]);
+}
+
 function RootLayout() {
   const { loading } = useAuth();
+  const copy = useCopy();
+  usePageChange();
   return (
     // LazyMotion + <m.*> ships only the animation features we use (no layout
     // or drag), and strict mode throws if a full <motion.*> sneaks back in.
@@ -29,9 +71,9 @@ function RootLayout() {
       <MotionConfig reducedMotion="user">
         <a
           href="#main"
-          className="sr-only z-50 bg-ink px-4 py-2 text-paper focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+          className="sr-only z-50 bg-ink px-4 py-2 text-paper focus:not-sr-only focus:fixed focus:top-3 focus:start-3"
         >
-          Skip to content
+          {copy.common.skip}
         </a>
         {loading ? <Splash /> : <Outlet />}
         <ScrollRestoration />
@@ -49,7 +91,7 @@ const router = createBrowserRouter([
     element: <RootLayout />,
     hydrateFallbackElement: <Splash />,
     children: [
-      { path: '/', element: <Landing /> },
+      { path: '/', element: <Landing />, handle: { title: 'landing' } },
       {
         element: (
           <ProtectedRoute>
@@ -57,21 +99,27 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
         children: [
-          { path: '/onboarding', lazy: page(() => import('./pages/Onboarding')) },
-          { path: '/loading', lazy: page(() => import('./pages/Loading')) },
-          { path: '/result', lazy: page(() => import('./pages/Result')) },
-          { path: '/issues', lazy: page(() => import('./pages/Issues')) },
+          {
+            path: '/onboarding',
+            lazy: page(() => import('./pages/Onboarding')),
+            handle: { title: 'onboarding' },
+          },
+          { path: '/loading', lazy: page(() => import('./pages/Loading')), handle: { title: 'loading' } },
+          { path: '/result', lazy: page(() => import('./pages/Result')), handle: { title: 'result' } },
+          { path: '/issues', lazy: page(() => import('./pages/Issues')), handle: { title: 'issues' } },
         ],
       },
-      { path: '*', element: <NotFound /> },
+      { path: '*', element: <NotFound />, handle: { title: 'notFound' } },
     ],
   },
 ]);
 
 export default function App() {
   return (
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <LangProvider>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </LangProvider>
   );
 }

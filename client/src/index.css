@@ -3,9 +3,9 @@
 /* Self-hosted so the first paint never waits on a third-party font CDN.
    opsz files carry the optical-size axis: display sizes get the tight,
    high-contrast cut automatically via font-optical-sizing. */
-@import '@fontsource-variable/newsreader/opsz.css';
-@import '@fontsource-variable/newsreader/opsz-italic.css';
-@import '@fontsource-variable/schibsted-grotesk/wght.css';
+/* The fontsource faces, trimmed to the weights in use (scripts/trim-fonts.py):
+   about a fifth less to download on a first visit. */
+@import './fonts.css';
 
 /* ── Design tokens ────────────────────────────────────────────────────────
    Office supplies, because the joke is a corporate career assessment:
@@ -24,8 +24,11 @@
   --color-mark: #f6e24a;
   --color-alert: #b42318;
 
-  --font-serif: 'Newsreader Variable', 'Iowan Old Style', Georgia, serif;
-  --font-sans: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+  /* The Hebrew faces come second: Newsreader and Schibsted have no Hebrew
+     letters, so Hebrew falls through to Frank Ruhl Libre / Heebo while any
+     Latin word on a Hebrew page keeps the house faces. */
+  --font-serif: 'Newsreader Variable', 'Frank Ruhl Libre Variable', 'Iowan Old Style', Georgia, serif;
+  --font-sans: 'Schibsted Grotesk Variable', 'Heebo Variable', ui-sans-serif, system-ui, sans-serif;
 
   --ease-press: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-move: cubic-bezier(0.77, 0, 0.175, 1);
@@ -71,6 +74,11 @@
   :focus-visible {
     outline: 2px solid var(--color-ink);
     outline-offset: 3px;
+  }
+  /* <main> takes focus on navigation (App.jsx usePageChange) only so the
+     next Tab starts there; it is not a control, so no ring. */
+  main:focus {
+    outline: none;
   }
   /* No 300ms double-tap wait and no grey flash on iOS; focus-visible still
      covers keyboard users. */
@@ -243,6 +251,17 @@ html:is([data-nav='forward'], [data-nav='back'])::view-transition-new(root) {
 }
 .develop {
   animation: develop 2.2s var(--ease-press) both;
+}
+
+/* Hebrew has no italic and no tradition of tight display tracking: a slanted
+   Frank Ruhl is the browser faking an oblique, and negative tracking jams
+   the letters. Emphasis stays in the weight and the size. */
+:lang(he) .italic {
+  font-style: normal;
+}
+:lang(he) .font-display,
+:lang(he) [class*='tracking-'] {
+  letter-spacing: 0;
 }
 
 /* The result cover, sized to the screen as well as the column: its 4:5 height

@@ -10,16 +10,17 @@ import { deleteCover, fetchCovers, makeCoverCurrent } from '../lib/api';
 import { renderCoverBlob } from '../lib/coverCanvas';
 import { coverFileName } from '../lib/coverLayout';
 import { downloadBlob } from '../lib/download';
-import { firstName } from '../lib/issue';
+import { firstName, formatDate } from '../lib/issue';
+import { useLang } from '../i18n/LangContext';
+import { careerTitle } from '../i18n/content';
+import { localizeError } from '../lib/errors';
 import { EASE_OUT } from '../lib/motion';
 import { setNavDirection } from '../lib/navDirection';
 
-function filedOn(value) {
+function filedOn(value, lang) {
   // SQLite CURRENT_TIMESTAMP is UTC without a zone marker.
   const date = new Date(typeof value === 'string' && !value.endsWith('Z') ? `${value.replace(' ', 'T')}Z` : value);
-  return Number.isNaN(date.getTime())
-    ? null
-    : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return Number.isNaN(date.getTime()) ? null : formatDate(date, lang);
 }
 
 function BackIssue({ cover, number, onRemove, removing, onOpen }) {
@@ -31,18 +32,28 @@ function BackIssue({ cover, number, onRemove, removing, onOpen }) {
   const sharedStatus = useImageReady(mine ? null : cover.imageUrl);
   const imageUrl = mine ? cover.personalImageUrl : cover.imageUrl;
   const status = mine ? personalStatus : sharedStatus;
-  const filed = filedOn(cover.filedAt);
+  const { lang, copy } = useLang();
+  const t = copy.issues;
+  const filed = filedOn(cover.filedAt, lang);
+  const title = careerTitle(lang, cover.title, cover.coverGender);
   // Removing an issue with the reader's own face deletes that portrait for
   // good, so it asks first; a desk portrait can always be shot again.
   const [confirming, setConfirming] = useState(false);
+  const removeRef = useRef(null);
+  // "Keep it" unmounts the button that had focus: hand focus back to Remove
+  // instead of letting it fall to <body>.
+  function keep() {
+    setConfirming(false);
+    requestAnimationFrame(() => removeRef.current?.focus());
+  }
   return (
     <li>
       <div className="relative">
         <Cover
-          title={cover.title}
+          title={title}
           imageUrl={imageUrl}
           imageStatus={status}
-          deck={filed ? `Filed ${filed}.` : 'From the archive.'}
+          deck={filed ? t.filed(filed) : t.fromArchive}
           lazy
         />
         {/* The whole cover opens the issue. A button laid over it, rather than
@@ -50,38 +61,39 @@ function BackIssue({ cover, number, onRemove, removing, onOpen }) {
             readers one clear name for the action. */}
         <button
           type="button"
-          onClick={() => onOpen({ cover, number, imageUrl, status, mine, filed })}
-          aria-label={`Open issue ${number}: ${cover.title}`}
+          onClick={() => onOpen({ cover, number, imageUrl, status, mine, filed, title })}
+          aria-label={t.open(number, title)}
           className="absolute inset-0 cursor-pointer focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ink"
         />
       </div>
       <div className="mt-3 flex items-baseline justify-between gap-3">
         <p className="meta">
-          No. {number}
-          {mine && <span className="text-ink-3"> · You</span>}
+          {t.number(number)}
+          {mine && <span className="text-ink-3">{t.you}</span>}
         </p>
         {cover.current ? (
-          <span className="meta bg-mark px-1.5 text-ink">Current issue</span>
+          <span className="meta bg-mark px-1.5 text-ink">{copy.common.currentIssue}</span>
         ) : (
           !confirming && (
             <button
+              ref={removeRef}
               type="button"
               onClick={() => (mine ? setConfirming(true) : onRemove(cover.id))}
               disabled={removing}
               className="link-ink tap meta text-ink disabled:opacity-50"
             >
-              {removing ? 'Removing…' : 'Remove'}
+              {removing ? t.removing : t.remove}
             </button>
           )
         )}
       </div>
       {confirming && (
-        <div role="group" aria-label={`Remove issue ${number}`} className="mt-2 bg-paper-2 p-3">
-          <p className="meta text-ink">Your photo on this cover is deleted too.</p>
+        <div role="group" aria-label={t.removeGroup(number)} className="mt-2 bg-paper-2 p-3">
+          <p className="meta text-ink">{t.deletesPhoto}</p>
           <div className="mt-1 flex flex-wrap gap-x-4">
             {/* Focus lands on the safe choice. */}
-            <button type="button" autoFocus onClick={() => setConfirming(false)} className="link-ink tap meta text-ink">
-              Keep it
+            <button type="button" autoFocus onClick={keep} className="link-ink tap meta text-ink">
+              {t.keep}
             </button>
             <button
               type="button"
@@ -89,7 +101,7 @@ function BackIssue({ cover, number, onRemove, removing, onOpen }) {
               disabled={removing}
               className="link-ink tap meta text-alert disabled:opacity-50"
             >
-              {removing ? 'Removing…' : 'Remove'}
+              {removing ? t.removing : t.remove}
             </button>
           </div>
         </div>
@@ -108,7 +120,9 @@ function IssueDialog({ issue, onClose }) {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const { cover, number, imageUrl, mine, filed } = issue;
+  const { cover, number, imageUrl, mine, filed, title } = issue;
+  const { lang, copy } = useLang();
+  const t = copy.issues;
   // Its own poll, so a portrait still developing when the dialog opened
   // still arrives here (the card's status was a snapshot).
   const status = useImageReady(imageUrl);
@@ -122,17 +136,18 @@ function IssueDialog({ issue, onClose }) {
     if (status === 'pending') return undefined;
     let cancelled = false;
     renderCoverBlob({
-      title: cover.title,
+      title,
       imageUrl: status === 'ready' ? imageUrl : null,
       personName: name,
       happiness: cover.happiness,
+      lang,
     })
       .then((b) => !cancelled && setBlob(b))
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [status, imageUrl, cover.title, cover.happiness, name]);
+  }, [status, imageUrl, title, cover.happiness, name, lang]);
 
   // don't touch / No close() in a cleanup: the close event fires a task later
   // and calls onClose, so under StrictMode's mount, unmount, mount the dialog
@@ -150,7 +165,7 @@ function IssueDialog({ issue, onClose }) {
       setNavDirection('forward');
       navigate('/result', { viewTransition: true });
     } catch (err) {
-      setError(err.message);
+      setError(localizeError(lang, err.message));
       setBusy(false);
     }
   }
@@ -166,31 +181,26 @@ function IssueDialog({ issue, onClose }) {
       onClose={onClose}
       // A click on the backdrop lands on the dialog element itself.
       onClick={(e) => e.target === e.currentTarget && ref.current?.close()}
-      aria-label={`Issue ${number}: ${cover.title}`}
+      aria-label={t.dialogLabel(number, title)}
       className="m-auto max-h-[100dvh] w-[min(100vw-2rem,28rem)] bg-paper p-0 text-ink backdrop:bg-ink/60"
     >
       <div className="p-4 sm:p-5">
         <div className="mx-auto w-[min(100%,max(12rem,calc((100dvh-13rem)*0.8)))]">
-          <Cover
-            title={cover.title}
-            imageUrl={imageUrl}
-            imageStatus={status}
-            deck={filed ? `Filed ${filed}.` : 'From the archive.'}
-          />
+          <Cover title={title} imageUrl={imageUrl} imageStatus={status} deck={filed ? t.filed(filed) : t.fromArchive} />
         </div>
         <p className="meta mt-3">
-          No. {number}
-          {mine && <span className="text-ink-3"> · You</span>}
-          {cover.current && <span className="ml-2 bg-mark px-1.5 text-ink">Current issue</span>}
+          {t.number(number)}
+          {mine && <span className="text-ink-3">{t.you}</span>}
+          {cover.current && <span className="ms-2 bg-mark px-1.5 text-ink">{copy.common.currentIssue}</span>}
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           {cover.current ? (
             <button type="button" onClick={openCurrent} className="btn btn-primary">
-              Open it
+              {t.openIt}
             </button>
           ) : (
             <button type="button" onClick={choose} disabled={busy} className="btn btn-primary">
-              {busy ? 'Switching…' : 'Make this my current issue'}
+              {busy ? t.switching : t.makeCurrent}
             </button>
           )}
           <button
@@ -199,14 +209,14 @@ function IssueDialog({ issue, onClose }) {
             disabled={!blob}
             className="btn btn-secondary"
           >
-            {blob ? 'Download' : 'Preparing…'}
+            {blob ? t.download : t.preparing}
           </button>
           <button
             type="button"
             onClick={() => ref.current?.close()}
             className="link-ink tap meta min-h-[44px] text-ink"
           >
-            Close
+            {t.close}
           </button>
         </div>
         {error && (
@@ -226,10 +236,13 @@ function IssueDialog({ issue, onClose }) {
  * portrait too.
  */
 export default function Issues() {
+  const { lang, copy } = useLang();
+  const t = copy.issues;
   const [covers, setCovers] = useState(null);
   const [error, setError] = useState(null);
   const [removing, setRemoving] = useState(null);
   const [opened, setOpened] = useState(null);
+  const headingRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -246,6 +259,8 @@ export default function Issues() {
     try {
       await deleteCover(id);
       setCovers((list) => list.filter((c) => c.id !== id));
+      // The removed card took focus with it; land on the page heading.
+      requestAnimationFrame(() => headingRef.current?.focus());
     } catch (err) {
       setError(err.message);
     } finally {
@@ -255,7 +270,7 @@ export default function Issues() {
 
   const back = (
     <Link to="/result" viewTransition onClick={() => setNavDirection('back')} className="meta link-ink tap text-ink">
-      Current issue
+      {copy.common.currentIssue}
     </Link>
   );
 
@@ -265,30 +280,28 @@ export default function Issues() {
       <main id="main" className="flex-1 px-4 pt-8 pb-20 sm:px-8 sm:pt-12">
         <div className="mx-auto max-w-[1240px]">
           <m.h1
-            className="font-display text-title text-balance"
+            ref={headingRef}
+            tabIndex={-1}
+            className="font-display text-title text-balance outline-none"
             initial={{ opacity: 0, transform: 'translateY(8px)' }}
             animate={{ opacity: 1, transform: 'translateY(0px)' }}
             transition={{ duration: 0.4, ease: EASE_OUT }}
           >
-            Your back issues
+            {t.title}
           </m.h1>
           {covers && (
             <p className="text-body mt-3 max-w-[36rem]">
-              {covers.length === 0
-                ? 'The archive is empty. Every cover the desk prints for you lands here.'
-                : covers.length === 1
-                  ? 'One issue on file. Retake the questionnaire and the archive starts to grow.'
-                  : `${covers.length} issues on file, newest first. The desk keeps your last 30.`}
+              {covers.length === 0 ? t.empty : covers.length === 1 ? t.one : t.many(covers.length)}
             </p>
           )}
           {error && (
             <p className="text-body mt-4" role="alert">
-              {error}
+              {localizeError(lang, error)}
             </p>
           )}
           {!covers && !error && (
             <p className="meta mt-6" role="status">
-              Fetching the archive…
+              {t.fetching}
             </p>
           )}
 
@@ -314,7 +327,7 @@ export default function Issues() {
               onClick={() => setNavDirection('forward')}
               className="link-ink tap text-ink"
             >
-              Retake the questionnaire
+              {t.retake}
             </Link>
           </p>
         </div>

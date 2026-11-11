@@ -1,8 +1,10 @@
 import { authUrls } from '../lib/api';
+import { useCopy } from '../i18n/LangContext';
 
 // OAuth needs a full-page navigation (the server redirects to Google), so
 // this is a plain anchor, not a router Link.
-export default function GoogleButton({ children = 'Sign in with Google', className = '' }) {
+export default function GoogleButton({ children, className = '' }) {
+  const copy = useCopy();
   return (
     <a href={authUrls.google} className={`btn btn-primary ${className}`}>
       <span className="grid size-6 place-items-center rounded-full bg-paper" aria-hidden="true">
@@ -25,7 +27,7 @@ export default function GoogleButton({ children = 'Sign in with Google', classNa
           />
         </svg>
       </span>
-      {children}
+      {children ?? copy.google.signIn}
     </a>
   );
 }

@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import Masthead from '../components/Masthead';
 import Cover from '../components/Cover';
 import { PRESS_STEPS } from '../content';
+import { useLang } from '../i18n/LangContext';
+import { careerTitle, pressSteps } from '../i18n/content';
+import { localizeError } from '../lib/errors';
 import { submitAnswers, uploadPortrait } from '../lib/api';
 import { OWN_PHOTO_OPTION } from '../content';
 import { pendingPhoto } from '../lib/pendingPhoto';
@@ -27,12 +30,13 @@ async function withSelfie(data, answers) {
   const photo = pendingPhoto.get();
   pendingPhoto.clear();
   if (!photo) {
-    return { ...data, personalNotice: 'Your selfie did not survive the page reload. Add it again below.' };
+    // A code, not text: the result page words it in the reader's language.
+    return { ...data, personalNotice: { kind: 'lost' } };
   }
   try {
     return { ...data, personal: await uploadPortrait(photo) };
   } catch (err) {
-    return { ...data, personalNotice: `Your selfie was not sent: ${err.message}` };
+    return { ...data, personalNotice: { kind: 'failed', message: err.message } };
   }
 }
 
@@ -53,6 +57,9 @@ function StepMark({ state }) {
 
 export default function Loading() {
   const navigate = useNavigate();
+  const { lang, copy } = useLang();
+  const t = copy.loading;
+  const steps = pressSteps(lang);
   const [activeStep, setActiveStep] = useState(0);
   const [timeDone, setTimeDone] = useState(false);
   const [result, setResult] = useState(null);
@@ -93,7 +100,7 @@ export default function Loading() {
       .catch((err) => {
         if (cancelled) return;
         request.current = null;
-        setError(err.message || 'Something went wrong at the printer.');
+        setError(err.message || null);
       });
     return () => {
       cancelled = true;
@@ -156,17 +163,15 @@ export default function Loading() {
         <Masthead />
         <main id="main" className="flex flex-1 items-center px-4 sm:px-8">
           <div className="mx-auto w-full max-w-[40rem] py-16" role="alert">
-            <h1 className="font-display text-title text-balance">Your answers weren&rsquo;t sent</h1>
-            <p className="mt-5 text-lede">{error}</p>
-            <p className="text-body mt-2">
-              They are still saved on this device, so you won&rsquo;t need to answer again.
-            </p>
+            <h1 className="font-display text-title text-balance">{t.notSentTitle}</h1>
+            <p className="mt-5 text-lede">{localizeError(lang, error) || t.printerError}</p>
+            <p className="text-body mt-2">{t.notSentBody}</p>
             <div className="mt-10 flex flex-wrap items-center gap-6">
               <button type="button" onClick={retry} className="btn btn-primary">
-                Send again
+                {t.sendAgain}
               </button>
               <Link to="/onboarding" viewTransition className="link-ink">
-                Review answers
+                {t.review}
               </Link>
             </div>
           </div>
@@ -176,7 +181,10 @@ export default function Loading() {
   }
 
   const percentLabel = done ? 100 : Math.min(Math.round(((activeStep + 1) / PRESS_STEPS.length) * 97), 97);
-  const headline = result && activeStep >= HEADLINE_STEP ? result.careerTitle : 'Headline being set';
+  const headline =
+    result && activeStep >= HEADLINE_STEP
+      ? careerTitle(lang, result.careerTitle, result.coverGender)
+      : t.headlineBeingSet;
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -187,23 +195,27 @@ export default function Loading() {
               the press effect isn't desktop-only. */}
           {/* Width on the wrapper: Cover sets w-full on itself. */}
           <div className="w-[min(52vw,220px)] lg:col-span-4 lg:w-full lg:max-w-[320px]">
-            <Cover title={headline} imageStatus="pending" deck="Going to print." printing />
+            <Cover title={headline} imageStatus="pending" deck={t.goingToPrint} printing />
           </div>
 
           <div className="lg:col-span-6 lg:col-start-6">
-            <h1 className="font-display text-title text-balance">Printing your cover…</h1>
+            <h1 className="font-display text-title text-balance">{t.title}</h1>
             <div
               className="mt-6 h-[3px] bg-paper-3 sm:mt-8"
               role="progressbar"
-              aria-label="Printing your cover"
+              aria-label={t.progress}
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={percentLabel}
             >
-              <div ref={barRef} className="h-full origin-left bg-ink" style={{ transform: 'scaleX(0)' }} />
+              <div
+                ref={barRef}
+                className="h-full origin-left bg-ink rtl:origin-right"
+                style={{ transform: 'scaleX(0)' }}
+              />
             </div>
-            <ol className="mt-6 space-y-3 sm:mt-10 sm:space-y-4" aria-label="Steps">
-              {PRESS_STEPS.map((label, i) => {
+            <ol className="mt-6 space-y-3 sm:mt-10 sm:space-y-4" aria-label={t.steps}>
+              {steps.map((label, i) => {
                 const state = i < activeStep || done ? 'done' : i === activeStep ? 'active' : 'todo';
                 return (
                   <li
@@ -219,7 +231,7 @@ export default function Loading() {
                 );
               })}
             </ol>
-            <p className="meta mt-6 sm:mt-10">Keep this tab open. It takes a few seconds.</p>
+            <p className="meta mt-6 sm:mt-10">{t.keepOpen}</p>
           </div>
         </div>
       </main>

@@ -9,7 +9,6 @@ import Stamp from '../components/effects/Stamp';
 import Odometer from '../components/effects/Odometer';
 import Footer from '../components/Footer';
 import PersonalPortrait from '../components/PersonalPortrait';
-import { FINDINGS } from '../content';
 import { useToast } from '../components/Toast';
 import { useImageReady } from '../hooks/useImageReady';
 import { authUrls, fetchResult } from '../lib/api';
@@ -21,6 +20,10 @@ import { firstName } from '../lib/issue';
 import { EASE_OUT, rise } from '../lib/motion';
 import { setNavDirection } from '../lib/navDirection';
 import { cachedResult, draftAnswers, stampSeen } from '../lib/storage';
+import { useLang } from '../i18n/LangContext';
+import { analysisNotes, careerCopy, findingFor, optionLabel } from '../i18n/content';
+import { formatDate } from '../lib/issue';
+import { localizeError } from '../lib/errors';
 
 const SAVED_LABEL_MS = 1600;
 
@@ -92,6 +95,22 @@ export default function Result() {
   const savedTimer = useRef(null);
   const [toast, showToast] = useToast();
   const name = firstName(user?.name);
+  const { lang, copy } = useLang();
+  const t = copy.result;
+  // The career in the reader's language; the English title stays the key
+  // for the stamp, the file name and the share text's fallback.
+  const career = result
+    ? careerCopy(
+        lang,
+        {
+          title: result.careerTitle,
+          caption: result.caption,
+          salary: result.stats.salary,
+          outlook: result.stats.outlook,
+        },
+        result.coverGender,
+      )
+    : null;
 
   useEffect(() => () => clearTimeout(savedTimer.current), []);
 
@@ -109,17 +128,19 @@ export default function Result() {
     let cancelled = false;
     setCoverBlob(null);
     renderCoverBlob({
-      title: result.careerTitle,
+      title: career.title,
       imageUrl: imageStatus === 'ready' ? coverUrl : null,
       personName: name,
       happiness: result.stats.happiness,
+      lang,
     })
       .then((blob) => !cancelled && setCoverBlob(blob))
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [result, imageStatus, name, coverUrl]);
+    // eslint-style note: career is derived from result + lang, both listed.
+  }, [result, imageStatus, name, coverUrl, lang, career?.title]);
 
   // Polling the personal portrait settles its status: the panel stops saying
   // "developing", or offers another try and the cover goes back to the desk.
@@ -151,7 +172,7 @@ export default function Result() {
   const share = useCallback(async () => {
     if (!result) return;
     const url = window.location.origin;
-    const text = `The forecast desk has spoken. I am “${result.careerTitle}”. Get your own cover:`;
+    const text = t.shareText(career.title);
     try {
       const file = coverBlob ? new File([coverBlob], coverFileName(result.careerTitle), { type: 'image/png' }) : null;
       if (file && navigator.canShare?.({ files: [file] })) {
@@ -160,12 +181,12 @@ export default function Result() {
         await navigator.share({ text, url });
       } else {
         await navigator.clipboard.writeText(`${text} ${url}`);
-        showToast('Link copied');
+        showToast(t.linkCopied);
       }
     } catch (err) {
-      if (err?.name !== 'AbortError') showToast('This browser can’t share. Use Download cover instead.');
+      if (err?.name !== 'AbortError') showToast(t.cantShare);
     }
-  }, [coverBlob, result, showToast]);
+  }, [coverBlob, result, showToast, t, career?.title]);
 
   const retake = useCallback(() => {
     cachedResult.clear();
@@ -178,7 +199,7 @@ export default function Result() {
     <Masthead
       right={
         <a href={authUrls.logout} className="meta link-ink tap text-ink">
-          Sign out
+          {copy.common.signOut}
         </a>
       }
     />
@@ -193,10 +214,10 @@ export default function Result() {
           className="mx-auto flex w-full max-w-[40rem] flex-1 flex-col justify-center px-4 py-16"
           role="alert"
         >
-          <h1 className="font-display text-title text-balance">Your cover didn&rsquo;t load</h1>
-          <p className="mt-5 text-lede">{error}</p>
+          <h1 className="font-display text-title text-balance">{t.loadErrorTitle}</h1>
+          <p className="mt-5 text-lede">{localizeError(lang, error)}</p>
           <button type="button" onClick={retry} className="btn btn-primary mt-10 self-start">
-            Load again
+            {t.loadAgain}
           </button>
         </main>
       </div>
@@ -209,24 +230,25 @@ export default function Result() {
         {header}
         <main id="main" className="flex flex-1 items-center justify-center">
           <p className="meta animate-pulse" role="status">
-            Loading your cover…
+            {t.loading}
           </p>
         </main>
       </div>
     );
   }
 
-  const { careerTitle, caption, stats } = result;
+  const { stats } = result;
+  const { title: careerTitle, caption } = career;
   // Results saved before the quiz redesign (and old cached ones) have none.
   const evidence = Array.isArray(result.evidence) ? result.evidence.filter((q) => typeof q === 'string') : [];
-  const filed = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const filed = formatDate(new Date(), lang, { month: 'long', day: 'numeric', year: 'numeric' });
   const downloadLabel = justSaved
-    ? 'Saved to your device'
+    ? t.saved
     : coverBlob
-      ? 'Download cover'
+      ? t.download
       : imageStatus === 'pending'
-        ? 'Developing portrait…'
-        : 'Preparing cover…';
+        ? t.developing
+        : t.preparing;
 
   return (
     <div className="min-h-dvh">
@@ -260,7 +282,10 @@ export default function Result() {
             )}
             {/* Right under the headline: on a phone the cover is sized so this row
                 is on the first screen (cover-fit in index.css). */}
-            <section aria-label="Actions" className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 sm:mt-8 sm:gap-3">
+            <section
+              aria-label={t.actions}
+              className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 sm:mt-8 sm:gap-3"
+            >
               <button
                 type="button"
                 onClick={download}
@@ -271,10 +296,10 @@ export default function Result() {
                 <SwapLabel text={downloadLabel} />
               </button>
               <button type="button" onClick={share} className="btn btn-secondary">
-                Share cover
+                {t.share}
               </button>
               <button type="button" onClick={retake} className="link-ink min-h-[44px] text-ink">
-                Retake the questionnaire
+                {t.retake}
               </button>
               <Link
                 to="/issues"
@@ -282,21 +307,18 @@ export default function Result() {
                 onClick={() => setNavDirection('forward')}
                 className="link-ink tap min-h-[44px] content-center text-ink"
               >
-                Your back issues
+                {t.backIssues}
               </Link>
             </section>
 
             {imageStatus === 'failed' && (
               <p className="text-body mt-5" role="status">
-                The portrait couldn&rsquo;t be generated, so the cover is printed without one. Retake the questionnaire
-                later to try again.
+                {t.portraitFailed}
               </p>
             )}
 
-            <p className="meta mt-6">
-              Forecast for {name || 'you'}, filed {filed}.
-            </p>
-            <Stamp ready={stamped} play={slam} className="mt-4 ml-1" />
+            <p className="meta mt-6">{t.filed(name, filed)}</p>
+            <Stamp ready={stamped} play={slam} className="mt-4 ms-1" />
 
             <PersonalPortrait
               personal={personal}
@@ -311,17 +333,21 @@ export default function Result() {
             {evidence.length > 0 && (
               <section aria-labelledby="evidence-heading" className="mt-12 border-t border-ink pt-6">
                 <h2 id="evidence-heading" className="font-display text-section">
-                  Evidence on file
+                  {t.evidence}
                 </h2>
                 {/* Quote, then the analyst's conclusion: the satire is the
                     straight face between the two. */}
                 <dl className="mt-5 space-y-5">
                   {evidence.map((quote) => (
-                    <div key={quote} className="border-l-2 border-mark pl-4">
-                      <dt className="text-body font-medium text-ink">&ldquo;{quote}&rdquo;</dt>
-                      {FINDINGS[quote] && (
+                    <div key={quote} className="border-s-2 border-mark ps-4">
+                      <dt className="text-body font-medium text-ink">
+                        {lang === 'he' ? '״' : '“'}
+                        {optionLabel(lang, quote)}
+                        {lang === 'he' ? '״' : '”'}
+                      </dt>
+                      {findingFor(lang, quote) && (
                         <dd className="font-display mt-1 text-[1.15rem] leading-snug text-ink-2 italic">
-                          {FINDINGS[quote]}
+                          {findingFor(lang, quote)}
                         </dd>
                       )}
                     </div>
@@ -332,11 +358,11 @@ export default function Result() {
 
             <section aria-labelledby="figures-heading" className="mt-12 border-t border-ink pt-6">
               <h2 id="figures-heading" className="font-display text-section">
-                The figures
+                {t.figures}
               </h2>
               <dl className="mt-5 grid gap-6 bg-paper-2 p-6 sm:grid-cols-[0.8fr_1.1fr_1.1fr] sm:gap-8">
                 <div>
-                  <dt className="meta">Happiness index</dt>
+                  <dt className="meta">{t.happiness}</dt>
                   <dd className="mt-1">
                     <Odometer
                       value={stats.happiness}
@@ -347,29 +373,29 @@ export default function Result() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="meta">Salary potential</dt>
-                  <dd className="font-display mt-1 text-[1.3rem] leading-snug">{stats.salary}</dd>
+                  <dt className="meta">{t.salary}</dt>
+                  <dd className="font-display mt-1 text-[1.3rem] leading-snug">{career.salary}</dd>
                 </div>
                 <div>
-                  <dt className="meta">Outlook</dt>
-                  <dd className="font-display mt-1 text-[1.3rem] leading-snug">{stats.outlook}</dd>
+                  <dt className="meta">{t.outlook}</dt>
+                  <dd className="font-display mt-1 text-[1.3rem] leading-snug">{career.outlook}</dd>
                 </div>
               </dl>
             </section>
 
             <section aria-labelledby="analysis-heading" className="mt-10 border-t border-ink pt-6">
               <h2 id="analysis-heading" className="font-display text-section">
-                Detailed analysis
+                {t.analysis}
               </h2>
               <ul className="mt-4 space-y-5">
-                {analysisRows(stats.happiness).map((row) => (
+                {analysisRows(stats.happiness, analysisNotes(lang)).map((row) => (
                   <li key={row.label}>
                     <div className="text-body flex items-baseline justify-between gap-4">
-                      <span>{row.label}</span>
+                      <span>{t.analysisLabels[row.key]}</span>
                       <span className="tabular font-medium">{row.value}%</span>
                     </div>
                     <span
-                      className="mt-2 block h-[6px] origin-left bg-ink"
+                      className="mt-2 block h-[6px] origin-left rtl:origin-right bg-ink"
                       style={{ width: `${row.value}%` }}
                       aria-hidden="true"
                     />

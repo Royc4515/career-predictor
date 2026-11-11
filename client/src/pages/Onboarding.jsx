@@ -4,6 +4,8 @@ import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { useAuth } from '../app/AuthContext';
 import Masthead from '../components/Masthead';
 import { OWN_PHOTO_OPTION, QUESTIONS, QUIZ_STEPS } from '../content';
+import { useLang } from '../i18n/LangContext';
+import { optionLabel, quizSteps } from '../i18n/content';
 import PhotoConsent from '../components/PhotoConsent';
 import { fetchFeatures } from '../lib/api';
 import { pendingPhoto } from '../lib/pendingPhoto';
@@ -42,20 +44,24 @@ function resolveStep(params, answers) {
 }
 
 function AnswerFile({ answers }) {
+  const { lang, copy } = useLang();
+  const steps = quizSteps(lang);
   return (
     <aside aria-labelledby="file-heading" className="bg-paper-2 p-6">
       <h2 id="file-heading" className="font-display text-[1.5rem] leading-tight">
-        Your file so far
+        {copy.quiz.fileHeading}
       </h2>
       <dl className="mt-5 space-y-4">
-        {STEPS.map((q) => (
+        {steps.map((q) => (
           <div key={q.id}>
             <dt className="meta">{q.label}</dt>
             <dd className="mt-1">
               {answers[q.id] ? (
-                <span className="font-display marker px-1 text-[1.1rem] leading-snug">{answers[q.id]}</span>
+                <span className="font-display marker px-1 text-[1.1rem] leading-snug">
+                  {optionLabel(lang, answers[q.id])}
+                </span>
               ) : (
-                <span className="text-ink-3">Not yet answered</span>
+                <span className="text-ink-3">{copy.quiz.notYet}</span>
               )}
             </dd>
           </div>
@@ -99,10 +105,15 @@ export default function Onboarding() {
     };
   }, []);
 
-  const stepDef = STEPS[step];
+  const { lang, copy } = useLang();
+  const stepDef = quizSteps(lang)[step];
   const current =
     stepDef.options.includes(OWN_PHOTO_OPTION) && !canUsePhoto
-      ? { ...stepDef, options: stepDef.options.filter((o) => o !== OWN_PHOTO_OPTION) }
+      ? {
+          ...stepDef,
+          options: stepDef.options.filter((o) => o !== OWN_PHOTO_OPTION),
+          labels: stepDef.labels.filter((_, i) => stepDef.options[i] !== OWN_PHOTO_OPTION),
+        }
       : stepDef;
   const selected = answers[current.id];
   // Picking "Use my own photo" opens the consent panel instead of moving on;
@@ -220,13 +231,13 @@ export default function Onboarding() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <Masthead right={<p className="meta">{name ? `Questionnaire for ${name}` : 'Questionnaire'}</p>} />
+      <Masthead right={<p className="meta">{copy.quiz.for(name)}</p>} />
 
       <main id="main" className="flex-1 px-4 pt-3 pb-10 sm:px-8 sm:pt-14 sm:pb-16">
         <div className="mx-auto max-w-[1240px]">
           <div className="flex items-center justify-between gap-4">
             <p className="meta tabular" aria-live="polite">
-              {isQuestion ? `Question ${step + 1} of ${QUESTIONS.length}` : 'For the photographer'}
+              {isQuestion ? copy.quiz.questionOf(step + 1, QUESTIONS.length) : copy.quiz.photographer}
             </p>
             <button
               type="button"
@@ -234,19 +245,19 @@ export default function Onboarding() {
               disabled={step === 0}
               className="meta link-ink min-h-[44px] text-ink disabled:invisible"
             >
-              Previous question
+              {copy.quiz.previous}
             </button>
           </div>
           <div
             className="mt-2 h-[3px] bg-paper-3"
             role="progressbar"
-            aria-label="Questionnaire progress"
+            aria-label={copy.quiz.progress}
             aria-valuemin={0}
             aria-valuemax={STEPS.length}
             aria-valuenow={answeredCount}
           >
             <m.div
-              className="h-full origin-left bg-ink"
+              className="h-full origin-left bg-ink rtl:origin-right"
               initial={false}
               animate={{ transform: `scaleX(${answeredCount / STEPS.length})` }}
               transition={{ duration: 0.3, ease: EASE_IN_OUT }}
@@ -288,7 +299,7 @@ export default function Onboarding() {
                           tabIndex={isSelected || (!selected && i === 0) ? 0 : -1}
                           onClick={() => choose(option)}
                           onKeyDown={(e) => onOptionKeyDown(e, i)}
-                          className="group flex min-h-[56px] w-full items-center gap-4 border-b border-rule py-3 text-left sm:min-h-[68px] sm:py-4 transition-colors duration-150 active:bg-paper-2 sm:-mx-3 sm:w-[calc(100%+1.5rem)] sm:gap-7 sm:px-3 [@media(hover:hover)]:hover:bg-paper-2"
+                          className="group flex min-h-[56px] w-full items-center gap-4 border-b border-rule py-3 text-start sm:min-h-[68px] sm:py-4 transition-colors duration-150 active:bg-paper-2 sm:-mx-3 sm:w-[calc(100%+1.5rem)] sm:gap-7 sm:px-3 [@media(hover:hover)]:hover:bg-paper-2"
                         >
                           <kbd
                             className={`grid size-8 shrink-0 place-items-center rounded-[3px] border font-sans text-[0.8rem] font-semibold transition-colors ${
@@ -309,11 +320,21 @@ export default function Onboarding() {
                               animate={
                                 reduce
                                   ? { opacity: isSelected ? 1 : 0 }
-                                  : { clipPath: isSelected ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)' }
+                                  : {
+                                      // Drawn in reading direction: from the right in Hebrew.
+                                      clipPath:
+                                        lang === 'he'
+                                          ? isSelected
+                                            ? 'inset(0 0 0 0%)'
+                                            : 'inset(0 0 0 100%)'
+                                          : isSelected
+                                            ? 'inset(0 0% 0 0)'
+                                            : 'inset(0 100% 0 0)',
+                                    }
                               }
                               transition={{ duration: reduce ? 0.15 : 0.3, ease: EASE_OUT }}
                             />
-                            <span className="relative">{option}</span>
+                            <span className="relative">{current.labels[i]}</span>
                           </span>
                         </button>
                       );
@@ -321,6 +342,7 @@ export default function Onboarding() {
                   </div>
                   {wantsPhoto && (
                     <PhotoConsent
+                      headingLevel={2}
                       className="mt-6"
                       onPhoto={onPhoto}
                       onCancel={() => {
@@ -335,7 +357,7 @@ export default function Onboarding() {
               </AnimatePresence>
 
               <p className="meta mt-6 hidden [@media(pointer:fine)]:block">
-                Keys A to {LETTERS[current.options.length - 1]} answer. Backspace goes back.
+                {copy.quiz.keysHint(LETTERS[current.options.length - 1])}
               </p>
             </div>
 

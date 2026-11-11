@@ -180,7 +180,10 @@ their back issue.
   sends `X-Portrait-Consent: v2`.
 - **Server:** a v2 portrait is linked to the current issue
   (`covers.personal_image_id`). A retake keeps it on that issue. "Remove my
-  photo" deletes it everywhere. Removing a back issue deletes its portrait.
+  photo from every issue" (the result page) deletes every portrait of the
+  reader, current and archived, at once: the face is what is being
+  withdrawn. Removing one back issue in the gallery deletes just its
+  portrait.
   The 30-issue cap deletes the portraits of the issues it prunes.
 - **Old consent:** a portrait uploaded with `yes` (v1, "deleted on a
   retake") is never linked, and a retake still deletes it, as that wording
@@ -188,3 +191,14 @@ their back issue.
 - **Serving:** `GET /api/user/portrait/image/:id` serves an archived
   portrait to its owner only. An archived one with no bytes and no job
   running answers 410, and the gallery falls back to the shared portrait.
+
+## 7. Take a selfie (November 2026)
+
+Next to "Choose a photo", after the same consent box: "Take a selfie". On a
+phone it is a file input with `capture="user"`, which opens the front camera
+in the phone's own camera UI. On a computer it opens an in-page viewfinder
+(`components/CameraCapture.jsx`, `getUserMedia`, mirrored preview, take /
+retake / use), and the camera is released whenever the dialog closes. With
+no camera API (or off https) the button is not shown. Either way the shot
+is a JPEG File that goes through `preparePhoto` like a chosen photo, so the
+size limit, EXIF handling and the server's re-encoding are unchanged.
