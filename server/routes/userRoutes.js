@@ -12,6 +12,8 @@ const {
   archivePersonalPortrait,
   unarchivePersonalPortrait,
   isPersonalPortraitArchived,
+  allPersonalPortraitIds,
+  unarchiveAllPersonalPortraits,
 } = require('../db');
 const { getImageService, getPersonalPortraitService } = require('../services/image/instance');
 const { normalizePhoto, PhotoError, MAX_UPLOAD_BYTES } = require('../photoUpload');
@@ -392,17 +394,23 @@ router.post(
   ),
 );
 
-// DELETE /api/user/portrait - remove the personal portrait; the cover goes
-// back to the desk's portrait.
+// DELETE /api/user/portrait - "Remove my photo": delete every portrait of the
+// reader's face, the current one and any kept on back issues, and the covers
+// go back to the desk's portrait. Their face is the thing being withdrawn,
+// so it goes everywhere at once; a single back issue (and its portrait) can
+// still be removed on its own from the gallery.
 router.delete(
   '/portrait',
   requireAuth,
   asyncRoute(
     async (req, res) => {
-      const row = await getOnboardingByUserId(req.user.id);
-      await deletePersonalImage(row?.personal_image_id);
-      if (row?.personal_image_id) await unarchivePersonalPortrait(req.user.id, row.personal_image_id);
-      if (row) await clearPersonalPortrait(req.user.id);
+      const userId = req.user.id;
+      const ids = await allPersonalPortraitIds(userId);
+      // Unlink first: a delete that fails half way leaves orphaned bytes
+      // nobody can reach, never a gallery link to a deleted image.
+      await unarchiveAllPersonalPortraits(userId);
+      await clearPersonalPortrait(userId);
+      for (const id of ids) await deletePersonalImage(id);
       res.status(204).end();
     },
     { label: 'DELETE /api/user/portrait', message: 'Could not remove your portrait. Please try again.' },

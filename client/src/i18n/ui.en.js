@@ -168,7 +168,7 @@ export const UI_EN = {
     which: 'Portrait on the cover',
     you: 'You',
     desk: 'The desk’s pick',
-    remove: 'Remove my photo',
+    remove: 'Remove my photo from every issue',
     removing: 'Removing…',
     failed:
       'The darkroom could not develop this one, so your cover keeps the desk’s portrait. A clear, front-facing photo in good light works best.',

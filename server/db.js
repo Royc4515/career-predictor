@@ -332,6 +332,24 @@ async function unarchivePersonalPortrait(userId, imageId) {
   });
 }
 
+/**
+ * Every personal portrait the user has, current or on a back issue (ids,
+ * deduplicated), so "Remove my photo" can delete their face everywhere.
+ */
+async function allPersonalPortraitIds(userId) {
+  const result = await client.execute({
+    sql: `SELECT personal_image_id AS id FROM onboarding WHERE user_id = ? AND personal_image_id IS NOT NULL
+          UNION SELECT personal_image_id FROM covers WHERE user_id = ? AND personal_image_id IS NOT NULL`,
+    args: [userId, userId],
+  });
+  return result.rows.map((row) => row.id);
+}
+
+/** Unlink every personal portrait from the user's back issues. */
+async function unarchiveAllPersonalPortraits(userId) {
+  await client.execute({ sql: 'UPDATE covers SET personal_image_id = NULL WHERE user_id = ?', args: [userId] });
+}
+
 /** True if this personal portrait is on one of the user's back issues. */
 async function isPersonalPortraitArchived(userId, imageId) {
   const result = await client.execute({
@@ -376,4 +394,6 @@ module.exports = {
   archivePersonalPortrait,
   unarchivePersonalPortrait,
   isPersonalPortraitArchived,
+  allPersonalPortraitIds,
+  unarchiveAllPersonalPortraits,
 };

@@ -180,7 +180,10 @@ their back issue.
   sends `X-Portrait-Consent: v2`.
 - **Server:** a v2 portrait is linked to the current issue
   (`covers.personal_image_id`). A retake keeps it on that issue. "Remove my
-  photo" deletes it everywhere. Removing a back issue deletes its portrait.
+  photo from every issue" (the result page) deletes every portrait of the
+  reader, current and archived, at once: the face is what is being
+  withdrawn. Removing one back issue in the gallery deletes just its
+  portrait.
   The 30-issue cap deletes the portraits of the issues it prunes.
 - **Old consent:** a portrait uploaded with `yes` (v1, "deleted on a
   retake") is never linked, and a retake still deletes it, as that wording

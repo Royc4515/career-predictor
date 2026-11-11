@@ -258,13 +258,20 @@ test('a v2 portrait stays on its back issue after a retake, private to its owner
   assert.equal((await fetch(`${base}/api/user/portrait/image/${id}`)).status, 404);
 });
 
-test('"Remove my photo" on the result page removes a v2 portrait from the archive too', async () => {
+test('"Remove my photo" deletes every portrait of the reader, current and on back issues', async () => {
   currentUser = 3;
-  const id = await shootV2();
-  assert.equal(idOf((await (await fetch(base + '/api/user/covers')).json()).covers[0].personalImageUrl), id);
+  const older = await shootV2();
+  assert.equal((await json('POST', '/api/user/onboarding', ANSWERS)).status, 200);
+  const current = await shootV2();
+  let { covers } = await (await fetch(base + '/api/user/covers')).json();
+  assert.deepEqual(covers.slice(0, 2).map((c) => idOf(c.personalImageUrl)), [current, older]);
+
   assert.equal((await fetch(base + '/api/user/portrait', { method: 'DELETE' })).status, 204);
-  assert.equal((await (await fetch(base + '/api/user/covers')).json()).covers[0].personalImageUrl, null);
-  assert.equal(await images.blobStore.get(id), null);
+  ({ covers } = await (await fetch(base + '/api/user/covers')).json());
+  assert.ok(covers.every((c) => c.personalImageUrl === null), 'no issue still shows a face');
+  assert.equal(await images.blobStore.get(current), null);
+  assert.equal(await images.blobStore.get(older), null, 'the older issue\'s portrait is gone too');
+  assert.equal((await fetch(`${base}/api/user/portrait/image/${older}`)).status, 404);
 });
 
 test('choosing a back issue makes it current again, with its own portrait', async () => {
