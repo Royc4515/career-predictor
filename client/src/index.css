@@ -3,9 +3,9 @@
 /* Self-hosted so the first paint never waits on a third-party font CDN.
    opsz files carry the optical-size axis: display sizes get the tight,
    high-contrast cut automatically via font-optical-sizing. */
-@import '@fontsource-variable/newsreader/opsz.css';
-@import '@fontsource-variable/newsreader/opsz-italic.css';
-@import '@fontsource-variable/schibsted-grotesk/wght.css';
+/* The fontsource faces, trimmed to the weights in use (scripts/trim-fonts.py):
+   about a fifth less to download on a first visit. */
+@import './fonts.css';
 
 /* ── Design tokens ────────────────────────────────────────────────────────
    Office supplies, because the joke is a corporate career assessment:
