@@ -37,6 +37,9 @@ export const SAFELIGHT = 'rgba(214, 92, 38, 0.38)';
  * line, for the loading page. onRevealed fires once the photo is fully shown.
  * lazy: a cover in a long list (the back issues) loads its photo only near
  * the viewport, which keeps a gallery visit inside the bandwidth budget.
+ * pressReady: with reveal="press", false keeps a decoded photo waiting in
+ * the darkroom until it turns true, so a row of covers can press in turn.
+ * pressPace: speed of that press (1 = the hero's full run; lower is quicker).
  */
 export default function Cover({
   title,
@@ -50,6 +53,8 @@ export default function Cover({
   printing = false,
   onRevealed,
   lazy = false,
+  pressReady = true,
+  pressPace = 1,
   className = '',
 }) {
   const reduce = useReducedMotion();
@@ -77,7 +82,10 @@ export default function Cover({
   // without the photo when a canvas is tainted.
   const corsSafe = isOwnImageUrl(imageUrl);
   const press = reveal === 'press' && corsSafe && !reduce && supportsWebGL2();
-  const pressing = press && wantPhoto && loaded && revealedUrl !== imageUrl;
+  // pressReady false holds a decoded photo in the darkroom until the caller
+  // gives this cover its turn (the back-issue rack runs one press at a time).
+  const waitingForPress = press && wantPhoto && loaded && revealedUrl !== imageUrl && !pressReady;
+  const pressing = press && wantPhoto && loaded && revealedUrl !== imageUrl && pressReady;
 
   // Shared by the normal ending and the error fallback: either way the real
   // photo is shown and the caller hears that the cover is complete.
@@ -100,7 +108,7 @@ export default function Cover({
   // Keep the safelight on until the photo has decoded: HEAD saying "ready"
   // only means the bytes exist, and on a slow connection the download can
   // outlast the develop animation.
-  const darkroom = !(wantPhoto && loaded);
+  const darkroom = !(wantPhoto && loaded) || waitingForPress;
   const breathing = status === 'pending' && !specimen && !reduce;
 
   return (
@@ -143,7 +151,7 @@ export default function Cover({
             onRevealed?.();
           }}
           className={`absolute inset-0 -z-10 h-full w-full object-cover ${
-            !loaded || pressing ? 'opacity-0' : press ? '' : 'develop'
+            !loaded || pressing || waitingForPress ? 'opacity-0' : press ? '' : 'develop'
           }`}
         />
       )}
@@ -151,7 +159,7 @@ export default function Cover({
       {pressing && (
         <EffectBoundary onError={finishPress}>
           <Suspense fallback={null}>
-            <HalftoneReveal image={imgRef.current} onDone={finishPress} />
+            <HalftoneReveal image={imgRef.current} onDone={finishPress} pace={pressPace} />
           </Suspense>
         </EffectBoundary>
       )}

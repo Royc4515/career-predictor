@@ -6,13 +6,12 @@ import Masthead from '../components/Masthead';
 import Cover from '../components/Cover';
 import TiltCard from '../components/effects/TiltCard';
 import Stamp from '../components/effects/Stamp';
-import Odometer from '../components/effects/Odometer';
 import Footer from '../components/Footer';
 import PersonalPortrait from '../components/PersonalPortrait';
-import { useToast } from '../components/Toast';
+import Report from '../components/Report';
+import SharePanel from '../components/SharePanel';
 import { useImageReady } from '../hooks/useImageReady';
 import { authUrls, fetchResult } from '../lib/api';
-import { analysisRows } from '../lib/analysis';
 import { renderCoverBlob } from '../lib/coverCanvas';
 import { coverFileName } from '../lib/coverLayout';
 import { downloadBlob } from '../lib/download';
@@ -21,7 +20,7 @@ import { EASE_OUT, rise } from '../lib/motion';
 import { setNavDirection } from '../lib/navDirection';
 import { cachedResult, draftAnswers, stampSeen } from '../lib/storage';
 import { useLang } from '../i18n/LangContext';
-import { analysisNotes, careerCopy, findingFor, optionLabel } from '../i18n/content';
+import { careerCopy } from '../i18n/content';
 import { formatDate } from '../lib/issue';
 import { localizeError } from '../lib/errors';
 
@@ -89,11 +88,11 @@ export default function Result() {
   const imageStatus = useImageReady(coverUrl);
   const [coverBlob, setCoverBlob] = useState(null);
   const [justSaved, setJustSaved] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [revealed, setRevealed] = useState(false);
   // Decided once per mount: slam the stamp only the first time this session.
   const [slam] = useState(() => !(result && stampSeen.has(result.careerTitle)));
   const savedTimer = useRef(null);
-  const [toast, showToast] = useToast();
   const name = firstName(user?.name);
   const { lang, copy } = useLang();
   const t = copy.result;
@@ -169,25 +168,6 @@ export default function Result() {
     savedTimer.current = setTimeout(() => setJustSaved(false), SAVED_LABEL_MS);
   }, [coverBlob, result]);
 
-  const share = useCallback(async () => {
-    if (!result) return;
-    const url = window.location.origin;
-    const text = t.shareText(career.title);
-    try {
-      const file = coverBlob ? new File([coverBlob], coverFileName(result.careerTitle), { type: 'image/png' }) : null;
-      if (file && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], text: `${text} ${url}` });
-      } else if (navigator.share) {
-        await navigator.share({ text, url });
-      } else {
-        await navigator.clipboard.writeText(`${text} ${url}`);
-        showToast(t.linkCopied);
-      }
-    } catch (err) {
-      if (err?.name !== 'AbortError') showToast(t.cantShare);
-    }
-  }, [coverBlob, result, showToast, t, career?.title]);
-
   const retake = useCallback(() => {
     cachedResult.clear();
     draftAnswers.clear();
@@ -253,7 +233,6 @@ export default function Result() {
   return (
     <div className="min-h-dvh">
       {header}
-      {toast}
 
       <main id="main" className="px-4 sm:px-8">
         <div className="mx-auto grid max-w-[1240px] gap-5 pt-4 pb-20 sm:gap-12 sm:pt-12 lg:grid-cols-12 lg:gap-10">
@@ -295,7 +274,12 @@ export default function Result() {
               >
                 <SwapLabel text={downloadLabel} />
               </button>
-              <button type="button" onClick={share} className="btn btn-secondary">
+              <button
+                type="button"
+                onClick={() => setSharing((open) => !open)}
+                aria-expanded={sharing}
+                className="btn btn-secondary"
+              >
                 {t.share}
               </button>
               <button type="button" onClick={retake} className="link-ink min-h-[44px] text-ink">
@@ -310,6 +294,14 @@ export default function Result() {
                 {t.backIssues}
               </Link>
             </section>
+
+            {sharing && (
+              <SharePanel
+                title={careerTitle}
+                hasFace={personal?.status === 'ready'}
+                onClose={() => setSharing(false)}
+              />
+            )}
 
             {imageStatus === 'failed' && (
               <p className="text-body mt-5" role="status">
@@ -330,80 +322,7 @@ export default function Result() {
               onChange={changePersonal}
             />
 
-            {evidence.length > 0 && (
-              <section aria-labelledby="evidence-heading" className="mt-12 border-t border-ink pt-6">
-                <h2 id="evidence-heading" className="font-display text-section">
-                  {t.evidence}
-                </h2>
-                {/* Quote, then the analyst's conclusion: the satire is the
-                    straight face between the two. */}
-                <dl className="mt-5 space-y-5">
-                  {evidence.map((quote) => (
-                    <div key={quote} className="border-s-2 border-mark ps-4">
-                      <dt className="text-body font-medium text-ink">
-                        {lang === 'he' ? '״' : '“'}
-                        {optionLabel(lang, quote)}
-                        {lang === 'he' ? '״' : '”'}
-                      </dt>
-                      {findingFor(lang, quote) && (
-                        <dd className="font-display mt-1 text-[1.15rem] leading-snug text-ink-2 italic">
-                          {findingFor(lang, quote)}
-                        </dd>
-                      )}
-                    </div>
-                  ))}
-                </dl>
-              </section>
-            )}
-
-            <section aria-labelledby="figures-heading" className="mt-12 border-t border-ink pt-6">
-              <h2 id="figures-heading" className="font-display text-section">
-                {t.figures}
-              </h2>
-              <dl className="mt-5 grid gap-6 bg-paper-2 p-6 sm:grid-cols-[0.8fr_1.1fr_1.1fr] sm:gap-8">
-                <div>
-                  <dt className="meta">{t.happiness}</dt>
-                  <dd className="mt-1">
-                    <Odometer
-                      value={stats.happiness}
-                      delay={0.4}
-                      className="font-display tabular text-[2.6rem] leading-none"
-                    />
-                    <span> / 100</span>
-                  </dd>
-                </div>
-                <div>
-                  <dt className="meta">{t.salary}</dt>
-                  <dd className="font-display mt-1 text-[1.3rem] leading-snug">{career.salary}</dd>
-                </div>
-                <div>
-                  <dt className="meta">{t.outlook}</dt>
-                  <dd className="font-display mt-1 text-[1.3rem] leading-snug">{career.outlook}</dd>
-                </div>
-              </dl>
-            </section>
-
-            <section aria-labelledby="analysis-heading" className="mt-10 border-t border-ink pt-6">
-              <h2 id="analysis-heading" className="font-display text-section">
-                {t.analysis}
-              </h2>
-              <ul className="mt-4 space-y-5">
-                {analysisRows(stats.happiness, analysisNotes(lang)).map((row) => (
-                  <li key={row.label}>
-                    <div className="text-body flex items-baseline justify-between gap-4">
-                      <span>{t.analysisLabels[row.key]}</span>
-                      <span className="tabular font-medium">{row.value}%</span>
-                    </div>
-                    <span
-                      className="mt-2 block h-[6px] origin-left rtl:origin-right bg-ink"
-                      style={{ width: `${row.value}%` }}
-                      aria-hidden="true"
-                    />
-                    <p className="font-display mt-2 text-[1.05rem] leading-snug text-ink-2 italic">{row.note}</p>
-                  </li>
-                ))}
-              </ul>
-            </section>
+            <Report evidence={evidence} stats={stats} career={career} />
           </article>
         </div>
       </main>

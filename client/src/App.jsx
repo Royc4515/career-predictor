@@ -109,6 +109,9 @@ const router = createBrowserRouter([
           { path: '/issues', lazy: page(() => import('./pages/Issues')), handle: { title: 'issues' } },
         ],
       },
+      // Public: a shared issue needs no sign-in. The server writes this
+      // page's link-preview tags (server/routes/shareRoutes.js).
+      { path: '/s/:token', lazy: page(() => import('./pages/SharePage')), handle: { title: 'share' } },
       { path: '*', element: <NotFound />, handle: { title: 'notFound' } },
     ],
   },
