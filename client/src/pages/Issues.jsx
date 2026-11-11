@@ -35,6 +35,13 @@ function BackIssue({ cover, number, onRemove, removing, onOpen }) {
   // Removing an issue with the reader's own face deletes that portrait for
   // good, so it asks first; a desk portrait can always be shot again.
   const [confirming, setConfirming] = useState(false);
+  const removeRef = useRef(null);
+  // "Keep it" unmounts the button that had focus: hand focus back to Remove
+  // instead of letting it fall to <body>.
+  function keep() {
+    setConfirming(false);
+    requestAnimationFrame(() => removeRef.current?.focus());
+  }
   return (
     <li>
       <div className="relative">
@@ -65,6 +72,7 @@ function BackIssue({ cover, number, onRemove, removing, onOpen }) {
         ) : (
           !confirming && (
             <button
+              ref={removeRef}
               type="button"
               onClick={() => (mine ? setConfirming(true) : onRemove(cover.id))}
               disabled={removing}
@@ -80,7 +88,7 @@ function BackIssue({ cover, number, onRemove, removing, onOpen }) {
           <p className="meta text-ink">Your photo on this cover is deleted too.</p>
           <div className="mt-1 flex flex-wrap gap-x-4">
             {/* Focus lands on the safe choice. */}
-            <button type="button" autoFocus onClick={() => setConfirming(false)} className="link-ink tap meta text-ink">
+            <button type="button" autoFocus onClick={keep} className="link-ink tap meta text-ink">
               Keep it
             </button>
             <button
@@ -230,6 +238,7 @@ export default function Issues() {
   const [error, setError] = useState(null);
   const [removing, setRemoving] = useState(null);
   const [opened, setOpened] = useState(null);
+  const headingRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -246,6 +255,8 @@ export default function Issues() {
     try {
       await deleteCover(id);
       setCovers((list) => list.filter((c) => c.id !== id));
+      // The removed card took focus with it; land on the page heading.
+      requestAnimationFrame(() => headingRef.current?.focus());
     } catch (err) {
       setError(err.message);
     } finally {
@@ -265,7 +276,9 @@ export default function Issues() {
       <main id="main" className="flex-1 px-4 pt-8 pb-20 sm:px-8 sm:pt-12">
         <div className="mx-auto max-w-[1240px]">
           <m.h1
-            className="font-display text-title text-balance"
+            ref={headingRef}
+            tabIndex={-1}
+            className="font-display text-title text-balance outline-none"
             initial={{ opacity: 0, transform: 'translateY(8px)' }}
             animate={{ opacity: 1, transform: 'translateY(0px)' }}
             transition={{ duration: 0.4, ease: EASE_OUT }}

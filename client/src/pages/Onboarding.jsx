@@ -321,6 +321,7 @@ export default function Onboarding() {
                   </div>
                   {wantsPhoto && (
                     <PhotoConsent
+                      headingLevel={2}
                       className="mt-6"
                       onPhoto={onPhoto}
                       onCancel={() => {

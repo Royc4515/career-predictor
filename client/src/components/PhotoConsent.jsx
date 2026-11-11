@@ -10,7 +10,9 @@ import { PhotoInputError, preparePhoto } from '../lib/photo';
  * own photo. Nothing leaves the browser here: onPhoto gets the prepared
  * JPEG Blob and the caller decides when to upload it.
  */
-export default function PhotoConsent({ onPhoto, onCancel, busyLabel = null, className = '' }) {
+export default function PhotoConsent({ onPhoto, onCancel, busyLabel = null, className = '', headingLevel = 3 }) {
+  // h3 under the result page's h2 section; h2 on the quiz, right under its h1.
+  const Heading = `h${headingLevel}`;
   const panelRef = useRef(null);
   const reduce = useReducedMotion();
   // On a phone the panel opens below the fold; bring it into view so the
@@ -43,7 +45,7 @@ export default function PhotoConsent({ onPhoto, onCancel, busyLabel = null, clas
 
   return (
     <div ref={panelRef} className={`max-w-[36rem] scroll-mb-6 bg-paper-2 p-5 sm:p-6 ${className}`}>
-      <h3 className="font-display text-[1.25rem] leading-tight">Before you send a selfie</h3>
+      <Heading className="font-display text-[1.25rem] leading-tight">Before you send a selfie</Heading>
       <ul className="mt-3 list-disc space-y-1 pl-5 text-[0.95rem] leading-normal sm:space-y-1.5 sm:text-body">
         <li>Your photo goes to Pollinations and the Microsoft image model behind it, once, to make this cover.</li>
         <li>We keep it in memory only, never on disk, and delete it within ten minutes.</li>

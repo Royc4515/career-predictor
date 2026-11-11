@@ -169,6 +169,17 @@ export const PRESS_STEPS = [
   'Sending the cover to print',
 ];
 
+// Browser tab titles, one per page (WCAG 2.4.2): the tab and a screen
+// reader's page announcement say where you are, not just the site name.
+export const PAGE_TITLES = {
+  landing: 'CareerPredict | The Forecast Issue',
+  onboarding: 'The questionnaire | CareerPredict',
+  loading: 'Printing your cover | CareerPredict',
+  result: 'Your cover | CareerPredict',
+  issues: 'Your back issues | CareerPredict',
+  notFound: 'Page not found | CareerPredict',
+};
+
 export const LINKS = {
   linkedin: 'https://www.linkedin.com/in/roy-carmelli/',
   github: 'https://github.com/Royc4515',

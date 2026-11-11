@@ -72,6 +72,11 @@
     outline: 2px solid var(--color-ink);
     outline-offset: 3px;
   }
+  /* <main> takes focus on navigation (App.jsx usePageChange) only so the
+     next Tab starts there; it is not a control, so no ring. */
+  main:focus {
+    outline: none;
+  }
   /* No 300ms double-tap wait and no grey flash on iOS; focus-visible still
      covers keyboard users. */
   a,
