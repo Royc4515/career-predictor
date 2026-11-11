@@ -278,18 +278,30 @@ export default function Result() {
               )}
               <section
                 aria-label={t.actions}
-                className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 sm:mt-8 sm:gap-3"
+                className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2 sm:mt-8 sm:gap-3"
               >
                 <button
                   type="button"
                   onClick={download}
                   disabled={!coverBlob}
-                  className="btn btn-primary sm:min-w-[14rem]"
+                  className="btn btn-primary max-sm:px-4 sm:min-w-[14rem]"
                   aria-live="polite"
                 >
                   <SwapLabel text={downloadLabel} />
                 </button>
-                <button type="button" onClick={shareLink.share} className="btn btn-secondary">
+                <a
+                  href={shareLink.whatsappHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={shareLink.toWhatsApp}
+                  aria-label={t.whatsappLabel}
+                  className="btn btn-secondary max-sm:px-4"
+                >
+                  {t.whatsapp}
+                </a>
+                {/* Three buttons on one line on a 360px phone: the padding
+                    narrows there so the row doesn't wrap under the fold. */}
+                <button type="button" onClick={shareLink.share} className="btn btn-secondary max-sm:px-4">
                   {t.share}
                 </button>
                 <button type="button" onClick={retake} className="link-ink min-h-[44px] text-ink">
