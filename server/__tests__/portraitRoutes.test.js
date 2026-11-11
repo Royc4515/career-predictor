@@ -163,3 +163,34 @@ test('loading a saved result re-kicks its portrait and repoints a stale image id
     images.kickoff = original;
   }
 });
+
+test('back issues: newest first with the current one marked, portraits are the career\'s current scene', async () => {
+  currentUser = 1;
+  const other = { ...ANSWERS, desired_field: 'My own comments section' };
+  assert.equal((await json('POST', '/api/user/onboarding', other)).status, 200);
+  const res = await fetch(base + '/api/user/covers');
+  assert.equal(res.status, 200);
+  const { covers } = await res.json();
+  assert.ok(covers.length >= 2);
+  assert.equal(covers[0].current, true);
+  assert.equal(covers.filter((c) => c.current).length, 1);
+  const result = await (await fetch(base + '/api/user/result')).json();
+  assert.equal(covers[0].title, result.careerTitle);
+  assert.equal(covers[0].imageUrl, result.imageUrl);
+  for (const c of covers) assert.match(c.imageUrl, /\/api\/image\/[0-9a-f]{16}$/, 'shared portraits only');
+});
+
+test('back issues: delete your own, 404 for anyone else\'s, 400 for junk ids', async () => {
+  currentUser = 1;
+  const { covers } = await (await fetch(base + '/api/user/covers')).json();
+  const last = covers.at(-1);
+  currentUser = 2;
+  assert.equal((await fetch(`${base}/api/user/covers/${last.id}`, { method: 'DELETE' })).status, 404);
+  assert.equal((await fetch(`${base}/api/user/covers/1e3`, { method: 'DELETE' })).status, 400);
+  currentUser = 1;
+  assert.equal((await fetch(`${base}/api/user/covers/${last.id}`, { method: 'DELETE' })).status, 204);
+  const after = (await (await fetch(base + '/api/user/covers')).json()).covers;
+  assert.equal(after.length, covers.length - 1);
+  currentUser = null;
+  assert.equal((await fetch(base + '/api/user/covers')).status, 401);
+});

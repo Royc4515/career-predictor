@@ -60,6 +60,7 @@ const router = createBrowserRouter([
           { path: '/onboarding', lazy: page(() => import('./pages/Onboarding')) },
           { path: '/loading', lazy: page(() => import('./pages/Loading')) },
           { path: '/result', lazy: page(() => import('./pages/Result')) },
+          { path: '/issues', lazy: page(() => import('./pages/Issues')) },
         ],
       },
       { path: '*', element: <NotFound /> },

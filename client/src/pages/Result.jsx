@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AnimatePresence, m } from 'motion/react';
 import { useAuth } from '../app/AuthContext';
 import Masthead from '../components/Masthead';
@@ -285,6 +285,14 @@ export default function Result() {
               <button type="button" onClick={retake} className="link-ink min-h-[44px] text-ink">
                 Retake the questionnaire
               </button>
+              <Link
+                to="/issues"
+                viewTransition
+                onClick={() => setNavDirection('forward')}
+                className="link-ink tap min-h-[44px] content-center text-ink"
+              >
+                Your back issues
+              </Link>
             </section>
 
             {imageStatus === 'failed' && (

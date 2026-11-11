@@ -34,6 +34,8 @@ export const SAFELIGHT = 'rgba(214, 92, 38, 0.38)';
  * reveal: 'press' prints the photo in CMYK halftone first (WebGL2); 'develop'
  * is the darkroom fade. printing: misregistered plates and a print-head scan
  * line, for the loading page. onRevealed fires once the photo is fully shown.
+ * lazy: a cover in a long list (the back issues) loads its photo only near
+ * the viewport, which keeps a gallery visit inside the bandwidth budget.
  */
 export default function Cover({
   title,
@@ -46,6 +48,7 @@ export default function Cover({
   reveal = 'develop',
   printing = false,
   onRevealed,
+  lazy = false,
   className = '',
 }) {
   const reduce = useReducedMotion();
@@ -126,7 +129,8 @@ export default function Cover({
           alt=""
           width={896}
           height={1120}
-          fetchPriority="high"
+          fetchPriority={lazy ? 'auto' : 'high'}
+          loading={lazy ? 'lazy' : 'eager'}
           decoding="async"
           onLoad={() => setLoadedUrl(imageUrl)}
           onError={() => {
@@ -183,7 +187,9 @@ export default function Cover({
             style={{ fontSize: cqw(COVER.issueSize, 10) }}
           >
             <span>Issue {issue.number}</span>
-            <span>The Forecast</span>
+            {/* Dropped on a small cover (the back-issues grid on a phone), where
+                three items at the legibility floor would collide. */}
+            <span className="@max-[15rem]:hidden">The Forecast</span>
             <span>{issue.short}</span>
           </div>
         </div>

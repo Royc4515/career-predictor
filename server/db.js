@@ -7,6 +7,10 @@ const { createClient } = require('@libsql/client');
 // SQLite file, so development needs no account.
 const DEFAULT_FILE = path.join(__dirname, 'career-predictor.db');
 
+// Back issues kept per user; the oldest beyond this are pruned on each new
+// cover. Thirty covers is a long scroll and a bounded amount of rows.
+const MAX_BACK_ISSUES = 30;
+
 let client;
 
 function connectionConfig(env = process.env) {
@@ -67,6 +71,31 @@ async function initDB(config = connectionConfig()) {
   await addColumnIfMissing('onboarding', 'personal_image_id', 'TEXT');
   await addColumnIfMissing('onboarding', 'personal_status', 'TEXT');
   await addColumnIfMissing('onboarding', 'personal_consent_at', 'TEXT');
+
+  // "Your back issues": every cover a user has been given, newest first.
+  // `onboarding` stays the single current result (its row is replaced on a
+  // retake); this table is the archive. Personal portraits are deliberately
+  // not archived: the consent screen promises a retake deletes them.
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS covers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      career_result TEXT NOT NULL,
+      image_id TEXT,
+      portrait_subject TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await client.execute('CREATE INDEX IF NOT EXISTS covers_user_created ON covers (user_id, id DESC)');
+  // One-time import: users whose result predates the archive start with it as
+  // their first back issue. Idempotent (only users with no archived cover).
+  const imported = await client.execute(`
+    INSERT INTO covers (user_id, career_result, image_id, portrait_subject, created_at)
+    SELECT user_id, career_result, image_id, portrait_subject, completed_at FROM onboarding
+    WHERE user_id IS NOT NULL AND career_result IS NOT NULL
+      AND user_id NOT IN (SELECT DISTINCT user_id FROM covers)
+  `);
+  if (imported.rowsAffected) console.log(`[DB] Archived ${imported.rowsAffected} existing result(s) as back issues`);
 
   console.log('[DB] Schema ready');
   return client;
@@ -150,10 +179,37 @@ async function saveOnboarding({
           portraitSubject || null,
         ],
       },
+      // Archive the same cover and prune past the cap, in the same write
+      // batch, so the current result and the archive can't disagree.
+      {
+        sql: 'INSERT INTO covers (user_id, career_result, image_id, portrait_subject) VALUES (?, ?, ?, ?)',
+        args: [userId, careerResult, imageId || null, portraitSubject || null],
+      },
+      {
+        sql: `DELETE FROM covers WHERE user_id = ? AND id NOT IN (
+                SELECT id FROM covers WHERE user_id = ? ORDER BY id DESC LIMIT ?
+              )`,
+        args: [userId, userId, MAX_BACK_ISSUES],
+      },
     ],
     'write',
   );
   console.log('[DB] Onboarding saved for user ID:', userId);
+}
+
+/** A user's back issues, newest first. */
+async function getCovers(userId) {
+  const result = await client.execute({
+    sql: 'SELECT id, career_result, image_id, portrait_subject, created_at FROM covers WHERE user_id = ? ORDER BY id DESC',
+    args: [userId],
+  });
+  return result.rows.map(plain);
+}
+
+/** Remove one back issue; true if it existed and was the user's. */
+async function deleteCover(userId, coverId) {
+  const result = await client.execute({ sql: 'DELETE FROM covers WHERE id = ? AND user_id = ?', args: [coverId, userId] });
+  return result.rowsAffected > 0;
 }
 
 /** Point a saved result at its current shared portrait id. */
@@ -206,6 +262,9 @@ module.exports = {
   saveOnboarding,
   getOnboardingByUserId,
   updateImageId,
+  getCovers,
+  deleteCover,
+  MAX_BACK_ISSUES,
   setPersonalPortrait,
   updatePersonalStatus,
   clearPersonalPortrait,

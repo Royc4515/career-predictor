@@ -6,6 +6,8 @@ const {
   updatePersonalStatus,
   clearPersonalPortrait,
   updateImageId,
+  getCovers,
+  deleteCover,
 } = require('../db');
 const { getImageService, getPersonalPortraitService } = require('../services/image/instance');
 const { normalizePhoto, PhotoError, MAX_UPLOAD_BYTES } = require('../photoUpload');
@@ -182,6 +184,70 @@ router.get(
       });
     },
     { label: 'GET /api/user/result', message: 'Could not load your result. Please try again.' },
+  ),
+);
+
+/**
+ * The shared portrait for a saved career: the career's current scene (kicked
+ * off, idempotent) so an archived cover never points at a lost or outdated
+ * image, or the stored id for a career that has left the table.
+ */
+function portraitUrlFor(title, portraitSubject, storedImageId) {
+  const career = careerForTitle(title);
+  if (career) {
+    const { id } = getImageService().kickoff({
+      scenePrompt: promptFor(career, portraitSubject || 'surprise'),
+      title: career.title,
+    });
+    return imageUrlFor(id);
+  }
+  return storedImageId ? imageUrlFor(storedImageId) : null;
+}
+
+// GET /api/user/covers - "Your back issues": every cover the user has been
+// given, newest first (the first is the current result). Shared portraits
+// only: personal portraits are never archived.
+router.get(
+  '/covers',
+  requireAuth,
+  asyncRoute(
+    async (req, res) => {
+      const rows = await getCovers(req.user.id);
+      const covers = rows.map((row, i) => {
+        const parsed = JSON.parse(row.career_result);
+        return {
+          id: row.id,
+          title: parsed.title,
+          caption: parsed.caption || null,
+          happiness: parsed.happiness ?? null,
+          imageUrl: portraitUrlFor(parsed.title, row.portrait_subject, row.image_id),
+          filedAt: row.created_at,
+          current: i === 0,
+        };
+      });
+      res.json({ covers });
+    },
+    { label: 'GET /api/user/covers', message: 'Could not load your back issues. Please try again.' },
+  ),
+);
+
+// DELETE /api/user/covers/:id - drop one back issue from the archive. The
+// current result itself stays (retake or remove that from the result page).
+router.delete(
+  '/covers/:id',
+  requireAuth,
+  asyncRoute(
+    async (req, res) => {
+      const id = Number.parseInt(req.params.id, 10);
+      if (!Number.isInteger(id) || id <= 0 || String(id) !== req.params.id) {
+        return res.status(400).json({ error: 'Invalid cover id' });
+      }
+      const removed = await deleteCover(req.user.id, id);
+      // 404 for someone else's cover too: don't confirm it exists.
+      if (!removed) return res.status(404).json({ error: 'Not found' });
+      res.status(204).end();
+    },
+    { label: 'DELETE /api/user/covers', message: 'Could not remove that back issue. Please try again.' },
   ),
 );
 
