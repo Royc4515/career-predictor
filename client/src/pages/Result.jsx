@@ -289,17 +289,7 @@ export default function Result() {
                 >
                   <SwapLabel text={downloadLabel} />
                 </button>
-                <a
-                  href={shareLink.whatsappHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={shareLink.toWhatsApp}
-                  aria-label={t.whatsappLabel}
-                  className="btn btn-secondary max-sm:px-4"
-                >
-                  {t.whatsapp}
-                </a>
-                {/* Three buttons on one line on a 360px phone: the padding
+                {/* Download and Share on one line on a 360px phone: the padding
                     narrows there so the row doesn't wrap under the fold. */}
                 <button type="button" onClick={shareLink.share} className="btn btn-secondary max-sm:px-4">
                   {t.share}

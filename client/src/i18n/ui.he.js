@@ -152,8 +152,6 @@ export const UI_HE = {
     developing: 'מתפתח…',
     preparing: 'מכינים…',
     share: 'שיתוף',
-    whatsapp: 'וואטסאפ',
-    whatsappLabel: 'שיתוף בוואטסאפ',
     shareText: (title) => `דסק התחזיות אמר את דברו: אני ״${title}״. הדוח המלא:`,
     retake: 'מילוי השאלון מחדש',
     backIssues: 'הגיליונות הקודמים',

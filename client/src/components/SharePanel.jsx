@@ -15,10 +15,8 @@ import { shareLinks } from '../lib/storage';
  * files it in parallel. Safari refuses a share that starts after a network
  * wait; this used to cost a second tap.
  *
- * WhatsApp gets its own link (wa.me with the text and the link), so the
- * most used chat is one tap from the result page, not two. Its href needs
- * the token before the tap: `spare` is one made ahead, and nothing is
- * public until a tap files it.
+ * `spare` is the token the next new link will use, made ahead so the tap
+ * itself never waits; nothing is public until a tap files it.
  *
  * key: the issue's English title (one live link per issue this session).
  * text: the line the share sheet sends with the link.
@@ -106,14 +104,6 @@ export function useShareLink({ key, text, lang }) {
     }
   }, [begin, text, token, copyLink, update]);
 
-  // The anchor itself opens WhatsApp (app on a phone, WhatsApp Web on a
-  // computer); this only files the link, with keepalive so the request
-  // survives the page going to the background.
-  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`;
-  const toWhatsApp = useCallback(() => {
-    begin();
-  }, [begin]);
-
   const retry = useCallback(() => {
     if (!link) return;
     setError(null);
@@ -163,8 +153,6 @@ export function useShareLink({ key, text, lang }) {
     error,
     busy,
     share,
-    whatsappHref,
-    toWhatsApp,
     retry,
     stop,
     setFace,
