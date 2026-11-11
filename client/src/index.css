@@ -278,6 +278,18 @@ html:is([data-nav='forward'], [data-nav='back'])::view-transition-new(root) {
   }
 }
 
+/* The newsstand rack (IssueRack): a thin scrollbar that reads as part of
+   the page, and a soft fade at both ends so a cover cut by the edge looks
+   like it continues rather than broken. */
+.rack {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink) transparent;
+  mask-image: linear-gradient(to right, transparent, #000 1rem, #000 calc(100% - 1rem), transparent);
+}
+.rack:focus-visible {
+  outline-offset: 6px;
+}
+
 /* Reduced motion means gentler, not none: movement goes, fades stay, so
    state changes are still visible. */
 /* ── Print shop effects ─────────────────────────────────────────────────── */

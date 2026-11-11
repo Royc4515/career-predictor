@@ -42,6 +42,9 @@ export default function Masthead({ right = null }) {
       <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-4 border-b border-ink py-4">
         <Link
           to="/"
+          // Asked for on purpose: the front page stays put instead of sending
+          // a signed-in reader straight back to their cover.
+          state={{ home: true }}
           viewTransition
           onClick={() => setNavDirection(null)}
           aria-label={copy.common.home}

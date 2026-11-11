@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, m } from 'motion/react';
 import { useAuth } from '../app/AuthContext';
 import Masthead from '../components/Masthead';
@@ -8,7 +8,7 @@ import RevealText from '../components/RevealText';
 import Cover from '../components/Cover';
 import Footer from '../components/Footer';
 import TiltCard from '../components/effects/TiltCard';
-import IssueStack from '../components/effects/IssueStack';
+import IssueRack from '../components/IssueRack';
 import { authUrls } from '../lib/api';
 import { useSamples } from '../hooks/useSamples';
 import { useImageReady } from '../hooks/useImageReady';
@@ -60,12 +60,16 @@ export default function Landing() {
   const t = copy.landing;
   const samples = useSamples();
   const navigate = useNavigate();
+  const location = useLocation();
+  const askedForHome = Boolean(location.state?.home);
 
-  // A signed-in reader goes straight to their cover; the result page sends
-  // them on to the questionnaire if they have not finished it yet.
+  // A signed-in reader arriving at the site goes straight to their cover (the
+  // result page sends them on to the questionnaire if they have not finished
+  // it). Not when they clicked the masthead logo to come here: then this is
+  // the front page they asked for, not a detour to bounce off.
   useEffect(() => {
-    if (!loading && user) navigate('/result', { replace: true });
-  }, [user, loading, navigate]);
+    if (!loading && user && !askedForHome) navigate('/result', { replace: true });
+  }, [user, loading, navigate, askedForHome]);
 
   const authFailed = new URLSearchParams(window.location.search).get('error') === 'auth_failed';
 
@@ -92,8 +96,16 @@ export default function Landing() {
             </m.p>
 
             <m.div {...enter(0.4)} className="mt-8 flex flex-col items-start gap-4 sm:mt-10">
-              <GoogleButton>{t.start}</GoogleButton>
-              <p className="meta max-w-[26rem]">{t.signInNote}</p>
+              {user ? (
+                <Link to="/result" viewTransition className="btn btn-primary">
+                  {t.toCover}
+                </Link>
+              ) : (
+                <>
+                  <GoogleButton>{t.start}</GoogleButton>
+                  <p className="meta max-w-[26rem]">{t.signInNote}</p>
+                </>
+              )}
               {authFailed && (
                 <p role="alert" className="text-sm font-medium text-alert">
                   {t.authFailed}
@@ -107,9 +119,10 @@ export default function Landing() {
           </m.div>
         </section>
 
-        <IssueStack samples={samples} />
+        <IssueRack samples={samples} />
 
-        <section aria-labelledby="how-heading" className="mx-auto max-w-[1240px] border-t border-ink py-10 sm:py-24">
+        {/* No top rule: the back-issue shelf above already closes that section. */}
+        <section aria-labelledby="how-heading" className="mx-auto max-w-[1240px] py-10 sm:py-24">
           <h2 id="how-heading" className="font-display text-section">
             {t.howHeading}
           </h2>
@@ -140,12 +153,14 @@ export default function Landing() {
               ))}
             </dl>
           </div>
-          <p className="text-body mt-6 sm:mt-10">
-            {t.alreadyHave}{' '}
-            <a href={authUrls.google} className="link-ink tap">
-              {t.signInAgain}
-            </a>
-          </p>
+          {!user && (
+            <p className="text-body mt-6 sm:mt-10">
+              {t.alreadyHave}{' '}
+              <a href={authUrls.google} className="link-ink tap">
+                {t.signInAgain}
+              </a>
+            </p>
+          )}
         </section>
       </main>
 

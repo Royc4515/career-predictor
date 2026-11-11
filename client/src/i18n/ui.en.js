@@ -37,6 +37,7 @@ export const UI_EN = {
     hero: 'Your career, predicted with unwarranted confidence.',
     lede: 'Answer five questions and our editors will put you on the cover of a career magazine that does not exist. It takes about two minutes. The results are final.',
     start: 'Sign in with Google to start',
+    toCover: 'Back to your cover',
     signInNote:
       'Signing in keeps your cover saved. We keep your Google name, email, profile photo link and your five answers.',
     authFailed: 'Google sign-in didn’t complete. Try again, and allow access to your name and email.',
@@ -44,6 +45,9 @@ export const UI_EN = {
     anotherHeadline: 'Show another headline',
     stackHeading: 'Back issues',
     stackBody: 'Every headline here is a real outcome from the table. Yours is in there somewhere.',
+    rackLabel: 'Back issues, scroll sideways',
+    rackPrev: 'Previous covers',
+    rackNext: 'More covers',
     howHeading: 'How it works',
     steps: [
       {
