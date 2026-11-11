@@ -95,3 +95,66 @@ test('migrates the schema production Turso has today without losing its rows', a
   assert.equal(row.image_url, 'https://image.pollinations.ai/prompt/x');
   assert.equal(row.image_id, null);
 });
+
+// --- Back issues (covers) ---
+
+async function saveFor(userId, title) {
+  await db.saveOnboarding({
+    userId,
+    strength: 'a', mondayVibe: 'b', coworkerDesc: 'c', fiveYearGoal: 'd', desiredField: 'e',
+    careerResult: JSON.stringify({ title }),
+    imageId: 'abcdefabcdefabcd',
+    portraitSubject: 'surprise',
+  });
+}
+
+test('every saved result is archived as a back issue, newest first, while onboarding keeps one row', async () => {
+  const user = await db.upsertUser({ googleId: 'g-arch', email: 'a@x', name: 'A' });
+  await saveFor(user.id, 'First');
+  await saveFor(user.id, 'Second');
+  const covers = await db.getCovers(user.id);
+  assert.deepEqual(covers.map((c) => JSON.parse(c.career_result).title), ['Second', 'First']);
+  assert.equal(covers[0].portrait_subject, 'surprise');
+  assert.equal(JSON.parse((await db.getOnboardingByUserId(user.id)).career_result).title, 'Second');
+});
+
+test('the archive keeps at most MAX_BACK_ISSUES per user and never touches other users', async () => {
+  const a = await db.upsertUser({ googleId: 'g-cap-a', email: 'a@x', name: 'A' });
+  const b = await db.upsertUser({ googleId: 'g-cap-b', email: 'b@x', name: 'B' });
+  await saveFor(b.id, 'B only');
+  for (let i = 0; i < db.MAX_BACK_ISSUES + 3; i++) await saveFor(a.id, `Issue ${i}`);
+  const covers = await db.getCovers(a.id);
+  assert.equal(covers.length, db.MAX_BACK_ISSUES);
+  assert.equal(JSON.parse(covers[0].career_result).title, `Issue ${db.MAX_BACK_ISSUES + 2}`);
+  assert.equal(JSON.parse(covers.at(-1).career_result).title, 'Issue 3');
+  assert.equal((await db.getCovers(b.id)).length, 1);
+});
+
+test('deleteCover removes only the owner\'s cover', async () => {
+  const a = await db.upsertUser({ googleId: 'g-del-a', email: 'a@x', name: 'A' });
+  const b = await db.upsertUser({ googleId: 'g-del-b', email: 'b@x', name: 'B' });
+  await saveFor(a.id, 'Mine');
+  const [cover] = await db.getCovers(a.id);
+  assert.equal(await db.deleteCover(b.id, cover.id), false, 'not yours');
+  assert.equal((await db.getCovers(a.id)).length, 1);
+  assert.equal(await db.deleteCover(a.id, cover.id), true);
+  assert.equal((await db.getCovers(a.id)).length, 0);
+});
+
+test('existing results are imported once as the first back issue', async () => {
+  const restore = quiet();
+  const url = freshUrl();
+  const raw = createClient(url);
+  await raw.execute('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, google_id TEXT UNIQUE NOT NULL, email TEXT, name TEXT, avatar_url TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
+  await raw.execute(`CREATE TABLE onboarding (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, strength TEXT, monday_vibe TEXT,
+    coworker_desc TEXT, five_year_goal TEXT, desired_field TEXT, career_result TEXT, image_url TEXT, completed_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+  await raw.execute("INSERT INTO users (google_id) VALUES ('legacy')");
+  await raw.execute(`INSERT INTO onboarding (user_id, career_result) VALUES (1, '{"title":"Legacy Title"}')`);
+  raw.close();
+  await db.initDB(url);
+  await db.initDB(url); // a second boot must not import it twice
+  restore();
+  const covers = await db.getCovers(1);
+  assert.equal(covers.length, 1);
+  assert.equal(JSON.parse(covers[0].career_result).title, 'Legacy Title');
+});

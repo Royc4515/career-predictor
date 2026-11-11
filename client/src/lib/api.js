@@ -107,3 +107,22 @@ export async function deletePortrait() {
   }
   if (!res.ok) throw new ApiError(res.status, 'Could not remove your portrait. Try again.');
 }
+
+/** "Your back issues": the user's covers, newest first. */
+export async function fetchCovers() {
+  const data = await request('/api/user/covers');
+  return Array.isArray(data?.covers) ? data.covers : [];
+}
+
+export async function deleteCover(id) {
+  let res;
+  try {
+    res = await fetch(`${API_URL}/api/user/covers/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+  } catch {
+    throw new ApiError(0, 'Could not reach the newsroom. Check your connection and try again.');
+  }
+  if (!res.ok && res.status !== 404) throw new ApiError(res.status, 'Could not remove that issue. Try again.');
+}
