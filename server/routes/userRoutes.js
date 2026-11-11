@@ -55,6 +55,18 @@ async function personalState(row) {
   return { id, status };
 }
 
+/**
+ * Whether this result can get a personal portrait, and if not, why, so the
+ * page can say so instead of hiding the option: 'off' (not configured on
+ * this deployment) or 'old-issue' (a career from before the quiz redesign,
+ * with no identity-neutral scene; a retake fixes it).
+ */
+function personalAvailability(title) {
+  if (!getPersonalPortraitService().available) return { personalAvailable: false, personalBlocked: 'off' };
+  if (!personalSceneFor(title)) return { personalAvailable: false, personalBlocked: 'old-issue' };
+  return { personalAvailable: true, personalBlocked: null };
+}
+
 function personalView(state) {
   return state ? { status: state.status, imageUrl: personalImageUrl(state.id) } : null;
 }
@@ -135,6 +147,8 @@ router.post(
         imageUrl: imageUrlFor(imageId),
         stats: { happiness: career.happiness, salary: career.salary, outlook: career.outlook },
         evidence: career.evidence,
+        personal: null,
+        ...personalAvailability(career.title),
       });
     },
     { label: 'POST /api/user/onboarding', message: 'Could not save your result. Please try again.' },
@@ -178,9 +192,7 @@ router.get(
         // Results saved before the quiz redesign have no evidence.
         evidence: Array.isArray(parsed.evidence) ? parsed.evidence : [],
         personal: personalView(await personalState(row)),
-        // Whether this result can get a personal portrait (configured, and
-        // the career still has an identity-neutral scene).
-        personalAvailable: getPersonalPortraitService().available && Boolean(personalSceneFor(parsed.title)),
+        ...personalAvailability(parsed.title),
       });
     },
     { label: 'GET /api/user/result', message: 'Could not load your result. Please try again.' },

@@ -1,6 +1,6 @@
-import { useId, useRef, useState } from 'react';
+import { useState } from 'react';
 import { deletePortrait, uploadPortrait } from '../lib/api';
-import { PhotoInputError, preparePhoto } from '../lib/photo';
+import PhotoConsent from './PhotoConsent';
 
 /**
  * "Put your face on it": the opt-in personal portrait. Consent comes first
@@ -10,33 +10,25 @@ import { PhotoInputError, preparePhoto } from '../lib/photo';
  *
  * personal: { status: 'generating' | 'ready' | 'failed', imageUrl } or null.
  * showing: 'mine' | 'desk', which portrait the cover shows.
+ * blocked: why it isn't available ('old-issue' | 'off'); an old issue says
+ * so instead of the section silently missing. notice: a message carried over
+ * from the questionnaire (a selfie that couldn't be sent).
  */
-export default function PersonalPortrait({ personal, available, showing, onShow, onChange }) {
+export default function PersonalPortrait({ personal, available, blocked, notice, showing, onShow, onChange }) {
   const [open, setOpen] = useState(false);
-  const [agreed, setAgreed] = useState(false);
-  const [busy, setBusy] = useState(null); // 'preparing' | 'uploading' | 'removing'
+  const [busy, setBusy] = useState(null); // 'uploading' | 'removing'
   const [error, setError] = useState(null);
-  const fileRef = useRef(null);
-  const consentId = useId();
 
-  if (!available && !personal) return null;
+  if (!available && !personal && blocked !== 'old-issue') return null;
 
-  async function onFile(e) {
-    const file = e.target.files?.[0];
-    e.target.value = ''; // choosing the same file again should still fire
-    if (!file) return;
+  async function send(photo) {
     setError(null);
+    setBusy('uploading');
     try {
-      setBusy('preparing');
-      const photo = await preparePhoto(file);
-      setBusy('uploading');
       const next = await uploadPortrait(photo);
       setOpen(false);
-      setAgreed(false);
       onChange(next);
       onShow('mine');
-    } catch (err) {
-      setError(err instanceof PhotoInputError || err?.message ? err.message : 'Something went wrong. Try again.');
     } finally {
       setBusy(null);
     }
@@ -64,7 +56,20 @@ export default function PersonalPortrait({ personal, available, showing, onShow,
         Put your face on it
       </h2>
 
-      {!personal && !open && (
+      {notice && !personal && (
+        <p className="text-body mt-3" role="status">
+          {notice}
+        </p>
+      )}
+
+      {!available && !personal && blocked === 'old-issue' && (
+        <p className="text-body mt-3 max-w-[34rem]">
+          This cover is from an older issue of the questionnaire. Retake it and pick &ldquo;Use my own photo&rdquo; on
+          the last step to be on the cover yourself.
+        </p>
+      )}
+
+      {available && !personal && !open && (
         <>
           <p className="text-body mt-3 max-w-[34rem]">
             Send one selfie and the photographer reshoots this cover with you in it. Your photo is deleted from our
@@ -125,55 +130,15 @@ export default function PersonalPortrait({ personal, available, showing, onShow,
       )}
 
       {open && (
-        <div className="mt-5 max-w-[36rem] bg-paper-2 p-5 sm:p-6">
-          <h3 className="font-display text-[1.25rem] leading-tight">Before you send a selfie</h3>
-          <ul className="text-body mt-3 list-disc space-y-1.5 pl-5">
-            <li>Your photo goes to Pollinations and the Microsoft image model behind it, once, to make this cover.</li>
-            <li>We keep it in memory only, never on disk, and delete it within ten minutes.</li>
-            <li>We keep the finished cover, visible only to you, until you remove it or retake the questionnaire.</li>
-            <li>Only send a photo of yourself.</li>
-          </ul>
-          <label htmlFor={consentId} className="mt-4 flex cursor-pointer items-start gap-3">
-            <input
-              id={consentId}
-              type="checkbox"
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-              className="mt-1 size-5 shrink-0 accent-[var(--color-ink)]"
-            />
-            <span className="text-body">This is a photo of me, and I agree to it being used this way.</span>
-          </label>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            tabIndex={-1}
-            aria-hidden="true"
-            onChange={onFile}
-          />
-          <div className="mt-5 flex flex-wrap items-center gap-6">
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={!agreed || !!busy}
-              onClick={() => fileRef.current?.click()}
-            >
-              {busy === 'preparing' ? 'Preparing…' : busy === 'uploading' ? 'Sending…' : 'Choose a photo'}
-            </button>
-            <button
-              type="button"
-              className="link-ink tap meta min-h-[44px] text-ink"
-              onClick={() => {
-                setOpen(false);
-                setAgreed(false);
-                setError(null);
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+        <PhotoConsent
+          className="mt-5"
+          onPhoto={send}
+          busyLabel={busy === 'uploading' ? 'Sending…' : null}
+          onCancel={() => {
+            setOpen(false);
+            setError(null);
+          }}
+        />
       )}
 
       {error && (

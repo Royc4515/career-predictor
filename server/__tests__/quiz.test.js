@@ -65,9 +65,9 @@ test("the photographer's question matches the client copy exactly", async () => 
   assert.deepEqual(client.PORTRAIT_STEP.options, PORTRAIT_QUESTION.options.map((o) => o.text));
 });
 
-test('portraitIdFor maps the three answers and nothing else', () => {
+test('portraitIdFor maps the four answers and nothing else', () => {
   const { PORTRAIT_QUESTION, portraitIdFor } = require('../quiz');
-  assert.deepEqual(PORTRAIT_QUESTION.options.map((o) => portraitIdFor(o.text)), ['woman', 'man', 'surprise']);
+  assert.deepEqual(PORTRAIT_QUESTION.options.map((o) => portraitIdFor(o.text)), ['woman', 'man', 'surprise', 'photo']);
   assert.equal(portraitIdFor('woman'), null, 'ids are not accepted as text');
   assert.equal(portraitIdFor(undefined), null);
 });

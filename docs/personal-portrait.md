@@ -156,3 +156,15 @@ photo without a face just produces an odd cover, and the user can remove it.
 fetches the photo from it), and the production Pollinations key must be
 allowed to use the MAI Image models. The startup log says
 `[PORTRAIT] personal portraits: microsoft/mai-image-2.6-flash -> ...` when on.
+
+## 5. Entry from the questionnaire (November 2026)
+
+The photographer's step offers a fourth option, "Use my own photo", when
+`GET /api/features` reports personal portraits are on. Choosing it opens the
+same consent panel (`components/PhotoConsent.jsx`) on that step; the selfie
+stays in memory in the browser until the result is saved, then Loading
+uploads it, so the reader's first cover is their own (it develops from the
+dark straight into their face; the shared portrait is still shot as the
+fallback). The result page's panel still works for a result made without a
+photo, and now explains an old-issue result ("retake and pick Use my own
+photo") instead of hiding.

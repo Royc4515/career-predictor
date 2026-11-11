@@ -126,3 +126,13 @@ export async function deleteCover(id) {
   }
   if (!res.ok && res.status !== 404) throw new ApiError(res.status, 'Could not remove that issue. Try again.');
 }
+
+/** What this deployment supports. Never throws: unknown means "off". */
+export async function fetchFeatures() {
+  try {
+    const data = await request('/api/features');
+    return { personalPortraits: Boolean(data?.personalPortraits) };
+  } catch {
+    return { personalPortraits: false };
+  }
+}

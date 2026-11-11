@@ -305,6 +305,8 @@ export default function Result() {
             <PersonalPortrait
               personal={personal}
               available={Boolean(result.personalAvailable)}
+              blocked={result.personalBlocked}
+              notice={result.personalNotice}
               showing={showing}
               onShow={setShowing}
               onChange={changePersonal}

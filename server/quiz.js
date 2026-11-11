@@ -69,6 +69,11 @@ const PORTRAIT_QUESTION = {
     { id: 'woman', text: 'Shoot me as a woman' },
     { id: 'man', text: 'Shoot me as a man' },
     { id: 'surprise', text: 'Surprise me. The desk will cast someone' },
+    // The user's own face (personal portrait). The client collects consent
+    // and the selfie on this step and uploads it right after the result is
+    // saved; the shared portrait is still shot, as the desk's casting, and
+    // is what the cover falls back to if the personal one can't be made.
+    { id: 'photo', text: 'Use my own photo' },
   ],
 };
 const DEFAULT_PORTRAIT = 'surprise';
