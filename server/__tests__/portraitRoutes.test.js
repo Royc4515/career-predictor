@@ -274,6 +274,20 @@ test('"Remove my photo" deletes every portrait of the reader, current and on bac
   assert.equal((await fetch(`${base}/api/user/portrait/image/${older}`)).status, 404);
 });
 
+test('removing a portrait while it is still developing: the late result is never stored', async () => {
+  currentUser = 2;
+  assert.equal((await json('POST', '/api/user/onboarding', ANSWERS)).status, 200);
+  const res = await upload({ consent: 'v2' });
+  assert.equal(res.status, 202);
+  const id = idOf((await res.json()).personal.imageUrl);
+  assert.equal(personal.isGenerating(id), true);
+  assert.equal((await fetch(base + '/api/user/portrait', { method: 'DELETE' })).status, 204);
+  releaseRender(); // the model answers after the removal
+  await new Promise((r) => setTimeout(r, 50));
+  assert.equal(await images.blobStore.get(id), null, 'the face did not land in the store');
+  assert.equal(personal.isGenerating(id), false);
+});
+
 test('choosing a back issue makes it current again, with its own portrait', async () => {
   currentUser = 4;
   assert.equal((await json('POST', '/api/user/onboarding', ANSWERS)).status, 200);
