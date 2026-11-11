@@ -51,6 +51,11 @@ class R2Store {
       Bucket: this.bucket, Key: id, Body: buffer, ContentType: mimeType,
     }));
   }
+
+  async delete(id) {
+    const { DeleteObjectCommand } = loadS3Sdk();
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: id }));
+  }
 }
 
 module.exports = { R2Store };

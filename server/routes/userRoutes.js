@@ -1,6 +1,14 @@
 const express = require('express');
-const { saveOnboarding, getOnboardingByUserId } = require('../db');
-const { getImageService } = require('../services/image/instance');
+const {
+  saveOnboarding,
+  getOnboardingByUserId,
+  setPersonalPortrait,
+  updatePersonalStatus,
+  clearPersonalPortrait,
+} = require('../db');
+const { getImageService, getPersonalPortraitService } = require('../services/image/instance');
+const { normalizePhoto, PhotoError, MAX_UPLOAD_BYTES } = require('../photoUpload');
+const { SlidingWindowLimiter } = require('../rateLimit');
 const { validateOnboardingAnswers } = require('../userData');
 const { asyncRoute } = require('../asyncRoute');
 const { imageUrlFor } = require('../imageUrl');
@@ -12,7 +20,65 @@ function requireAuth(req, res, next) {
   res.status(401).json({ error: 'Not authenticated' });
 }
 
-const { mapCareer } = require('../careers');
+const { mapCareer, personalSceneFor } = require('../careers');
+
+// --- Personal portraits (the user's own face; docs/personal-portrait.md) ---
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+// Each one spends real pollen (~0.025 on MAI Image). Three tries a day is
+// enough to redo a bad selfie; the site-wide cap protects the budget.
+const perUserPortraits = new SlidingWindowLimiter({ limit: 3, windowMs: DAY_MS });
+const siteWidePortraits = new SlidingWindowLimiter({ limit: 40, windowMs: DAY_MS });
+const PERSONAL_ID_RE = /^[0-9a-f]{16}$/;
+
+function personalImageUrl(id) {
+  const base = (process.env.SERVER_URL || '').replace(/\/$/, '');
+  return `${base}/api/user/portrait/image/${id}`;
+}
+
+/**
+ * The personal portrait's real state. A row saying 'generating' after a
+ * restart is stale (the in-memory job and the photo are gone), so the store
+ * decides: bytes present means ready, otherwise failed. Persists the fix.
+ */
+async function personalState(row) {
+  const id = row?.personal_image_id;
+  if (!id) return null;
+  let status = row.personal_status || 'generating';
+  if (status === 'generating' && !getPersonalPortraitService().isGenerating(id)) {
+    status = (await getImageService().blobStore.get(id)) ? 'ready' : 'failed';
+    await updatePersonalStatus(row.user_id, id, status);
+  }
+  return { id, status };
+}
+
+function personalView(state) {
+  return state ? { status: state.status, imageUrl: personalImageUrl(state.id) } : null;
+}
+
+// Best effort: a leftover image is wasted space, not a reason to fail the
+// request the user actually made.
+async function deletePersonalImage(id) {
+  if (!id) return;
+  try {
+    await getImageService().blobStore.delete(id);
+  } catch (err) {
+    console.error('[PORTRAIT] delete failed', id, err.message);
+  }
+}
+
+// express.raw, with its own errors (too large, unreadable) answered as JSON
+// instead of Express's default HTML error page.
+const rawPhoto = express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: MAX_UPLOAD_BYTES });
+function photoBody(req, res, next) {
+  rawPhoto(req, res, (err) => {
+    if (!err) return next();
+    const tooLarge = err.type === 'entity.too.large';
+    res.status(tooLarge ? 413 : 400).json({
+      error: tooLarge ? 'That photo is too large. Try one under 8 MB.' : 'Could not read the upload. Try another photo.',
+    });
+  });
+}
 
 // POST /api/user/onboarding - save answers, kick off the portrait, return result
 router.post(
@@ -29,6 +95,11 @@ router.post(
       const userId = req.user.id;
 
       const career = mapCareer(answers);
+      // A retake replaces the result, and a personal portrait belongs to the
+      // result it was shot for: delete it rather than leave a private image
+      // nobody can reach.
+      const previous = await getOnboardingByUserId(userId);
+      await deletePersonalImage(previous?.personal_image_id);
       console.log('[ROUTE] Career mapped:', career.title);
 
       // kickoff() returns synchronously with the deterministic id; generation,
@@ -87,9 +158,125 @@ router.get(
         stats: { happiness: parsed.happiness, salary: parsed.salary, outlook: parsed.outlook },
         // Results saved before the quiz redesign have no evidence.
         evidence: Array.isArray(parsed.evidence) ? parsed.evidence : [],
+        personal: personalView(await personalState(row)),
+        // Whether this result can get a personal portrait (configured, and
+        // the career still has an identity-neutral scene).
+        personalAvailable: getPersonalPortraitService().available && Boolean(personalSceneFor(parsed.title)),
       });
     },
     { label: 'GET /api/user/result', message: 'Could not load your result. Please try again.' },
+  ),
+);
+
+// POST /api/user/portrait - shoot the user's own face into their cover.
+// Body: the photo bytes (image/jpeg, png or webp). Header X-Portrait-Consent:
+// yes, sent only after the consent screen. Answers 202 at once; the image
+// route reports progress.
+router.post(
+  '/portrait',
+  requireAuth,
+  photoBody,
+  asyncRoute(
+    async (req, res) => {
+      if (req.get('X-Portrait-Consent') !== 'yes') {
+        return res.status(400).json({ error: 'Please confirm the consent statement before uploading.' });
+      }
+      const service = getPersonalPortraitService();
+      if (!service.available) {
+        return res.status(503).json({ error: 'Personal portraits are not available right now.' });
+      }
+      const userId = req.user.id;
+      const row = await getOnboardingByUserId(userId);
+      if (!row) return res.status(409).json({ error: 'Take the questionnaire first.' });
+      const title = JSON.parse(row.career_result).title;
+      const scene = personalSceneFor(title);
+      if (!scene) {
+        return res.status(409).json({ error: 'This cover is from an older issue. Retake the questionnaire to put your face on it.' });
+      }
+
+      const userKey = `user:${userId}`;
+      for (const [limiter, key, message] of [
+        [perUserPortraits, userKey, 'That is three shoots today. The photographer is back tomorrow.'],
+        [siteWidePortraits, 'site', 'The darkroom is fully booked today. Try again tomorrow.'],
+      ]) {
+        if (!limiter.allows(key)) {
+          res.set('Retry-After', String(Math.ceil(limiter.retryAfterMs(key) / 1000)));
+          return res.status(429).json({ error: message });
+        }
+      }
+
+      let photo;
+      try {
+        photo = await normalizePhoto(req.body);
+      } catch (err) {
+        if (err instanceof PhotoError) return res.status(err.status).json({ error: err.message });
+        throw err;
+      }
+
+      perUserPortraits.record(userKey);
+      siteWidePortraits.record('site');
+      await deletePersonalImage(row.personal_image_id);
+
+      let imageId;
+      ({ id: imageId } = service.start({
+        photo,
+        scene,
+        title,
+        onDone: (status) =>
+          updatePersonalStatus(userId, imageId, status).catch((err) =>
+            console.error('[PORTRAIT] status update failed', err.message),
+          ),
+      }));
+      await setPersonalPortrait(userId, { imageId, status: 'generating', consentAt: new Date().toISOString() });
+      res.status(202).json({ personal: personalView({ id: imageId, status: 'generating' }) });
+    },
+    { label: 'POST /api/user/portrait', message: 'Could not start your portrait. Please try again.' },
+  ),
+);
+
+// DELETE /api/user/portrait - remove the personal portrait; the cover goes
+// back to the desk's portrait.
+router.delete(
+  '/portrait',
+  requireAuth,
+  asyncRoute(
+    async (req, res) => {
+      const row = await getOnboardingByUserId(req.user.id);
+      await deletePersonalImage(row?.personal_image_id);
+      if (row) await clearPersonalPortrait(req.user.id);
+      res.status(204).end();
+    },
+    { label: 'DELETE /api/user/portrait', message: 'Could not remove your portrait. Please try again.' },
+  ),
+);
+
+// GET/HEAD /api/user/portrait/image/:id - the personal portrait, to its owner
+// only. Same contract as /api/image/:id (404 + Retry-After while generating)
+// so the client's polling works unchanged; 410 when generation failed.
+router.get(
+  '/portrait/image/:id',
+  requireAuth,
+  asyncRoute(
+    async (req, res) => {
+      const { id } = req.params;
+      if (!PERSONAL_ID_RE.test(id)) return res.status(400).send('invalid id');
+      const row = await getOnboardingByUserId(req.user.id);
+      // 404, not 403: don't confirm that someone else's id exists.
+      if (row?.personal_image_id !== id) return res.status(404).send('not found');
+      const blob = await getImageService().blobStore.get(id);
+      if (blob) {
+        res.set('Content-Type', blob.mimeType);
+        // private: the user's own face never sits in a shared cache.
+        res.set('Cache-Control', 'private, max-age=86400');
+        return res.send(blob.buffer);
+      }
+      const state = await personalState(row);
+      if (state?.status === 'failed') return res.status(410).send('failed');
+      res.set('Retry-After', '8');
+      res.set('Cache-Control', 'no-store');
+      return res.status(404).send('generating');
+    },
+    { label: 'GET /api/user/portrait/image', message: 'Could not load your portrait.' },
   ),
 );
 

@@ -62,11 +62,14 @@ initDB().then(() => {
   const userRoutes = require('./routes/userRoutes');
   const { createImageRouter } = require('./routes/imageRoutes');
   const { createSampleRouter } = require('./routes/sampleRoutes');
-  const { getImageService } = require('./services/image/instance');
+  const { createRefRouter } = require('./routes/refRoutes');
+  const { getImageService, getPersonalPortraitService, getReferencePhotos } = require('./services/image/instance');
   app.use('/auth', authRoutes);
   app.use('/api/user', userRoutes);
   app.use(createImageRouter(getImageService()));
   app.use(createSampleRouter(getImageService()));
+  app.use(createRefRouter(getReferencePhotos()));
+  getPersonalPortraitService(); // logs at startup whether personal portraits are on
   console.log('[SERVER] Auth routes mounted at /auth');
   console.log('[SERVER] User routes mounted at /api/user');
   console.log('[SERVER] Image route mounted at /api/image/:id');

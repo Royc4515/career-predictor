@@ -49,3 +49,17 @@ test('different mimeTypes are persisted distinctly per id', async () => {
   const out = await store.get(id);
   assert.equal(out.mimeType, 'image/jpeg');
 });
+
+test('delete removes both files and ignores unknown ids', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { LocalDiskStore } = require('../storage/localDiskStore');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'disk-del-'));
+  const store = new LocalDiskStore({ cacheDir: dir });
+  await store.put('abcabcabcabcabca', Buffer.from('x'), 'image/webp');
+  await store.delete('abcabcabcabcabca');
+  assert.equal(await store.get('abcabcabcabcabca'), null);
+  await store.delete('0000000000000000');
+  fs.rmSync(dir, { recursive: true, force: true });
+});

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { isOwnImageUrl } from '../lib/imageUrls';
 
 // The image route answers 404 + Retry-After while a portrait is generating
 // (docs/image-service-spec.md section 6). Polling with HEAD keeps a broken-
@@ -18,7 +19,7 @@ export function useImageReady(url) {
     }
     // Legacy rows store an external CDN URL that has no HEAD contract with
     // us and may not allow CORS; let the <img> load it directly.
-    if (!url.includes('/api/image/')) {
+    if (!isOwnImageUrl(url)) {
       setStatus('ready');
       return undefined;
     }
@@ -30,11 +31,13 @@ export function useImageReady(url) {
 
     async function poll(delay) {
       try {
-        const res = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+        // credentials: personal portraits are served to their owner only.
+        const res = await fetch(url, { method: 'HEAD', cache: 'no-store', credentials: 'include' });
         if (cancelled) return;
         if (res.ok) return setStatus('ready');
-        // 400 means a malformed id: waiting will never fix it.
-        if (res.status === 400) return setStatus('failed');
+        // 400 means a malformed id and 410 a personal portrait that could not
+        // be made: waiting will never fix either.
+        if (res.status === 400 || res.status === 410) return setStatus('failed');
       } catch {
         // Network blip or cold-starting host: keep polling until the deadline.
       }

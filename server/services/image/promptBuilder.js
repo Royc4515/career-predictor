@@ -60,6 +60,16 @@ function enrichForFLUX(scene) {
   return scene + FLUX_SUFFIX;
 }
 
+// Personal portraits: the reference photo supplies the person, so the prompt
+// names nobody. Anything it said about gender, age or looks would compete
+// with the photo and pull the face away from it (docs/personal-portrait.md).
+const PERSONAL_IDENTITY =
+  'The person from the reference photo, keeping exactly their face, age, skin tone, hair and build, ';
+
+function personalPrompt(scene) {
+  return enrichForFLUX(PERSONAL_IDENTITY + scene);
+}
+
 // Lettering is listed explicitly because image models hallucinate fake words
 // on screens and signs, and the client already sets real type over the photo.
 const NEGATIVE_PROMPT_SDXL = [
@@ -83,6 +93,8 @@ module.exports = {
   imageIdFor,
   enrichForSDXL,
   enrichForFLUX,
+  personalPrompt,
+  PERSONAL_IDENTITY,
   NEGATIVE_PROMPT_SDXL,
   NEGATIVE_PROMPT_FLUX,
 };

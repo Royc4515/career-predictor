@@ -58,6 +58,10 @@ class WebpStore {
     if (!webp?.length || webp.length >= buffer.length) return this.inner.put(id, buffer, mimeType);
     return this.inner.put(id, webp, WEBP);
   }
+
+  delete(id) {
+    return this.inner.delete(id);
+  }
 }
 
 module.exports = { WebpStore };

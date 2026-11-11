@@ -4,6 +4,7 @@ import { COVER, COVER_RATIO, headlineScale } from '../lib/coverLayout';
 import { barcodeBars, issueFor } from '../lib/issue';
 import { supportsWebGL2 } from '../lib/capabilities';
 import EffectBoundary from './effects/EffectBoundary';
+import { isOwnImageUrl } from '../lib/imageUrls';
 
 // The shader library only loads when a cover actually prints a photo.
 const loadHalftone = () => import('./effects/HalftoneReveal');
@@ -68,7 +69,7 @@ export default function Cover({
   // the host stopped sending the header, so they load plainly and skip the
   // press (WebGL needs a CORS-clean texture). The PNG export already retries
   // without the photo when a canvas is tainted.
-  const corsSafe = Boolean(imageUrl?.includes('/api/image/'));
+  const corsSafe = isOwnImageUrl(imageUrl);
   const press = reveal === 'press' && corsSafe && !reduce && supportsWebGL2();
   const pressing = press && wantPhoto && loaded && revealedUrl !== imageUrl;
 

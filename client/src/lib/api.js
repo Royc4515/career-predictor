@@ -76,3 +76,34 @@ export async function fetchSamples() {
     return null;
   }
 }
+
+/**
+ * Upload a selfie for a personal portrait. `photo` is the Blob from
+ * lib/photo.js. The consent header is only ever sent from the consent screen.
+ */
+export async function uploadPortrait(photo) {
+  let res;
+  try {
+    res = await fetch(`${API_URL}/api/user/portrait`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': photo.type || 'image/jpeg', 'X-Portrait-Consent': 'yes' },
+      body: photo,
+    });
+  } catch {
+    throw new ApiError(0, 'Could not reach the newsroom. Check your connection and try again.');
+  }
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new ApiError(res.status, data?.error || `Upload failed (${res.status}). Try again.`);
+  return data.personal;
+}
+
+export async function deletePortrait() {
+  let res;
+  try {
+    res = await fetch(`${API_URL}/api/user/portrait`, { method: 'DELETE', credentials: 'include' });
+  } catch {
+    throw new ApiError(0, 'Could not reach the newsroom. Check your connection and try again.');
+  }
+  if (!res.ok) throw new ApiError(res.status, 'Could not remove your portrait. Try again.');
+}

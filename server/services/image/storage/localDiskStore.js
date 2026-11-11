@@ -40,6 +40,11 @@ class LocalDiskStore {
       fs.writeFile(meta, JSON.stringify({ mimeType })),
     ]);
   }
+
+  async delete(id) {
+    const { data, meta } = this._paths(id);
+    await Promise.all([fs.rm(data, { force: true }), fs.rm(meta, { force: true })]);
+  }
 }
 
 module.exports = { LocalDiskStore };

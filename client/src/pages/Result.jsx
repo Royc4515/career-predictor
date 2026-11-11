@@ -8,6 +8,7 @@ import TiltCard from '../components/effects/TiltCard';
 import Stamp from '../components/effects/Stamp';
 import Odometer from '../components/effects/Odometer';
 import Footer from '../components/Footer';
+import PersonalPortrait from '../components/PersonalPortrait';
 import { FINDINGS } from '../content';
 import { useToast } from '../components/Toast';
 import { useImageReady } from '../hooks/useImageReady';
@@ -69,7 +70,19 @@ export default function Result() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { result, error, retry } = useResult();
-  const imageStatus = useImageReady(result?.imageUrl);
+  // The personal portrait (the user's own face), if any, and which portrait
+  // the cover shows. Kept in state so an upload or removal updates the page
+  // without refetching the result.
+  const [personal, setPersonal] = useState(null);
+  const [showing, setShowing] = useState('desk');
+  useEffect(() => {
+    const p = result?.personal ?? null;
+    setPersonal(p);
+    setShowing(p && p.status !== 'failed' ? 'mine' : 'desk');
+  }, [result]);
+  const showPersonal = showing === 'mine' && personal && personal.status !== 'failed';
+  const coverUrl = showPersonal ? personal.imageUrl : result?.imageUrl;
+  const imageStatus = useImageReady(coverUrl);
   const [coverBlob, setCoverBlob] = useState(null);
   const [justSaved, setJustSaved] = useState(false);
   const [revealed, setRevealed] = useState(false);
@@ -96,7 +109,7 @@ export default function Result() {
     setCoverBlob(null);
     renderCoverBlob({
       title: result.careerTitle,
-      imageUrl: imageStatus === 'ready' ? result.imageUrl : null,
+      imageUrl: imageStatus === 'ready' ? coverUrl : null,
       personName: name,
       happiness: result.stats.happiness,
     })
@@ -105,7 +118,24 @@ export default function Result() {
     return () => {
       cancelled = true;
     };
-  }, [result, imageStatus, name]);
+  }, [result, imageStatus, name, coverUrl]);
+
+  // Polling the personal portrait settles its status: the panel stops saying
+  // "developing", or offers another try and the cover goes back to the desk.
+  useEffect(() => {
+    if (!showPersonal || personal.status !== 'generating' || imageStatus === 'pending') return;
+    const next = { ...personal, status: imageStatus === 'ready' ? 'ready' : 'failed' };
+    setPersonal(next);
+    if (next.status === 'failed') setShowing('desk');
+  }, [showPersonal, personal, imageStatus]);
+
+  const changePersonal = useCallback(
+    (next) => {
+      setPersonal(next);
+      if (result) cachedResult.set({ ...result, personal: next });
+    },
+    [result],
+  );
 
   const download = useCallback(() => {
     if (!coverBlob || !result) return;
@@ -218,7 +248,7 @@ export default function Result() {
               <TiltCard>
                 <Cover
                   title={careerTitle}
-                  imageUrl={result.imageUrl}
+                  imageUrl={coverUrl}
                   imageStatus={imageStatus}
                   personName={name}
                   happiness={stats.happiness}
@@ -263,6 +293,14 @@ export default function Result() {
                 later to try again.
               </p>
             )}
+
+            <PersonalPortrait
+              personal={personal}
+              available={Boolean(result.personalAvailable)}
+              showing={showing}
+              onShow={setShowing}
+              onChange={changePersonal}
+            />
 
             {evidence.length > 0 && (
               <section aria-labelledby="evidence-heading" className="mt-12 border-t border-ink pt-6">
