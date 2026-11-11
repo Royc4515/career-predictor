@@ -84,9 +84,11 @@ function personalView(state) {
 }
 
 // Best effort: a leftover image is wasted space, not a reason to fail the
-// request the user actually made.
+// request the user actually made. A portrait still being made is cancelled
+// first, so its job cannot write the face back after this returns.
 async function deletePersonalImage(id) {
   if (!id) return;
+  getPersonalPortraitService().cancel(id);
   try {
     await getImageService().blobStore.delete(id);
   } catch (err) {

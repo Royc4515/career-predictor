@@ -23,6 +23,8 @@ class PersonalPortraitService {
     this.publicBaseUrl = (publicBaseUrl || '').replace(/\/$/, '');
     this.logger = logger;
     this.inFlight = new Map();
+    this.tokens = new Map(); // id -> reference-photo token, while running
+    this.cancelled = new Set();
   }
 
   /**
@@ -38,6 +40,21 @@ class PersonalPortraitService {
   }
 
   /**
+   * Withdraw a portrait that is still being made (the reader removed it, or
+   * the issue it belonged to). The reference photo goes at once, and the
+   * job will not keep what the model returns: a removal answered 204 must
+   * not be followed by the face landing in the store. True if a job was
+   * running.
+   */
+  cancel(id) {
+    if (!this.inFlight.has(id)) return false;
+    this.cancelled.add(id);
+    const token = this.tokens.get(id);
+    if (token) this.refs.delete(token);
+    return true;
+  }
+
+  /**
    * photo: { buffer, mimeType } (already normalised). scene: the career's
    * identity-neutral scene. onDone(status, error) is called once.
    * Returns { id } synchronously.
@@ -46,8 +63,9 @@ class PersonalPortraitService {
     if (!this.available) throw new Error('personal portraits are not configured');
     const id = crypto.randomBytes(8).toString('hex');
     const token = this.refs.put(photo.buffer, photo.mimeType);
+    this.tokens.set(id, token);
     const run = this._generate({ id, token, scene, title })
-      .then(() => onDone('ready'))
+      .then((outcome) => onDone(outcome))
       .catch((err) => {
         this.logger.error(`[PORTRAIT] failed id=${id}: ${err.message}`);
         onDone('failed', err);
@@ -55,6 +73,8 @@ class PersonalPortraitService {
       .finally(() => {
         this.refs.delete(token);
         this.inFlight.delete(id);
+        this.tokens.delete(id);
+        this.cancelled.delete(id);
       });
     this.inFlight.set(id, run);
     return { id };
@@ -71,12 +91,20 @@ class PersonalPortraitService {
     };
     let lastErr;
     for (const provider of this.providers) {
+      if (this.cancelled.has(id)) return 'cancelled';
       const t0 = Date.now();
       try {
         const out = await provider.generate(input);
+        if (this.cancelled.has(id)) return 'cancelled';
         await this.blobStore.put(id, out.buffer, out.mimeType);
+        // don't touch / Cancelled while the write was in flight: the delete
+        // that came with the cancel ran before these bytes existed.
+        if (this.cancelled.has(id)) {
+          await this.blobStore.delete(id);
+          return 'cancelled';
+        }
         this.logger.log(`[PORTRAIT] ok model=${provider.model || provider.name} durationMs=${Date.now() - t0} id=${id}`);
-        return;
+        return 'ready';
       } catch (err) {
         lastErr = err;
         this.logger.warn(`[PORTRAIT] error model=${provider.model || provider.name} durationMs=${Date.now() - t0} message=${err.message}`);

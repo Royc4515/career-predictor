@@ -32,7 +32,7 @@ Not an ML project. The "prediction" is a hand-written rule table (`mapCareer` in
 - Deploy: Render single service, https://career-predictor-cnvg.onrender.com, deploying `main` (`render.yaml`). Until November 2026 the dashboard deployed a separate branch (`claude/migrate-free-hosting-tvidw`, the Turso migration), so merges to main did not ship; check the service's branch if a merge doesn't appear.
 
 ## Commands
-- Server tests: `cd server && npm test` (node:test; runs `server/__tests__/` and `services/image/__tests__/`) - verified, 193/193 pass on Node 22 after `npm install`.
+- Server tests: `cd server && npm test` (node:test; runs `server/__tests__/` and `services/image/__tests__/`) - verified, 194/194 pass on Node 22 after `npm install`.
 - Client tests: `cd client && npm test` (node:test over pure modules in `src/lib/__tests__/`) - verified, 36/36 pass.
 - Client build: `cd client && npx vite build` - verified. CI (`test.yml`) runs server tests, client tests and the client build.
 - Likeness test for the planned personal portrait: `cd server && npm run check:likeness` (needs `POLLINATIONS_API_KEY`; spends pollen; writes an HTML contact sheet). Plan and pass criteria: `docs/personal-portrait.md`. Unverified against the real API (no key in the dev container).
