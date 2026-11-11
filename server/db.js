@@ -87,15 +87,29 @@ async function initDB(config = connectionConfig()) {
     )
   `);
   await client.execute('CREATE INDEX IF NOT EXISTS covers_user_created ON covers (user_id, id DESC)');
+  // A result from before image_id has only the legacy image_url (a
+  // Pollinations CDN link). If its career has also left the table, that URL is
+  // the only portrait it has, so the archive keeps it like /result does.
+  await addColumnIfMissing('covers', 'image_url', 'TEXT');
   // One-time import: users whose result predates the archive start with it as
   // their first back issue. Idempotent (only users with no archived cover).
   const imported = await client.execute(`
-    INSERT INTO covers (user_id, career_result, image_id, portrait_subject, created_at)
-    SELECT user_id, career_result, image_id, portrait_subject, completed_at FROM onboarding
+    INSERT INTO covers (user_id, career_result, image_id, image_url, portrait_subject, created_at)
+    SELECT user_id, career_result, image_id, image_url, portrait_subject, completed_at FROM onboarding
     WHERE user_id IS NOT NULL AND career_result IS NOT NULL
       AND user_id NOT IN (SELECT DISTINCT user_id FROM covers)
   `);
   if (imported.rowsAffected) console.log(`[DB] Archived ${imported.rowsAffected} existing result(s) as back issues`);
+  // Covers imported before the image_url column existed (production ran the
+  // import first): copy the legacy URL from the matching current result.
+  // Idempotent; touches only rows with neither an id nor a URL.
+  await client.execute(`
+    UPDATE covers SET image_url = (
+      SELECT o.image_url FROM onboarding o
+      WHERE o.user_id = covers.user_id AND o.career_result = covers.career_result
+    )
+    WHERE image_id IS NULL AND image_url IS NULL
+  `);
 
   console.log('[DB] Schema ready');
   return client;
@@ -182,8 +196,8 @@ async function saveOnboarding({
       // Archive the same cover and prune past the cap, in the same write
       // batch, so the current result and the archive can't disagree.
       {
-        sql: 'INSERT INTO covers (user_id, career_result, image_id, portrait_subject) VALUES (?, ?, ?, ?)',
-        args: [userId, careerResult, imageId || null, portraitSubject || null],
+        sql: 'INSERT INTO covers (user_id, career_result, image_id, image_url, portrait_subject) VALUES (?, ?, ?, ?, ?)',
+        args: [userId, careerResult, imageId || null, imageUrl || null, portraitSubject || null],
       },
       {
         sql: `DELETE FROM covers WHERE user_id = ? AND id NOT IN (
@@ -200,7 +214,7 @@ async function saveOnboarding({
 /** A user's back issues, newest first. */
 async function getCovers(userId) {
   const result = await client.execute({
-    sql: 'SELECT id, career_result, image_id, portrait_subject, created_at FROM covers WHERE user_id = ? ORDER BY id DESC',
+    sql: 'SELECT id, career_result, image_id, image_url, portrait_subject, created_at FROM covers WHERE user_id = ? ORDER BY id DESC',
     args: [userId],
   });
   return result.rows.map(plain);

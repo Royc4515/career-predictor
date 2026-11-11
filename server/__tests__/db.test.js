@@ -158,3 +158,28 @@ test('existing results are imported once as the first back issue', async () => {
   assert.equal(covers.length, 1);
   assert.equal(JSON.parse(covers[0].career_result).title, 'Legacy Title');
 });
+
+test('a legacy result keeps its image_url in the archive, also when it was imported before the column existed', async () => {
+  const restore = quiet();
+  const url = freshUrl();
+  const raw = createClient(url);
+  await raw.execute('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, google_id TEXT UNIQUE NOT NULL, email TEXT, name TEXT, avatar_url TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
+  await raw.execute(`CREATE TABLE onboarding (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, strength TEXT, monday_vibe TEXT,
+    coworker_desc TEXT, five_year_goal TEXT, desired_field TEXT, career_result TEXT, image_url TEXT, completed_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+  await raw.execute("INSERT INTO users (google_id) VALUES ('a'), ('b')");
+  await raw.execute(`INSERT INTO onboarding (user_id, career_result, image_url) VALUES
+    (1, '{"title":"Old A"}', 'https://image.pollinations.ai/prompt/a'),
+    (2, '{"title":"Old B"}', 'https://image.pollinations.ai/prompt/b')`);
+  // User 2 was already imported by the version without covers.image_url.
+  await raw.execute(`CREATE TABLE covers (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, career_result TEXT NOT NULL,
+    image_id TEXT, portrait_subject TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+  await raw.execute(`INSERT INTO covers (user_id, career_result) VALUES (2, '{"title":"Old B"}')`);
+  raw.close();
+  await db.initDB(url);
+  await db.initDB(url);
+  restore();
+  assert.equal((await db.getCovers(1))[0].image_url, 'https://image.pollinations.ai/prompt/a');
+  const b = await db.getCovers(2);
+  assert.equal(b.length, 1);
+  assert.equal(b[0].image_url, 'https://image.pollinations.ai/prompt/b');
+});

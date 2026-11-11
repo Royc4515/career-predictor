@@ -202,9 +202,10 @@ router.get(
 /**
  * The shared portrait for a saved career: the career's current scene (kicked
  * off, idempotent) so an archived cover never points at a lost or outdated
- * image, or the stored id for a career that has left the table.
+ * image, or the stored id for a career that has left the table, or, for a
+ * result older than image ids, its legacy image URL (as /result does).
  */
-function portraitUrlFor(title, portraitSubject, storedImageId) {
+function portraitUrlFor(title, portraitSubject, storedImageId, legacyImageUrl) {
   const career = careerForTitle(title);
   if (career) {
     const { id } = getImageService().kickoff({
@@ -213,7 +214,8 @@ function portraitUrlFor(title, portraitSubject, storedImageId) {
     });
     return imageUrlFor(id);
   }
-  return storedImageId ? imageUrlFor(storedImageId) : null;
+  if (storedImageId) return imageUrlFor(storedImageId);
+  return legacyImageUrl || null;
 }
 
 // GET /api/user/covers - "Your back issues": every cover the user has been
@@ -232,7 +234,7 @@ router.get(
           title: parsed.title,
           caption: parsed.caption || null,
           happiness: parsed.happiness ?? null,
-          imageUrl: portraitUrlFor(parsed.title, row.portrait_subject, row.image_id),
+          imageUrl: portraitUrlFor(parsed.title, row.portrait_subject, row.image_id, row.image_url),
           filedAt: row.created_at,
           current: i === 0,
         };
