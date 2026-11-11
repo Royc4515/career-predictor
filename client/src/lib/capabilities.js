@@ -22,3 +22,20 @@ export function canHover() {
     return false;
   }
 }
+
+/**
+ * How "Take a selfie" works here: 'native' on a touch device, where an
+ * <input capture="user"> opens the front camera with the phone's own UI
+ * (better than anything a page can draw); 'live' on a computer with a
+ * camera API, which gets an in-page viewfinder; null when neither exists
+ * (or the page is not on https, where browsers withhold the camera).
+ */
+export function cameraMode() {
+  try {
+    if (window.matchMedia('(pointer: coarse)').matches) return 'native';
+    if (window.isSecureContext && navigator.mediaDevices?.getUserMedia) return 'live';
+  } catch {
+    // An exotic browser without matchMedia: offer the file picker only.
+  }
+  return null;
+}

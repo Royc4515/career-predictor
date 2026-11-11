@@ -191,3 +191,14 @@ their back issue.
 - **Serving:** `GET /api/user/portrait/image/:id` serves an archived
   portrait to its owner only. An archived one with no bytes and no job
   running answers 410, and the gallery falls back to the shared portrait.
+
+## 7. Take a selfie (November 2026)
+
+Next to "Choose a photo", after the same consent box: "Take a selfie". On a
+phone it is a file input with `capture="user"`, which opens the front camera
+in the phone's own camera UI. On a computer it opens an in-page viewfinder
+(`components/CameraCapture.jsx`, `getUserMedia`, mirrored preview, take /
+retake / use), and the camera is released whenever the dialog closes. With
+no camera API (or off https) the button is not shown. Either way the shot
+is a JPEG File that goes through `preparePhoto` like a chosen photo, so the
+size limit, EXIF handling and the server's re-encoding are unchanged.
