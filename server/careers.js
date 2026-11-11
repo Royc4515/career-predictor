@@ -43,11 +43,11 @@ const CAREERS = [
     outlook: 'Connection unstable',
     subject: 'woman',
     prompt:
-      'A DevOps engineer in her thirties, a Black woman with short natural hair, in a loose linen shirt, standing barefoot on a bright tropical beach holding her open laptop out at arm\'s length at shoulder height, tilting it toward the sky in search of a signal, eyes narrowed with weary suspicion. One small grey cloud hangs directly over her and casts the only shadow on the whole sunny beach, right on her',
+      'A DevOps engineer in her thirties, a Black woman with short natural hair, in a loose linen shirt on a bright tropical beach, framed from the waist up, holding her open laptop up high beside her head with both hands and tilting it toward the sky in search of a signal, eyes narrowed with weary suspicion. One small grey cloud hangs just above her head and casts the only shadow on the whole sunny beach, right across her face and the laptop',
     altPrompt:
-      'A DevOps engineer in his thirties, a Croatian man with a shaved head and stubble, in a loose linen shirt, standing barefoot on a bright tropical beach holding his open laptop out at arm\'s length at shoulder height, tilting it toward the sky in search of a signal, eyes narrowed with weary suspicion. One small grey cloud hangs directly over him and casts the only shadow on the whole sunny beach, right on him',
+      'A DevOps engineer in his thirties, a Croatian man with a shaved head and stubble, in a loose linen shirt on a bright tropical beach, framed from the waist up, holding his open laptop up high beside his head with both hands and tilting it toward the sky in search of a signal, eyes narrowed with weary suspicion. One small grey cloud hangs just above his head and casts the only shadow on the whole sunny beach, right across his face and the laptop',
     personalScene:
-      'in a loose linen shirt, standing barefoot on a bright tropical beach, holding an open laptop out at shoulder height and tilting it toward the sky in search of a signal, eyes narrowed with weary suspicion. One small grey cloud hangs directly over them and casts the only shadow on the whole sunny beach, right on them',
+      'in a loose linen shirt on a bright tropical beach, framed from the waist up, holding an open laptop up high beside their head and tilting it toward the sky in search of a signal, eyes narrowed with weary suspicion. One small grey cloud hangs just above their head and casts the only shadow on the whole sunny beach, right across their face and the laptop',
   },
   {
     title: 'JIRA Ticket Archaeologist, Legacy Systems Division',
@@ -59,11 +59,11 @@ const CAREERS = [
     outlook: 'COBOL never dies',
     subject: 'man',
     prompt:
-      'A legacy systems engineer in his late fifties, a white man with a grey ponytail, wire-rimmed glasses and a head torch, standing in a dim server room beside a dusty beige 1990s computer tower that sits on a tall steel cart at chest height, right beside his face, gently sweeping dust from it with a soft archaeologist\'s brush as if uncovering a fossil, deeply reverent. Rows of server racks recede behind him, lit by one flickering fluorescent tube',
+      'A legacy systems engineer in his late fifties, a white man with a grey ponytail, wire-rimmed glasses and a head torch, standing in a dim server room beside a dusty beige 1990s computer tower that sits on a tall steel cart at chest height, right beside his face, gently sweeping dust from it with a soft archaeologist brush as if uncovering a fossil, deeply reverent. Rows of server racks recede behind him, lit by one flickering fluorescent tube. A full-bleed photograph, the scene running right to every edge of the frame',
     altPrompt:
-      'A legacy systems engineer in her late fifties, a Chilean woman with a long grey braid, wire-rimmed glasses and a head torch, standing in a dim server room beside a dusty beige 1990s computer tower that sits on a tall steel cart at chest height, right beside her face, gently sweeping dust from it with a soft archaeologist\'s brush as if uncovering a fossil, deeply reverent. Rows of server racks recede behind her, lit by one flickering fluorescent tube',
+      'A legacy systems engineer in her late fifties, a Chilean woman with a long grey braid, wire-rimmed glasses and a head torch, standing in a dim server room beside a dusty beige 1990s computer tower that sits on a tall steel cart at chest height, right beside her face, gently sweeping dust from it with a soft archaeologist brush as if uncovering a fossil, deeply reverent. Rows of server racks recede behind her, lit by one flickering fluorescent tube. A full-bleed photograph, the scene running right to every edge of the frame',
     personalScene:
-      'wearing a head torch and a grey work shirt in a dim server room, gently sweeping dust with a soft archaeologist\'s brush from a beige 1990s computer tower that sits on a tall steel cart at chest height beside their face, as if uncovering a fossil, deeply reverent. Rows of server racks recede behind them, lit by one flickering fluorescent tube',
+      'wearing a head torch and a grey work shirt in a dim server room, gently sweeping dust with a soft archaeologist brush from a beige 1990s computer tower that sits on a tall steel cart at chest height beside their face, as if uncovering a fossil, deeply reverent. Rows of server racks recede behind them, lit by one flickering fluorescent tube. A full-bleed photograph, the scene running right to every edge of the frame',
   },
   {
     title: 'Open Source Contributor (0 Stars, 0 Forks)',
@@ -252,11 +252,11 @@ const CAREERS = [
     outlook: 'Chapter 47 in progress',
     subject: 'man',
     prompt:
-      'A night security guard in his sixties, a Finnish man with a white beard and reading glasses, in a navy guard uniform, sitting at the reception desk of a vast empty glass lobby at three in the morning, typing on a vintage typewriter in total peace, a tall stack of typed pages face down beside him. A desk lamp lights him and the dark city glimmers softly through the glass behind',
+      'A night security guard in his sixties, a Finnish man with a white beard and reading glasses, in a navy guard uniform, framed from the chest up at the reception desk of an empty glass lobby at three in the morning, holding a freshly typed page up at eye level beside his face and reading it with quiet pride, a vintage typewriter and a tall stack of typed pages on the desk just below his chin. A desk lamp lights his face and the dark city glimmers softly through the glass behind his head',
     altPrompt:
-      'A night security guard in her sixties, a Scottish woman with a white braid and reading glasses, in a navy guard uniform, sitting at the reception desk of a vast empty glass lobby at three in the morning, typing on a vintage typewriter in total peace, a tall stack of typed pages face down beside her. A desk lamp lights her and the dark city glimmers softly through the glass behind',
+      'A night security guard in her sixties, a Scottish woman with a white braid and reading glasses, in a navy guard uniform, framed from the chest up at the reception desk of an empty glass lobby at three in the morning, holding a freshly typed page up at eye level beside her face and reading it with quiet pride, a vintage typewriter and a tall stack of typed pages on the desk just below her chin. A desk lamp lights her face and the dark city glimmers softly through the glass behind her head',
     personalScene:
-      'in a navy security guard uniform, sitting at the reception desk of a vast empty glass lobby at three in the morning, typing in total peace on a vintage typewriter raised on a stack of binders to chest height, a tall stack of typed pages face down beside their shoulder. A desk lamp lights them and the dark city glimmers softly through the glass behind',
+      'in a navy security guard uniform, framed from the chest up at the reception desk of an empty glass lobby at three in the morning, holding a freshly typed page up at eye level beside their face and reading it with quiet pride, a vintage typewriter and a tall stack of typed pages on the desk just below their chin. A desk lamp lights their face and the dark city glimmers softly through the glass behind their head',
   },
   {
     title: 'Misunderstood Genius in the Wrong Department',
@@ -526,11 +526,11 @@ const CAREERS = [
     outlook: 'Open to opportunities',
     subject: 'man',
     prompt:
-      'A veteran networking influencer in his sixties, a silver-haired Black man in a navy blazer over a turtleneck with a headset microphone, delivering an impassioned keynote from a lectern in the middle of a conference room set up in the round, both arms spread wide. The rows of folding chairs circling him are all empty except one just behind him, a coat draped over its back beside his shoulder. One spotlight from above, the rest of the room dim',
+      'A veteran networking influencer in his sixties, a silver-haired Black man in a navy blazer over a turtleneck with a headset microphone, framed from the waist up, delivering an impassioned keynote with both arms spread wide. Behind him, steep tiers of empty folding chairs rise like a small amphitheatre and fill the background up to and above his head, every seat empty except one at his shoulder, a coat draped over its back. One spotlight from above, the rest of the room dim',
     altPrompt:
-      'A veteran networking influencer in her sixties, a silver-haired Australian woman in a navy blazer over a turtleneck with a headset microphone, delivering an impassioned keynote from a lectern in the middle of a conference room set up in the round, both arms spread wide. The rows of folding chairs circling her are all empty except one just behind her, a coat draped over its back beside her shoulder. One spotlight from above, the rest of the room dim',
+      'A veteran networking influencer in her sixties, a silver-haired Australian woman in a navy blazer over a turtleneck with a headset microphone, framed from the waist up, delivering an impassioned keynote with both arms spread wide. Behind her, steep tiers of empty folding chairs rise like a small amphitheatre and fill the background up to and above her head, every seat empty except one at her shoulder, a coat draped over its back. One spotlight from above, the rest of the room dim',
     personalScene:
-      'in a navy blazer over a turtleneck with a headset microphone, delivering an impassioned keynote from a chest-high lectern in the middle of a conference room set up in the round, both arms spread wide. The rows of folding chairs circling them are all empty except one just behind them, a coat draped over its back beside their shoulder. One spotlight from above, the rest of the room dim',
+      'in a navy blazer over a turtleneck with a headset microphone, framed from the waist up, delivering an impassioned keynote with both arms spread wide. Behind them, steep tiers of empty folding chairs rise like a small amphitheatre and fill the background up to and above their head, every seat empty except one at their shoulder, a coat draped over its back. One spotlight from above, the rest of the room dim',
   },
   {
     title: 'Digital Nomad Coach (Currently Offline)',
