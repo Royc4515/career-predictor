@@ -26,7 +26,7 @@ before(async () => {
   process.env.TURSO_DATABASE_URL = `file:${path.join(dir, 'app.db')}`;
   const db = require('../db');
   await db.initDB({ url: process.env.TURSO_DATABASE_URL });
-  for (const googleId of ['g1', 'g2', 'g3']) await db.upsertUser({ googleId, email: `${googleId}@x`, name: googleId });
+  for (const googleId of ['g1', 'g2', 'g3', 'g4']) await db.upsertUser({ googleId, email: `${googleId}@x`, name: googleId });
   const instance = require('../services/image/instance');
   instance._resetForTests();
   images = instance.getImageService();
@@ -265,4 +265,35 @@ test('"Remove my photo" on the result page removes a v2 portrait from the archiv
   assert.equal((await fetch(base + '/api/user/portrait', { method: 'DELETE' })).status, 204);
   assert.equal((await (await fetch(base + '/api/user/covers')).json()).covers[0].personalImageUrl, null);
   assert.equal(await images.blobStore.get(id), null);
+});
+
+test('choosing a back issue makes it current again, with its own portrait', async () => {
+  currentUser = 4;
+  assert.equal((await json('POST', '/api/user/onboarding', ANSWERS)).status, 200);
+  const firstTitle = (await (await fetch(base + '/api/user/result')).json()).careerTitle;
+  const id = await shootV2();
+  assert.equal((await json('POST', '/api/user/onboarding', { ...ANSWERS, desired_field: 'My own comments section' })).status, 200);
+  let { covers } = await (await fetch(base + '/api/user/covers')).json();
+  assert.equal(covers.length, 2);
+  const older = covers[1];
+  assert.equal(older.title, firstTitle);
+
+  const choose = (coverId) => fetch(`${base}/api/user/covers/${coverId}/current`, { method: 'POST' });
+  currentUser = 2;
+  assert.equal((await choose(older.id)).status, 404, "someone else's issue");
+  assert.equal((await choose('abc')).status, 400);
+  currentUser = 4;
+  assert.equal((await choose(older.id)).status, 204);
+
+  ({ covers } = await (await fetch(base + '/api/user/covers')).json());
+  assert.equal(covers.length, 2, 'moved, not copied');
+  assert.equal(covers[0].title, firstTitle, 'now the current issue');
+  assert.equal(covers[0].current, true);
+  assert.equal(covers[0].filedAt, older.filedAt, 'keeps its filing date');
+  assert.equal(idOf(covers[0].personalImageUrl), id);
+  const result = await (await fetch(base + '/api/user/result')).json();
+  assert.equal(result.careerTitle, firstTitle);
+  assert.equal(result.personal.status, 'ready', 'its portrait comes back with it');
+  assert.equal((await fetch(`${base}/api/user/portrait/image/${id}`)).status, 200);
+  assert.equal((await choose(covers[0].id)).status, 204, 'choosing the current issue is a no-op');
 });
