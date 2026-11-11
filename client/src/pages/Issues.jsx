@@ -27,6 +27,9 @@ function BackIssue({ cover, number, onRemove, removing }) {
   const imageUrl = mine ? cover.personalImageUrl : cover.imageUrl;
   const status = mine ? personalStatus : sharedStatus;
   const filed = filedOn(cover.filedAt);
+  // Removing an issue with the reader's own face deletes that portrait for
+  // good, so it asks first; a desk portrait can always be shot again.
+  const [confirming, setConfirming] = useState(false);
   return (
     <li>
       <Cover
@@ -44,16 +47,37 @@ function BackIssue({ cover, number, onRemove, removing }) {
         {cover.current ? (
           <span className="meta bg-mark px-1.5 text-ink">Current issue</span>
         ) : (
-          <button
-            type="button"
-            onClick={() => onRemove(cover.id)}
-            disabled={removing}
-            className="link-ink tap meta text-ink disabled:opacity-50"
-          >
-            {removing ? 'Removing…' : 'Remove'}
-          </button>
+          !confirming && (
+            <button
+              type="button"
+              onClick={() => (mine ? setConfirming(true) : onRemove(cover.id))}
+              disabled={removing}
+              className="link-ink tap meta text-ink disabled:opacity-50"
+            >
+              {removing ? 'Removing…' : 'Remove'}
+            </button>
+          )
         )}
       </div>
+      {confirming && (
+        <div role="group" aria-label={`Remove issue ${number}`} className="mt-2 bg-paper-2 p-3">
+          <p className="meta text-ink">Your photo on this cover is deleted too.</p>
+          <div className="mt-1 flex flex-wrap gap-x-4">
+            {/* Focus lands on the safe choice. */}
+            <button type="button" autoFocus onClick={() => setConfirming(false)} className="link-ink tap meta text-ink">
+              Keep it
+            </button>
+            <button
+              type="button"
+              onClick={() => onRemove(cover.id)}
+              disabled={removing}
+              className="link-ink tap meta text-alert disabled:opacity-50"
+            >
+              {removing ? 'Removing…' : 'Remove'}
+            </button>
+          </div>
+        </div>
+      )}
     </li>
   );
 }
