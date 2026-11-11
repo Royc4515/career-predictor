@@ -4,7 +4,15 @@ const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
 const express = require('express');
 const sharp = require('sharp');
-const { createShare, findLiveShare, getShare, revokeShare, getOnboardingByUserId } = require('../db');
+const {
+  createShare,
+  findLiveShare,
+  findShareByToken,
+  getShare,
+  revokeShare,
+  setSharePortrait,
+  getOnboardingByUserId,
+} = require('../db');
 const { coverGenderFor } = require('../careers');
 const { portraitUrlFor, sharedPortraitId } = require('../portraitUrl');
 const { asyncRoute } = require('../asyncRoute');
@@ -18,12 +26,15 @@ const { SlidingWindowLimiter } = require('../rateLimit');
 // Privacy, by design (docs/share-page.md):
 // - A link exists only when the reader creates one; tokens are 72 random
 //   bits and nothing lists them.
-// - The reader's own face is on the page only when they tick the box at
-//   share time; otherwise the career's shared portrait. Removing the photo
-//   clears it from every link (db.unlinkSharedPortrait).
+// - The reader's own face is on the page only while they have ticked the
+//   box for that link; otherwise the career's shared portrait. Removing
+//   the photo clears it from every link (db.unlinkSharedPortrait).
 // - The page shows the first name, the cover, the stats and the two quoted
 //   answers; never the email, the other answers or anything else.
-// - "Stop sharing" ends a link at once.
+// - "Stop sharing" ends the issue's links at once.
+// - The browser may name the token itself (72 random bits, the same format),
+//   so the share sheet opens inside the tap with the link already in it:
+//   Safari refuses a share that starts after a network wait.
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{12}$/;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -137,7 +148,15 @@ function createShareRouter({ imageService, indexHtml = null, clientDist = null }
     return cachedIndex;
   };
 
-  // POST /api/user/share { withFace, lang } -> { url, token, withFace }
+  // The reader's own portrait for their current issue, for a link of that
+  // issue; null when there is none (or it failed).
+  const facePortrait = (row) => (row.personal_image_id && row.personal_status !== 'failed' ? row.personal_image_id : null);
+  const owned = (share, userId) => share && share.user_id === userId && !share.revoked_at;
+  const linkBody = (share) => ({ url: shareUrl(share.token), token: share.token, withFace: Boolean(share.personal_image_id) });
+
+  // POST /api/user/share { withFace, lang, token? } -> { url, token, withFace }
+  // With a token (named by the browser, already in the share sheet) the call
+  // is idempotent: a retry of the same token returns the same link.
   router.post(
     '/api/user/share',
     requireAuth,
@@ -146,32 +165,77 @@ function createShareRouter({ imageService, indexHtml = null, clientDist = null }
         const row = await getOnboardingByUserId(req.user.id);
         if (!row) return res.status(409).json({ error: 'Take the questionnaire first.' });
         const wantFace = req.body?.withFace === true;
-        const personalImageId = wantFace && row.personal_image_id && row.personal_status !== 'failed' ? row.personal_image_id : null;
+        const personalImageId = wantFace ? facePortrait(row) : null;
         if (wantFace && !personalImageId) {
           return res.status(409).json({ error: 'There is no photo of you on this cover to share.' });
         }
         const lang = req.body?.lang === 'he' ? 'he' : 'en';
-        const existing = await findLiveShare(req.user.id, row.career_result, personalImageId);
-        if (existing) return res.json({ url: shareUrl(existing.token), token: existing.token, withFace: Boolean(personalImageId) });
+        const chosen = req.body?.token;
+        if (chosen !== undefined && (typeof chosen !== 'string' || !TOKEN_RE.test(chosen))) {
+          return res.status(400).json({ error: 'Invalid link' });
+        }
+        if (chosen) {
+          const taken = await findShareByToken(chosen);
+          if (taken) {
+            if (owned(taken, req.user.id)) return res.json(linkBody(taken));
+            return res.status(409).json({ error: 'Could not create a share link. Please try again.' });
+          }
+        } else {
+          const existing = await findLiveShare(req.user.id, row.career_result, personalImageId);
+          if (existing) return res.json(linkBody(existing));
+        }
 
         const key = `user:${req.user.id}`;
         if (!perUserShares.allows(key)) return res.status(429).json({ error: 'That is a lot of sharing for one day. Try again tomorrow.' });
         perUserShares.record(key);
-        const token = crypto.randomBytes(9).toString('base64url');
-        await createShare({
-          token,
+        const token = chosen || crypto.randomBytes(9).toString('base64url');
+        try {
+          await createShare({
+            token,
           userId: req.user.id,
           careerResult: row.career_result,
           imageId: row.image_id,
           imageUrl: row.image_url,
           portraitSubject: row.portrait_subject,
           personalImageId,
-          personName: firstName(req.user.name),
-          lang,
-        });
+            personName: firstName(req.user.name),
+            lang,
+          });
+        } catch (err) {
+          // Two requests with the same token racing (a retry that crossed
+          // the first): the token's UNIQUE constraint lets one in.
+          const raced = chosen ? await findShareByToken(chosen) : null;
+          if (owned(raced, req.user.id)) return res.json(linkBody(raced));
+          throw err;
+        }
         res.status(201).json({ url: shareUrl(token), token, withFace: Boolean(personalImageId) });
       },
       { label: 'POST /api/user/share', message: 'Could not create a share link. Please try again.' },
+    ),
+  );
+
+  // PATCH /api/user/share/:token { withFace } - show or hide the reader's own
+  // portrait on a link they already sent; the link itself stays the same.
+  router.patch(
+    '/api/user/share/:token',
+    requireAuth,
+    asyncRoute(
+      async (req, res) => {
+        if (!TOKEN_RE.test(req.params.token)) return res.status(400).json({ error: 'Invalid link' });
+        const share = await findShareByToken(req.params.token);
+        if (!owned(share, req.user.id)) return res.status(404).json({ error: 'Not found' });
+        let personalImageId = null;
+        if (req.body?.withFace === true) {
+          const row = await getOnboardingByUserId(req.user.id);
+          // Only the portrait of the issue this link shows: after a retake
+          // the current photo belongs to a different cover.
+          personalImageId = row && row.career_result === share.career_result ? facePortrait(row) : null;
+          if (!personalImageId) return res.status(409).json({ error: 'There is no photo of you on this cover to share.' });
+        }
+        await setSharePortrait(req.user.id, share.token, personalImageId);
+        res.json(linkBody({ ...share, personal_image_id: personalImageId }));
+      },
+      { label: 'PATCH /api/user/share', message: 'Could not update the share link. Please try again.' },
     ),
   );
 

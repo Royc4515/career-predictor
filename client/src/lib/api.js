@@ -12,7 +12,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request(path, { method = 'GET', body } = {}) {
+async function request(path, { method = 'GET', body, keepalive = false } = {}) {
   let res;
   try {
     res = await fetch(`${API_URL}${path}`, {
@@ -20,6 +20,7 @@ async function request(path, { method = 'GET', body } = {}) {
       credentials: 'include',
       headers: body ? { 'Content-Type': 'application/json' } : undefined,
       body: body ? JSON.stringify(body) : undefined,
+      keepalive,
     });
   } catch {
     // Render's free tier cold-starts in ~30s; a dropped request is the most
@@ -195,13 +196,18 @@ export async function deleteCoverPortrait(id) {
 }
 
 /**
- * Create (or reuse) a public link to the current issue. withFace puts the
- * reader's own portrait on the shared page; lang picks the preview's
- * language. Returns { url, token, withFace }.
+ * File a public link to the current issue under `token` (lib/shareLink.js;
+ * idempotent, so a retry is safe). withFace puts the reader's own portrait
+ * on the shared page; lang picks the preview's language.
+ * Returns { url, token, withFace }.
  */
-export async function createShare({ withFace = false, lang = 'en' } = {}) {
-  const data = await request('/api/user/share', { method: 'POST', body: { withFace, lang } });
-  return data;
+export async function createShare({ token, withFace = false, lang = 'en', keepalive = false }) {
+  return request('/api/user/share', { method: 'POST', body: { token, withFace, lang }, keepalive });
+}
+
+/** Show or hide the reader's own portrait on a link already sent. */
+export async function setShareFace(token, withFace) {
+  return request(`/api/user/share/${encodeURIComponent(token)}`, { method: 'PATCH', body: { withFace } });
 }
 
 /** End a public link. */

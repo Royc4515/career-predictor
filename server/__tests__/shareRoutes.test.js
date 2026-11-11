@@ -169,3 +169,51 @@ test('/s/:token carries the link-preview tags, in the language it was shared in'
   const meta = await sharp(Buffer.from(await og.arrayBuffer())).metadata();
   assert.deepEqual([meta.width, meta.height], [600, 750]);
 });
+
+test('a link named by the browser: idempotent, the face switched on the same link, stop ends every link of the issue', async () => {
+  currentUser = 2;
+  assert.equal((await json('POST', '/api/user/onboarding', ANSWERS)).status, 200);
+  const token = 'AbC_def-1234';
+  assert.equal((await json('POST', '/api/user/share', { token: 'short' })).status, 400);
+  assert.equal((await json('POST', '/api/user/share', { token: 42 })).status, 400);
+  const made = await json('POST', '/api/user/share', { token, lang: 'en' });
+  assert.equal(made.status, 201);
+  assert.equal((await made.json()).url, `https://site.example/s/${token}`, 'the link the share sheet already holds');
+  const retry = await json('POST', '/api/user/share', { token });
+  assert.equal(retry.status, 200, 'a retry of the same token is the same link');
+  currentUser = 1;
+  assert.equal((await json('POST', '/api/user/share', { token })).status, 409, "someone else's token");
+  assert.equal((await json('PATCH', `/api/user/share/${token}`, { withFace: false })).status, 404);
+
+  currentUser = 2;
+  assert.equal((await json('PATCH', `/api/user/share/${token}`, { withFace: true })).status, 409, 'no photo yet');
+  const up = await fetch(base + '/api/user/portrait', {
+    method: 'POST',
+    headers: { 'Content-Type': 'image/jpeg', 'X-Portrait-Consent': 'v2' },
+    body: await sharp({ create: { width: 800, height: 1000, channels: 3, background: '#b08060' } }).jpeg().toBuffer(),
+  });
+  assert.equal(up.status, 202);
+  releaseRender();
+  await settle();
+  const on = await json('PATCH', `/api/user/share/${token}`, { withFace: true });
+  assert.equal(on.status, 200);
+  assert.equal((await on.json()).withFace, true);
+  currentUser = null;
+  let body = await (await fetch(`${base}/api/share/${token}`)).json();
+  assert.match(body.imageUrl, new RegExp(`/api/share/${token}/image$`), 'the same link now shows the face');
+  currentUser = 2;
+  assert.equal((await (await json('PATCH', `/api/user/share/${token}`, { withFace: false })).json()).withFace, false);
+  currentUser = null;
+  body = await (await fetch(`${base}/api/share/${token}`)).json();
+  assert.equal(body.withFace, false);
+  assert.equal((await fetch(`${base}/api/share/${token}/image`)).status, 404);
+
+  currentUser = 2;
+  const other = await (await json('POST', '/api/user/share', { token: 'Zz9_otherlnk' })).json();
+  assert.equal((await fetch(`${base}/api/user/share/${token}`, { method: 'DELETE' })).status, 204);
+  currentUser = null;
+  assert.equal((await fetch(`${base}/api/share/${token}`)).status, 404);
+  assert.equal((await fetch(`${base}/api/share/${other.token}`)).status, 404, 'stopping ends every link of the issue');
+  currentUser = 2;
+  assert.equal((await json('POST', '/api/user/share', { token })).status, 409, 'an ended token is not reused');
+});

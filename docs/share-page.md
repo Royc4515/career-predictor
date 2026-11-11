@@ -13,13 +13,13 @@ The Share button used to send the cover PNG and a link to the home page. Whoever
 - A link exists only when its owner creates one, in the share panel on the result page. Tokens are 72 random bits; nothing lists them.
 - The page holds a snapshot made at share time (`shares` table), so a retake does not change a link already sent.
 - It shows the first name, the cover, the stats and the two quoted answers. Never the email, the other answers or anything else.
-- The owner's own face is on the page only if they tick the box (unticked by default). Otherwise it shows the career's shared portrait. Removing the photo ("Remove my photo from every issue", or deleting the issue it was on) clears it from every link (`db.unlinkSharedPortrait`).
-- "Stop sharing" ends a link at once (`revoked_at`); an ended link shows "This issue is no longer shared".
+- The owner's own face is on the page only while they have ticked the box for that link (unticked by default; ticking or unticking changes the link already sent, `PATCH /api/user/share/:token`). Otherwise it shows the career's shared portrait. Removing the photo ("Remove my photo from every issue", or deleting the issue it was on) clears it from every link (`db.unlinkSharedPortrait`).
+- "Stop sharing" ends every live link of that issue at once (`revoked_at`); an ended link shows "This issue is no longer shared".
 - Images served through a link are cached for 5 minutes only, so stopping a share or removing the photo takes effect.
 - At most 30 new links per user per day (in memory).
 
 ## Flow
-Result page, Share: the panel explains what becomes public, offers the face box when the cover has the owner's portrait, then Create link, then Share (the native share sheet with the link) or Copy link, and Stop sharing. Two steps on purpose: Safari refuses a native share that starts after a network wait, so the link is made first and the sheet opens from a fresh tap.
+Result page, Share: one tap. The browser names the token (`lib/shareLink.js`, 9 random bytes, the server's format), so the native share sheet opens inside the tap with the link already in it while `POST /api/user/share { token }` files it in parallel (idempotent, so a retry is safe). Safari refuses a share that starts after a network wait; this used to need a second tap. Without a share sheet (most desktop browsers) the same tap copies the link. WhatsApp, the chat most readers send to, has its own button: a `wa.me` link carrying the headline line and the link, built from a token made ahead of the tap (nothing is public until a tap files it, with `keepalive` so the request survives the switch to the app), so it is one tap from the result page into WhatsApp. A strip then opens under the buttons and scrolls itself into view: what is public, the link, Copy link, Stop sharing, and the face box when the cover has the owner's portrait. Dismissing the share sheet without sending ends the link made for that tap, so nothing is left public that nobody chose to share. Sharing again in the same session reuses the live link (`shareLinks` in `lib/storage.js`).
 
 ## API
 - `POST /api/user/share` `{ withFace, lang }` -> `{ url, token, withFace }` (reuses a live link for the same snapshot).

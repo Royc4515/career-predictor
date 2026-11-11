@@ -9,7 +9,7 @@ import Stamp from '../components/effects/Stamp';
 import Footer from '../components/Footer';
 import PersonalPortrait from '../components/PersonalPortrait';
 import Report from '../components/Report';
-import SharePanel from '../components/SharePanel';
+import ShareStrip, { useShareLink } from '../components/SharePanel';
 import { useImageReady } from '../hooks/useImageReady';
 import { authUrls, fetchResult } from '../lib/api';
 import { renderCoverBlob } from '../lib/coverCanvas';
@@ -88,7 +88,6 @@ export default function Result() {
   const imageStatus = useImageReady(coverUrl);
   const [coverBlob, setCoverBlob] = useState(null);
   const [justSaved, setJustSaved] = useState(false);
-  const [sharing, setSharing] = useState(false);
   const [revealed, setRevealed] = useState(false);
   // Decided once per mount: slam the stamp only the first time this session.
   const [slam] = useState(() => !(result && stampSeen.has(result.careerTitle)));
@@ -112,6 +111,14 @@ export default function Result() {
     : null;
 
   useEffect(() => () => clearTimeout(savedTimer.current), []);
+
+  // One tap: the share sheet opens with the issue's public link already in
+  // it (SharePanel). Hooks run before the early returns below.
+  const shareLink = useShareLink({
+    key: result?.careerTitle ?? '',
+    text: career ? t.shareText(career.title) : '',
+    lang,
+  });
 
   // A cover without a portrait is still finished, so it gets its stamp too.
   const stamped = revealed || imageStatus === 'failed';
@@ -255,53 +262,63 @@ export default function Result() {
           </m.div>
 
           <article className="lg:col-span-5 lg:col-start-8 lg:pt-2">
-            <h1 className="font-display text-[clamp(1.6rem,2.8vw,2.5rem)] leading-[1.1] text-balance">{careerTitle}</h1>
-            {caption && (
-              <p className="font-display mt-2 text-[1.2rem] leading-snug italic sm:mt-5 sm:text-lede">{caption}</p>
-            )}
-            {/* Right under the headline: on a phone the cover is sized so this row
-                is on the first screen (cover-fit in index.css). */}
-            <section
-              aria-label={t.actions}
-              className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 sm:mt-8 sm:gap-3"
-            >
-              <button
-                type="button"
-                onClick={download}
-                disabled={!coverBlob}
-                className="btn btn-primary sm:min-w-[14rem]"
-                aria-live="polite"
+            {/* On a phone the caption moves below the actions: captions run one
+                to four lines, and above the row they pushed Download / Share
+                under the first screen for most careers. The cover is sized so
+                the headline and this row fit (cover-fit in index.css). From
+                sm up there is room, and the caption leads as before. */}
+            <div className="flex flex-col">
+              <h1 className="font-display text-[clamp(1.6rem,2.8vw,2.5rem)] leading-[1.1] text-balance">
+                {careerTitle}
+              </h1>
+              {caption && (
+                <p className="font-display max-sm:order-last mt-4 text-[1.2rem] leading-snug italic sm:mt-5 sm:text-lede">
+                  {caption}
+                </p>
+              )}
+              <section
+                aria-label={t.actions}
+                className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2 sm:mt-8 sm:gap-3"
               >
-                <SwapLabel text={downloadLabel} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setSharing((open) => !open)}
-                aria-expanded={sharing}
-                className="btn btn-secondary"
-              >
-                {t.share}
-              </button>
-              <button type="button" onClick={retake} className="link-ink min-h-[44px] text-ink">
-                {t.retake}
-              </button>
-              <Link
-                to="/issues"
-                viewTransition
-                onClick={() => setNavDirection('forward')}
-                className="link-ink tap min-h-[44px] content-center text-ink"
-              >
-                {t.backIssues}
-              </Link>
-            </section>
+                <button
+                  type="button"
+                  onClick={download}
+                  disabled={!coverBlob}
+                  className="btn btn-primary max-sm:px-4 sm:min-w-[14rem]"
+                  aria-live="polite"
+                >
+                  <SwapLabel text={downloadLabel} />
+                </button>
+                <a
+                  href={shareLink.whatsappHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={shareLink.toWhatsApp}
+                  aria-label={t.whatsappLabel}
+                  className="btn btn-secondary max-sm:px-4"
+                >
+                  {t.whatsapp}
+                </a>
+                {/* Three buttons on one line on a 360px phone: the padding
+                    narrows there so the row doesn't wrap under the fold. */}
+                <button type="button" onClick={shareLink.share} className="btn btn-secondary max-sm:px-4">
+                  {t.share}
+                </button>
+                <button type="button" onClick={retake} className="link-ink min-h-[44px] text-ink">
+                  {t.retake}
+                </button>
+                <Link
+                  to="/issues"
+                  viewTransition
+                  onClick={() => setNavDirection('forward')}
+                  className="link-ink tap min-h-[44px] content-center text-ink"
+                >
+                  {t.backIssues}
+                </Link>
+              </section>
+            </div>
 
-            {sharing && (
-              <SharePanel
-                title={careerTitle}
-                hasFace={personal?.status === 'ready'}
-                onClose={() => setSharing(false)}
-              />
-            )}
+            <ShareStrip share={shareLink} hasFace={personal?.status === 'ready'} />
 
             {imageStatus === 'failed' && (
               <p className="text-body mt-5" role="status">
