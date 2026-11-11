@@ -103,7 +103,7 @@ export default function Landing() {
       <Masthead />
 
       <main id="main" className="px-4 sm:px-8">
-        <section className="mx-auto grid max-w-[1240px] gap-14 pt-12 pb-20 sm:pt-20 lg:grid-cols-12 lg:gap-10 lg:pb-28">
+        <section className="mx-auto grid max-w-[1240px] gap-10 pt-8 pb-10 sm:gap-14 sm:pt-20 sm:pb-20 lg:grid-cols-12 lg:gap-10 lg:pb-28">
           <div className="lg:col-span-7 lg:pt-6">
             <RevealText
               text="Your career, predicted with unwarranted confidence."
@@ -112,12 +112,12 @@ export default function Landing() {
               proximity
             />
 
-            <m.p {...enter(0.3)} className="font-display mt-8 max-w-[33rem] text-lede">
+            <m.p {...enter(0.3)} className="font-display mt-6 max-w-[33rem] text-lede sm:mt-8">
               Answer five questions and our editors will put you on the cover of a career magazine that does not exist.
               It takes about two minutes. The results are final.
             </m.p>
 
-            <m.div {...enter(0.4)} className="mt-10 flex flex-col items-start gap-4">
+            <m.div {...enter(0.4)} className="mt-8 flex flex-col items-start gap-4 sm:mt-10">
               <GoogleButton>Sign in with Google to start</GoogleButton>
               <p className="meta max-w-[26rem]">
                 Signing in keeps your cover saved. We keep your Google name, email, profile photo link and your five
@@ -138,15 +138,15 @@ export default function Landing() {
 
         <IssueStack samples={samples} />
 
-        <section aria-labelledby="how-heading" className="mx-auto max-w-[1240px] border-t border-ink py-16 sm:py-24">
+        <section aria-labelledby="how-heading" className="mx-auto max-w-[1240px] border-t border-ink py-10 sm:py-24">
           <h2 id="how-heading" className="font-display text-section">
             How it works
           </h2>
-          <ol className="mt-8">
+          <ol className="mt-4 sm:mt-8">
             {STEPS.map((step) => (
               <li
                 key={step.title}
-                className="grid gap-3 border-t border-rule py-7 first:border-t-0 md:grid-cols-[1fr_1.4fr] md:gap-10"
+                className="grid gap-2 border-t border-rule py-5 first:border-t-0 sm:gap-3 sm:py-7 md:grid-cols-[1fr_1.4fr] md:gap-10"
               >
                 <h3 className="font-display text-section text-balance">{step.title}</h3>
                 <p className="text-body max-w-[38rem] md:pt-2">{step.body}</p>
@@ -155,12 +155,12 @@ export default function Landing() {
           </ol>
         </section>
 
-        <section aria-labelledby="corrections-heading" className="mx-auto max-w-[1240px] pb-16 sm:pb-24">
-          <div className="bg-paper-2 p-6 sm:p-10">
+        <section aria-labelledby="corrections-heading" className="mx-auto max-w-[1240px] pb-10 sm:pb-24">
+          <div className="bg-paper-2 p-5 sm:p-10">
             <h2 id="corrections-heading" className="font-display text-section">
               Corrections
             </h2>
-            <dl className="mt-6 grid gap-6 md:grid-cols-3 md:gap-10">
+            <dl className="mt-4 grid gap-4 sm:mt-6 sm:gap-6 md:grid-cols-3 md:gap-10">
               {CORRECTIONS.map(([term, detail]) => (
                 <div key={term}>
                   <dt className="inline font-semibold">{term} </dt>
@@ -169,7 +169,7 @@ export default function Landing() {
               ))}
             </dl>
           </div>
-          <p className="text-body mt-10">
+          <p className="text-body mt-6 sm:mt-10">
             Already have a cover?{' '}
             <a href={authUrls.google} className="link-ink tap">
               Sign in to see it again

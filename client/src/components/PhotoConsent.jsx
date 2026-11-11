@@ -44,10 +44,10 @@ export default function PhotoConsent({ onPhoto, onCancel, busyLabel = null, clas
   return (
     <div ref={panelRef} className={`max-w-[36rem] scroll-mb-6 bg-paper-2 p-5 sm:p-6 ${className}`}>
       <h3 className="font-display text-[1.25rem] leading-tight">Before you send a selfie</h3>
-      <ul className="text-body mt-3 list-disc space-y-1.5 pl-5">
+      <ul className="mt-3 list-disc space-y-1 pl-5 text-[0.95rem] leading-normal sm:space-y-1.5 sm:text-body">
         <li>Your photo goes to Pollinations and the Microsoft image model behind it, once, to make this cover.</li>
         <li>We keep it in memory only, never on disk, and delete it within ten minutes.</li>
-        <li>We keep the finished cover, visible only to you, until you remove it or retake the questionnaire.</li>
+        <li>We keep the finished cover in your back issues, visible only to you, until you remove it.</li>
         <li>Only send a photo of yourself.</li>
       </ul>
       <label htmlFor={consentId} className="mt-4 flex cursor-pointer items-start gap-3">

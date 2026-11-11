@@ -240,11 +240,11 @@ export default function Result() {
       {toast}
 
       <main id="main" className="px-4 sm:px-8">
-        <div className="mx-auto grid max-w-[1240px] gap-12 pt-8 pb-20 sm:pt-12 lg:grid-cols-12 lg:gap-10">
+        <div className="mx-auto grid max-w-[1240px] gap-5 pt-4 pb-20 sm:gap-12 sm:pt-12 lg:grid-cols-12 lg:gap-10">
           {/* Short entrance: the darkroom develop is this page's moment, so
               nothing else should compete with it. */}
           <m.div className="lg:col-span-6" {...rise(10)} transition={{ duration: 0.45, ease: EASE_OUT }}>
-            <div className="relative mx-auto max-w-[600px] lg:sticky lg:top-8">
+            <div className="cover-fit relative lg:sticky lg:top-8">
               <TiltCard>
                 <Cover
                   title={careerTitle}
@@ -260,21 +260,18 @@ export default function Result() {
           </m.div>
 
           <article className="lg:col-span-5 lg:col-start-8 lg:pt-2">
-            <h1 className="font-display text-[clamp(1.75rem,2.8vw,2.5rem)] leading-[1.1] text-balance">
-              {careerTitle}
-            </h1>
-            {caption && <p className="font-display mt-5 text-lede italic">{caption}</p>}
-            <p className="meta mt-5">
-              Forecast for {name || 'you'}, filed {filed}.
-            </p>
-            <Stamp ready={stamped} play={slam} className="mt-4 ml-1" />
-
-            <section aria-label="Actions" className="mt-8 flex flex-wrap items-center gap-3">
+            <h1 className="font-display text-[clamp(1.6rem,2.8vw,2.5rem)] leading-[1.1] text-balance">{careerTitle}</h1>
+            {caption && (
+              <p className="font-display mt-2 text-[1.2rem] leading-snug italic sm:mt-5 sm:text-lede">{caption}</p>
+            )}
+            {/* Right under the headline: on a phone the cover is sized so this row
+                is on the first screen (cover-fit in index.css). */}
+            <section aria-label="Actions" className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 sm:mt-8 sm:gap-3">
               <button
                 type="button"
                 onClick={download}
                 disabled={!coverBlob}
-                className="btn btn-primary min-w-[14rem]"
+                className="btn btn-primary sm:min-w-[14rem]"
                 aria-live="polite"
               >
                 <SwapLabel text={downloadLabel} />
@@ -301,6 +298,11 @@ export default function Result() {
                 later to try again.
               </p>
             )}
+
+            <p className="meta mt-6">
+              Forecast for {name || 'you'}, filed {filed}.
+            </p>
+            <Stamp ready={stamped} play={slam} className="mt-4 ml-1" />
 
             <PersonalPortrait
               personal={personal}

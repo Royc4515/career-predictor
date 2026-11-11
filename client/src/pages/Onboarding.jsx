@@ -222,7 +222,7 @@ export default function Onboarding() {
     <div className="flex min-h-dvh flex-col">
       <Masthead right={<p className="meta">{name ? `Questionnaire for ${name}` : 'Questionnaire'}</p>} />
 
-      <main id="main" className="flex-1 px-4 pt-8 pb-16 sm:px-8 sm:pt-14">
+      <main id="main" className="flex-1 px-4 pt-3 pb-10 sm:px-8 sm:pt-14 sm:pb-16">
         <div className="mx-auto max-w-[1240px]">
           <div className="flex items-center justify-between gap-4">
             <p className="meta tabular" aria-live="polite">
@@ -253,7 +253,7 @@ export default function Onboarding() {
             />
           </div>
 
-          <div className="mt-12 grid gap-12 sm:mt-16 lg:grid-cols-12 lg:gap-10">
+          <div className="mt-6 grid gap-12 sm:mt-16 lg:grid-cols-12 lg:gap-10">
             <div className="lg:col-span-8">
               <AnimatePresence mode="wait" custom={direction} initial={false}>
                 <m.div
@@ -265,10 +265,17 @@ export default function Onboarding() {
                   exit="exit"
                   transition={{ duration: 0.28, ease: EASE_OUT }}
                 >
-                  <h1 id={`q-${current.id}`} className="font-display text-title text-balance">
+                  <h1
+                    id={`q-${current.id}`}
+                    className="font-display text-[clamp(1.9rem,8vw,2.25rem)] leading-[1.06] text-balance sm:text-title"
+                  >
                     {current.question}
                   </h1>
-                  <div role="radiogroup" aria-labelledby={`q-${current.id}`} className="mt-10 border-t border-ink">
+                  <div
+                    role="radiogroup"
+                    aria-labelledby={`q-${current.id}`}
+                    className="mt-6 border-t border-ink sm:mt-10"
+                  >
                     {current.options.map((option, i) => {
                       const isSelected = selected === option;
                       return (
@@ -281,7 +288,7 @@ export default function Onboarding() {
                           tabIndex={isSelected || (!selected && i === 0) ? 0 : -1}
                           onClick={() => choose(option)}
                           onKeyDown={(e) => onOptionKeyDown(e, i)}
-                          className="group flex min-h-[68px] w-full items-center gap-5 border-b border-rule py-4 text-left transition-colors duration-150 active:bg-paper-2 sm:-mx-3 sm:w-[calc(100%+1.5rem)] sm:gap-7 sm:px-3 [@media(hover:hover)]:hover:bg-paper-2"
+                          className="group flex min-h-[56px] w-full items-center gap-4 border-b border-rule py-3 text-left sm:min-h-[68px] sm:py-4 transition-colors duration-150 active:bg-paper-2 sm:-mx-3 sm:w-[calc(100%+1.5rem)] sm:gap-7 sm:px-3 [@media(hover:hover)]:hover:bg-paper-2"
                         >
                           <kbd
                             className={`grid size-8 shrink-0 place-items-center rounded-[3px] border font-sans text-[0.8rem] font-semibold transition-colors ${
@@ -292,7 +299,7 @@ export default function Onboarding() {
                           >
                             {LETTERS[i]}
                           </kbd>
-                          <span className="font-display relative text-[clamp(1.3rem,2.4vw,1.9rem)] leading-snug">
+                          <span className="font-display relative text-[clamp(1.2rem,5.2vw,1.3rem)] leading-snug sm:text-[clamp(1.3rem,2.4vw,1.9rem)]">
                             {/* Highlighter stroke drawn left to right when chosen. clip-path
                                 keeps the stroke's ragged ends intact; scaleX squashed them. */}
                             <m.span

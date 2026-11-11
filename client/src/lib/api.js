@@ -87,7 +87,9 @@ export async function uploadPortrait(photo) {
     res = await fetch(`${API_URL}/api/user/portrait`, {
       method: 'POST',
       credentials: 'include',
-      headers: { 'Content-Type': photo.type || 'image/jpeg', 'X-Portrait-Consent': 'yes' },
+      // 'v2' names the consent wording the reader saw (PhotoConsent): the
+      // portrait is kept on its back issue until they remove it.
+      headers: { 'Content-Type': photo.type || 'image/jpeg', 'X-Portrait-Consent': 'v2' },
       body: photo,
     });
   } catch {

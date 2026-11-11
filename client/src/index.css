@@ -245,6 +245,20 @@ html:is([data-nav='forward'], [data-nav='back'])::view-transition-new(root) {
   animation: develop 2.2s var(--ease-press) both;
 }
 
+/* The result cover, sized to the screen as well as the column: its 4:5 height
+   never runs past the bottom of the viewport. On a phone it leaves room for
+   the headline and the Download / Share row below it, so the page's main
+   action is visible without scrolling; on a laptop the whole sticky cover
+   fits beside the report. The floor keeps it readable on very short
+   (landscape) screens, where scrolling is the lesser evil. */
+@utility cover-fit {
+  width: min(100%, 600px, max(15rem, calc((100dvh - 18rem) * 0.8)));
+  margin-inline: auto;
+  @media (min-width: 64rem) {
+    width: min(100%, 600px, max(20rem, calc((100dvh - 8rem) * 0.8)));
+  }
+}
+
 /* Reduced motion means gentler, not none: movement goes, fades stay, so
    state changes are still visible. */
 /* ── Print shop effects ─────────────────────────────────────────────────── */

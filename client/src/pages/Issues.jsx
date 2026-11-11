@@ -18,19 +18,29 @@ function filedOn(value) {
 }
 
 function BackIssue({ cover, number, onRemove, removing }) {
-  const status = useImageReady(cover.imageUrl);
+  // The reader's own portrait when they shot one for this issue; the desk's
+  // shared portrait otherwise, or if theirs could not be made. The shared one
+  // is only polled when it is needed.
+  const personalStatus = useImageReady(cover.personalImageUrl);
+  const mine = Boolean(cover.personalImageUrl) && personalStatus !== 'failed';
+  const sharedStatus = useImageReady(mine ? null : cover.imageUrl);
+  const imageUrl = mine ? cover.personalImageUrl : cover.imageUrl;
+  const status = mine ? personalStatus : sharedStatus;
   const filed = filedOn(cover.filedAt);
   return (
     <li>
       <Cover
         title={cover.title}
-        imageUrl={cover.imageUrl}
+        imageUrl={imageUrl}
         imageStatus={status}
         deck={filed ? `Filed ${filed}.` : 'From the archive.'}
         lazy
       />
       <div className="mt-3 flex items-baseline justify-between gap-3">
-        <p className="meta">No. {number}</p>
+        <p className="meta">
+          No. {number}
+          {mine && <span className="text-ink-3"> · You</span>}
+        </p>
         {cover.current ? (
           <span className="meta bg-mark px-1.5 text-ink">Current issue</span>
         ) : (
@@ -49,9 +59,9 @@ function BackIssue({ cover, number, onRemove, removing }) {
 }
 
 /**
- * "Your back issues": every cover the desk has printed for you, newest first.
- * Shared portraits only; a personal portrait belongs to the current issue and
- * is never archived (the consent screen promises a retake deletes it).
+ * "Your back issues": every cover the desk has printed for you, newest first,
+ * each with your own portrait if you shot one for it. Removing a back issue
+ * deletes that portrait too.
  */
 export default function Issues() {
   const [covers, setCovers] = useState(null);

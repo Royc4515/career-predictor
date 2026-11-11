@@ -135,10 +135,37 @@ test('deleteCover removes only the owner\'s cover', async () => {
   const b = await db.upsertUser({ googleId: 'g-del-b', email: 'b@x', name: 'B' });
   await saveFor(a.id, 'Mine');
   const [cover] = await db.getCovers(a.id);
-  assert.equal(await db.deleteCover(b.id, cover.id), false, 'not yours');
+  assert.equal(await db.deleteCover(b.id, cover.id), null, 'not yours');
   assert.equal((await db.getCovers(a.id)).length, 1);
-  assert.equal(await db.deleteCover(a.id, cover.id), true);
+  assert.deepEqual(await db.deleteCover(a.id, cover.id), { personalImageId: null });
   assert.equal((await db.getCovers(a.id)).length, 0);
+});
+
+test('personal portraits on back issues: archive, prune with the cap, delete with the issue', async () => {
+  const user = await db.upsertUser({ googleId: 'g-archive', email: 'ar@x', name: 'Archive' });
+  const save = (title) =>
+    db.saveOnboarding({
+      userId: user.id, strength: 'a', mondayVibe: 'b', coworkerDesc: 'c', fiveYearGoal: 'd', desiredField: 'e',
+      careerResult: JSON.stringify({ title }), imageId: 'abcdefabcdefabcd', portraitSubject: 'surprise',
+    });
+  await save('Issue 1');
+  await db.archivePersonalPortrait(user.id, '1111111111111111');
+  assert.equal(await db.isPersonalPortraitArchived(user.id, '1111111111111111'), true);
+  assert.equal(await db.isPersonalPortraitArchived(user.id + 1, '1111111111111111'), false, 'per user');
+  let pruned = [];
+  for (let i = 2; i <= db.MAX_BACK_ISSUES + 1; i++) pruned = pruned.concat((await save(`Issue ${i}`)).prunedPersonalImageIds);
+  assert.deepEqual(pruned, ['1111111111111111'], 'the pruned issue hands back its portrait');
+  assert.equal(await db.isPersonalPortraitArchived(user.id, '1111111111111111'), false);
+
+  await db.archivePersonalPortrait(user.id, '2222222222222222');
+  const [newest, older] = await db.getCovers(user.id);
+  assert.equal(newest.personal_image_id, '2222222222222222', 'linked to the newest issue only');
+  assert.equal(older.personal_image_id, null);
+  assert.deepEqual(await db.deleteCover(user.id, newest.id), { personalImageId: '2222222222222222' });
+  assert.equal(await db.deleteCover(user.id, newest.id), null, 'gone');
+  await db.archivePersonalPortrait(user.id, '3333333333333333');
+  await db.unarchivePersonalPortrait(user.id, '3333333333333333');
+  assert.equal(await db.isPersonalPortraitArchived(user.id, '3333333333333333'), false);
 });
 
 test('existing results are imported once as the first back issue', async () => {

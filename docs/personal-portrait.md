@@ -168,3 +168,23 @@ dark straight into their face; the shared portrait is still shot as the
 fallback). The result page's panel still works for a result made without a
 photo, and now explains an old-issue result ("retake and pick Use my own
 photo") instead of hiding.
+
+## 6. Kept in the back issues (November 2026)
+
+The owner found the gallery only showed the desk's shared portraits, never
+the covers made with their own face. Personal portraits are now kept on
+their back issue.
+
+- **Consent wording v2** (`PhotoConsent.jsx`): "We keep the finished cover in
+  your back issues, visible only to you, until you remove it." The client
+  sends `X-Portrait-Consent: v2`.
+- **Server:** a v2 portrait is linked to the current issue
+  (`covers.personal_image_id`). A retake keeps it on that issue. "Remove my
+  photo" deletes it everywhere. Removing a back issue deletes its portrait.
+  The 30-issue cap deletes the portraits of the issues it prunes.
+- **Old consent:** a portrait uploaded with `yes` (v1, "deleted on a
+  retake") is never linked, and a retake still deletes it, as that wording
+  promised.
+- **Serving:** `GET /api/user/portrait/image/:id` serves an archived
+  portrait to its owner only. An archived one with no bytes and no job
+  running answers 410, and the gallery falls back to the shared portrait.
