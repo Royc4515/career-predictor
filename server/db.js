@@ -61,6 +61,12 @@ async function initDB(config = connectionConfig()) {
   // The photographer's answer ('woman' | 'man' | 'surprise'), so a future
   // gallery or reshoot knows which version of the portrait a result used.
   await addColumnIfMissing('onboarding', 'portrait_subject', 'TEXT');
+  // Personal portrait (opt-in, the user's own face): the image id in the
+  // images table, 'generating' | 'ready' | 'failed', and when consent was
+  // given. Never the uploaded photo itself: that only ever lives in memory.
+  await addColumnIfMissing('onboarding', 'personal_image_id', 'TEXT');
+  await addColumnIfMissing('onboarding', 'personal_status', 'TEXT');
+  await addColumnIfMissing('onboarding', 'personal_consent_at', 'TEXT');
 
   console.log('[DB] Schema ready');
   return client;
@@ -150,6 +156,39 @@ async function saveOnboarding({
   console.log('[DB] Onboarding saved for user ID:', userId);
 }
 
+/** Point a saved result at its current shared portrait id. */
+async function updateImageId(userId, imageId) {
+  await client.execute({ sql: 'UPDATE onboarding SET image_id = ? WHERE user_id = ?', args: [imageId, userId] });
+}
+
+/** Attach a newly started personal portrait to the user's current result. */
+async function setPersonalPortrait(userId, { imageId, status, consentAt }) {
+  await client.execute({
+    sql: `UPDATE onboarding SET personal_image_id = ?, personal_status = ?, personal_consent_at = ?
+          WHERE user_id = ?`,
+    args: [imageId, status, consentAt, userId],
+  });
+}
+
+/**
+ * Record how generation ended. Matches on the image id so a late finish of an
+ * older upload can't overwrite a newer one (or a removal).
+ */
+async function updatePersonalStatus(userId, imageId, status) {
+  await client.execute({
+    sql: 'UPDATE onboarding SET personal_status = ? WHERE user_id = ? AND personal_image_id = ?',
+    args: [status, userId, imageId],
+  });
+}
+
+async function clearPersonalPortrait(userId) {
+  await client.execute({
+    sql: `UPDATE onboarding SET personal_image_id = NULL, personal_status = NULL, personal_consent_at = NULL
+          WHERE user_id = ?`,
+    args: [userId],
+  });
+}
+
 /** The user's latest result, or null. */
 async function getOnboardingByUserId(userId) {
   const result = await client.execute({
@@ -166,4 +205,8 @@ module.exports = {
   findUserById,
   saveOnboarding,
   getOnboardingByUserId,
+  updateImageId,
+  setPersonalPortrait,
+  updatePersonalStatus,
+  clearPersonalPortrait,
 };

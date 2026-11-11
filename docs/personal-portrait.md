@@ -1,6 +1,6 @@
 # Personal portrait ("put my face on the cover"): plan
 
-Status: gated on a likeness test. Nothing user-facing is built yet.
+Status: built (November 2026). The likeness test passed (section 1b); section 4 records what was built and where it differs from the plan.
 
 ## Decision so far
 
@@ -120,3 +120,39 @@ A face photo is biometric, sensitive data.
 2. R2 store for durable images (needed by 2.x, useful today).
 3. Public "Shoot me as" (independent of the test).
 4. Personal path, only if step 1 passed.
+
+## 4. As built
+
+**Flow.** Result page, "Put your face on it" -> consent panel (what is sent
+where, how long it is kept, own photo only; an unticked box gates the file
+picker) -> the browser shrinks the photo to a 1024 px JPEG (also turns iPhone
+HEIC into JPEG) -> `POST /api/user/portrait` with the bytes and
+`X-Portrait-Consent: yes` -> the cover shows "Developing" and swaps to the
+personal portrait when ready. "You / The desk's pick" switches the cover;
+"Remove my photo" deletes it.
+
+**Server.**
+- `photoUpload.js`: type from the bytes (sharp), JPEG/PNG/WebP only, at least
+  256 px, re-encoded to a 1024 px JPEG with all metadata (GPS, device)
+  dropped. 8 MB request cap.
+- `services/image/referencePhotos.js`: the photo lives in memory only, behind
+  a 128-bit token at `GET /api/ref/:token`, for 10 minutes or 3 fetches, and
+  is deleted as soon as generation ends.
+- `services/image/personalPortraits.js`: MAI Image 2.6 flash, then MAI Image
+  2.6 (a moderation refusal on one usually passes on the other), the career's
+  identity-neutral `personalScene` (careers.js), the career's seed. The
+  result is stored like any portrait (WebP in Turso) under a random id.
+- `GET /api/user/portrait/image/:id`: the owner only (another user gets 404),
+  `Cache-Control: private`, same 404 + Retry-After polling contract, 410 when
+  it failed. A row stuck at "generating" after a restart reads as failed.
+- Limits (in memory, one instance): 3 per user and 40 site-wide per 24 hours.
+- A retake deletes the personal portrait of the replaced result.
+
+**Differences from the plan.** Storage is Turso, not R2 (R2 needs a card).
+The upload is the raw body (no multipart library). No face detection: a
+photo without a face just produces an odd cover, and the user can remove it.
+
+**Owner checklist.** `SERVER_URL` must be the public https URL (the model
+fetches the photo from it), and the production Pollinations key must be
+allowed to use the MAI Image models. The startup log says
+`[PORTRAIT] personal portraits: microsoft/mai-image-2.6-flash -> ...` when on.

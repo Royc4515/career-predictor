@@ -81,3 +81,13 @@ test('a failed table setup is retried on the next call', async () => {
   await assert.rejects(store.get('dddddddddddddddd'), /network blip/);
   assert.equal(await store.get('dddddddddddddddd'), null);
 });
+
+test('delete removes a portrait from the database and the cache; unknown ids are fine', async () => {
+  const store = new TursoStore({ client });
+  await store.put('eeeeeeeeeeeeeeee', Buffer.from([9]), 'image/webp');
+  assert.ok(await store.get('eeeeeeeeeeeeeeee'));
+  await store.delete('eeeeeeeeeeeeeeee');
+  assert.equal(await store.get('eeeeeeeeeeeeeeee'), null);
+  assert.equal(await new TursoStore({ client }).get('eeeeeeeeeeeeeeee'), null);
+  await store.delete('ffffffffffffffff');
+});

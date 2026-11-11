@@ -323,3 +323,15 @@ test('the keyless Pollinations provider is marked provisional', () => {
   const { PollinationsProvider } = require('../providers/pollinationsProvider');
   assert.equal(new PollinationsProvider().provisional, true);
 });
+
+test('a stopgap is returned flagged provisional; a durable portrait is not', async () => {
+  const good = fakeProvider('good', 'flux', { error: new Error('out of pollen') });
+  const keyless = provisional(fakeProvider('keyless', 'flux', { ok: { buffer: Buffer.from('s'), mimeType: 'image/jpeg' } }));
+  const blobStore = inMemoryBlobStore();
+  const svc = new ImageService({ providers: [good, keyless], blobStore, promptBuilder: fakePromptBuilder(), logger: silentLogger() });
+  const { id } = svc.kickoff({ scenePrompt: 'a', title: 't' });
+  await waitFor(async () => svc.fetchIfReady(id));
+  assert.equal((await svc.fetchIfReady(id)).provisional, true);
+  await blobStore.put('durable_id', Buffer.from('d'), 'image/webp');
+  assert.equal((await svc.fetchIfReady('durable_id')).provisional, undefined);
+});

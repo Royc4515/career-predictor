@@ -26,7 +26,7 @@ const STEPS = [
   },
   {
     title: 'You make the cover',
-    body: 'An image model shoots a portrait for your headline. Download the finished cover or share it straight from your phone.',
+    body: 'An image model shoots a portrait for your headline, or, if you send a selfie, one of you. Download the finished cover or share it straight from your phone.',
   },
 ];
 
@@ -41,7 +41,7 @@ const CORRECTIONS = [
   ],
   [
     'Your data',
-    'is your Google name, email and profile photo link, plus your five answers, kept so your cover is still here when you come back. None of it goes to the image model.',
+    'is your Google name, email and profile photo link, plus your answers, kept so your cover is still here when you come back. None of it goes to the image model. If you choose to put your face on the cover, that one selfie goes to the image model once and is deleted within ten minutes; the finished cover stays private to you until you remove it.',
   ],
 ];
 

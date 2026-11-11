@@ -73,3 +73,14 @@ test('generate(): rejects an empty image body', async () => {
   const p = new PollinationsGenProvider({ apiKey: 'sk_x', fetchImpl: async () => okResponse('', 'image/jpeg') });
   await assert.rejects(p.generate({ prompt: 'x', seed: 1, width: 896, height: 1120, negativePrompt: '' }), /empty/);
 });
+
+test('a reference photo URL is sent as the image parameter, and only when given', async () => {
+  const urls = [];
+  const fetchImpl = async (url) => { urls.push(url); return okResponse(); };
+  const p = new PollinationsGenProvider({ apiKey: 'sk_x', model: 'microsoft/mai-image-2.6-flash', fetchImpl });
+  await p.generate({ prompt: 'a', seed: 1, width: 896, height: 1120, referenceUrl: 'https://example.com/api/ref/abc?x=1' });
+  await p.generate({ prompt: 'a', seed: 1, width: 896, height: 1120 });
+  assert.equal(new URL(urls[0]).searchParams.get('image'), 'https://example.com/api/ref/abc?x=1');
+  assert.equal(new URL(urls[0]).searchParams.get('model'), 'microsoft/mai-image-2.6-flash');
+  assert.equal(new URL(urls[1]).searchParams.has('image'), false);
+});

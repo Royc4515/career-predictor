@@ -18,7 +18,6 @@
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { enrichForFLUX } = require('../services/image/promptBuilder');
 const { evaluateKey, maskKey } = require('./checkImageKey');
 
 const API = 'https://gen.pollinations.ai';
@@ -29,8 +28,7 @@ const SEED = 4242;
 // Identity comes from the photo, so the scene names no age, gender or
 // background: anything the prompt says about the person competes with the
 // reference and pulls the face away from it.
-const IDENTITY =
-  'The person from the reference photo, keeping exactly their face, age, skin tone, hair and build, ';
+const { PERSONAL_IDENTITY: IDENTITY, personalPrompt } = require('../services/image/promptBuilder');
 
 const SCENES = {
   founder:
@@ -52,7 +50,7 @@ const FIXTURE_REFS = [1, 2].map(
 
 /** Request URL for one render. The key goes in a header, never in the URL. */
 function buildLikenessUrl({ scene, model, ref, seed = SEED, width = SIZE.width, height = SIZE.height }) {
-  const prompt = enrichForFLUX(IDENTITY + scene);
+  const prompt = personalPrompt(scene);
   const params = new URLSearchParams({ model, width: String(width), height: String(height), seed: String(seed), image: ref });
   return `${API}/image/${encodeURIComponent(prompt)}?${params.toString()}`;
 }

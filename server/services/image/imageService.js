@@ -63,7 +63,9 @@ class ImageService {
       this.provisional.delete(id);
       return null;
     }
-    return entry.blob;
+    // Flagged so the image route doesn't let browsers cache the stopgap as
+    // the final, immutable portrait for that id.
+    return { ...entry.blob, provisional: true };
   }
 
   // Sync return per spec §2.kickoff.1. No await on the path from entry to return.

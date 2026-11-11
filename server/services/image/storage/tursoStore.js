@@ -79,6 +79,13 @@ class TursoStore {
     });
     this._remember(id, { buffer, mimeType });
   }
+
+  /** Remove a portrait (personal portraits can be withdrawn). Missing ids are fine. */
+  async delete(id) {
+    this._cache.delete(id);
+    await this._ensureTable();
+    await this.client.execute({ sql: 'DELETE FROM images WHERE id = ?', args: [id] });
+  }
 }
 
 module.exports = { TursoStore };

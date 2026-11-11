@@ -17,7 +17,9 @@ function createImageRouter(imageService) {
         return res.status(404).send('generating');
       }
       res.set('Content-Type', blob.mimeType);
-      res.set('Cache-Control', 'public, max-age=31536000, immutable');
+      // don't touch / A stopgap (watermarked fallback) will be replaced under
+      // the same id; cached as immutable, browsers would keep it for a year.
+      res.set('Cache-Control', blob.provisional ? 'no-store' : 'public, max-age=31536000, immutable');
       return res.send(blob.buffer);
     } catch (err) {
       console.error('[IMAGE_ROUTE] fetchIfReady failed', err);

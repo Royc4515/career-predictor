@@ -22,7 +22,12 @@ class PollinationsGenProvider {
     this.dialect = 'flux';
   }
 
-  async generate({ prompt, seed, width, height }) {
+  /**
+   * referenceUrl (optional): a public URL of a photo for image-to-image
+   * models (personal portraits). The API fetches it itself, so it must be
+   * reachable from the internet for the duration of the request.
+   */
+  async generate({ prompt, seed, width, height, referenceUrl }) {
     // negativePrompt is intentionally not sent: the image endpoint has no such
     // parameter for current models, and they follow positive phrasing anyway.
     const params = new URLSearchParams({
@@ -31,6 +36,7 @@ class PollinationsGenProvider {
       height: String(height),
       seed: String(seed),
     });
+    if (referenceUrl) params.set('image', referenceUrl);
     const url = BASE + encodeURIComponent(prompt) + '?' + params.toString();
     const res = await this.fetch(url, {
       headers: { Authorization: `Bearer ${this.apiKey}` },
