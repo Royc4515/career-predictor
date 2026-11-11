@@ -3,7 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import Masthead from '../components/Masthead';
 import Cover from '../components/Cover';
 import { PRESS_STEPS } from '../content';
-import { submitAnswers } from '../lib/api';
+import { submitAnswers, uploadPortrait } from '../lib/api';
+import { OWN_PHOTO_OPTION } from '../content';
+import { pendingPhoto } from '../lib/pendingPhoto';
 import { cachedResult, draftAnswers } from '../lib/storage';
 import { setNavDirection } from '../lib/navDirection';
 import { currentAnswers, isComplete } from '../lib/quiz';
@@ -14,6 +16,25 @@ const MIN_DURATION_MS = 5200;
 const STEP_MS = MIN_DURATION_MS / PRESS_STEPS.length;
 // The headline appears on the cover at this step ("Setting your headline").
 const HEADLINE_STEP = PRESS_STEPS.length - 2;
+
+/**
+ * "Use my own photo": upload the selfie chosen on the last step now that the
+ * result exists, so the first cover the reader sees is already theirs. A
+ * failure never blocks the result; it travels to the result page as a note.
+ */
+async function withSelfie(data, answers) {
+  if (answers.portrait_subject !== OWN_PHOTO_OPTION) return data;
+  const photo = pendingPhoto.get();
+  pendingPhoto.clear();
+  if (!photo) {
+    return { ...data, personalNotice: 'Your selfie did not survive the page reload. Add it again below.' };
+  }
+  try {
+    return { ...data, personal: await uploadPortrait(photo) };
+  } catch (err) {
+    return { ...data, personalNotice: `Your selfie was not sent: ${err.message}` };
+  }
+}
 
 function StepMark({ state }) {
   if (state === 'done') {
@@ -60,7 +81,7 @@ export default function Loading() {
   useEffect(() => {
     if (!ready) return undefined;
     let cancelled = false;
-    if (!request.current) request.current = submitAnswers(answers);
+    if (!request.current) request.current = submitAnswers(answers).then((data) => withSelfie(data, answers));
     request.current
       .then((data) => {
         if (cancelled) return;

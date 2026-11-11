@@ -155,3 +155,13 @@ test('choosing a photo gets every career shot as that person', () => {
     }
   }
 });
+
+test('"Use my own photo" keeps the career and shoots the original scene as the fallback', () => {
+  for (const answers of allAnswerSets()) {
+    const base = mapCareer(answers);
+    const photo = mapCareer({ ...answers, portrait_subject: 'Use my own photo' });
+    assert.equal(photo.title, base.title);
+    assert.equal(photo.portraitSubject, 'photo');
+    assert.equal(photo.prompt, base.prompt);
+  }
+});

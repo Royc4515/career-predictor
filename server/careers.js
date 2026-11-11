@@ -710,7 +710,11 @@ function mapCareer(answers) {
  * keeps the series varied. The career itself never depends on this choice.
  */
 function promptFor(career, portraitSubject) {
-  if (portraitSubject === DEFAULT_PORTRAIT || portraitSubject === career.subject) return career.prompt;
+  // Only an explicit woman/man choice picks a version; 'surprise' and
+  // 'photo' (whose shared portrait is the fallback) keep the original.
+  if ((portraitSubject !== 'woman' && portraitSubject !== 'man') || portraitSubject === career.subject) {
+    return career.prompt;
+  }
   return career.altPrompt || career.prompt;
 }
 

@@ -72,8 +72,13 @@ export const PORTRAIT_STEP = {
   id: 'portrait_subject',
   label: 'Cover photo',
   question: 'Last one, for the photographer. Who are we shooting?',
-  options: ['Shoot me as a woman', 'Shoot me as a man', 'Surprise me. The desk will cast someone'],
+  options: ['Shoot me as a woman', 'Shoot me as a man', 'Surprise me. The desk will cast someone', 'Use my own photo'],
 };
+
+// The photographer's option that asks for a selfie instead of casting
+// someone. Shown only when the deployment can make personal portraits
+// (GET /api/features).
+export const OWN_PHOTO_OPTION = 'Use my own photo';
 
 // Every screen of the questionnaire, in order.
 export const QUIZ_STEPS = [...QUESTIONS, PORTRAIT_STEP];

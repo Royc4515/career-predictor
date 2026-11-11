@@ -3,7 +3,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { useAuth } from '../app/AuthContext';
 import Masthead from '../components/Masthead';
-import { QUESTIONS, QUIZ_STEPS } from '../content';
+import { OWN_PHOTO_OPTION, QUESTIONS, QUIZ_STEPS } from '../content';
+import PhotoConsent from '../components/PhotoConsent';
+import { fetchFeatures } from '../lib/api';
+import { pendingPhoto } from '../lib/pendingPhoto';
 import { firstName } from '../lib/issue';
 import { draftAnswers } from '../lib/storage';
 import { currentAnswers } from '../lib/quiz';
@@ -85,8 +88,26 @@ export default function Onboarding() {
     prevStep.current = step;
   });
 
-  const current = STEPS[step];
+  // "Use my own photo" is only offered when the server can make personal
+  // portraits; until we know, it stays hidden rather than flashing in.
+  const [canUsePhoto, setCanUsePhoto] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetchFeatures().then((f) => !cancelled && setCanUsePhoto(f.personalPortraits));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const stepDef = STEPS[step];
+  const current =
+    stepDef.options.includes(OWN_PHOTO_OPTION) && !canUsePhoto
+      ? { ...stepDef, options: stepDef.options.filter((o) => o !== OWN_PHOTO_OPTION) }
+      : stepDef;
   const selected = answers[current.id];
+  // Picking "Use my own photo" opens the consent panel instead of moving on;
+  // the step completes once a selfie has been chosen.
+  const wantsPhoto = selected === OWN_PHOTO_OPTION && canUsePhoto;
   const answeredCount = STEPS.filter((q) => answers[q.id]).length;
   const isQuestion = step < QUESTIONS.length;
 
@@ -108,6 +129,8 @@ export default function Onboarding() {
       const next = { ...answers, [current.id]: option };
       setAnswers(next);
       draftAnswers.set(next);
+      if (option === OWN_PHOTO_OPTION) return; // wait for the selfie
+      if (current.id === 'portrait_subject') pendingPhoto.clear();
       setLocked(true);
 
       advanceTimer.current = setTimeout(() => {
@@ -121,6 +144,17 @@ export default function Onboarding() {
       }, ADVANCE_DELAY_MS);
     },
     [answers, current.id, locked, navigate, setParams, step],
+  );
+
+  // The selfie is held in memory (lib/pendingPhoto) and uploaded by the
+  // Loading page right after the result is saved.
+  const onPhoto = useCallback(
+    (blob) => {
+      pendingPhoto.set(blob);
+      setNavDirection('forward');
+      navigate('/loading', { viewTransition: true });
+    },
+    [navigate],
   );
 
   const goBack = useCallback(() => {
@@ -278,6 +312,18 @@ export default function Onboarding() {
                       );
                     })}
                   </div>
+                  {wantsPhoto && (
+                    <PhotoConsent
+                      className="mt-6"
+                      onPhoto={onPhoto}
+                      onCancel={() => {
+                        const next = { ...answers };
+                        delete next[current.id];
+                        setAnswers(next);
+                        draftAnswers.set(next);
+                      }}
+                    />
+                  )}
                 </m.div>
               </AnimatePresence>
 

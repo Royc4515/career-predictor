@@ -194,3 +194,29 @@ test('back issues: delete your own, 404 for anyone else\'s, 400 for junk ids', a
   currentUser = null;
   assert.equal((await fetch(base + '/api/user/covers')).status, 401);
 });
+
+test('a result says why a personal portrait is unavailable: an old issue', async () => {
+  currentUser = 2;
+  assert.equal((await json('POST', '/api/user/onboarding', ANSWERS)).status, 200);
+  const db = require('../db');
+  const row = await db.getOnboardingByUserId(2);
+  await db.saveOnboarding({
+    userId: 2, strength: 'a', mondayVibe: 'b', coworkerDesc: 'c', fiveYearGoal: 'd', desiredField: 'e',
+    careerResult: JSON.stringify({ title: 'Corporate Optimism Evangelist', caption: 'old' }),
+    imageId: row.image_id, portraitSubject: 'surprise',
+  });
+  const body = await (await fetch(base + '/api/user/result')).json();
+  assert.equal(body.personalAvailable, false);
+  assert.equal(body.personalBlocked, 'old-issue');
+});
+
+test('the quiz can choose "Use my own photo": accepted, shared portrait is the original scene', async () => {
+  currentUser = 1;
+  const res = await json('POST', '/api/user/onboarding', { ...ANSWERS, portrait_subject: 'Use my own photo' });
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.personalAvailable, true);
+  assert.equal(body.personal, null);
+  const db = require('../db');
+  assert.equal((await db.getOnboardingByUserId(1)).portrait_subject, 'photo');
+});

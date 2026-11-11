@@ -55,6 +55,18 @@ async function personalState(row) {
   return { id, status };
 }
 
+/**
+ * Whether this result can get a personal portrait, and if not, why, so the
+ * page can say so instead of hiding the option: 'off' (not configured on
+ * this deployment) or 'old-issue' (a career from before the quiz redesign,
+ * with no identity-neutral scene; a retake fixes it).
+ */
+function personalAvailability(title) {
+  if (!getPersonalPortraitService().available) return { personalAvailable: false, personalBlocked: 'off' };
+  if (!personalSceneFor(title)) return { personalAvailable: false, personalBlocked: 'old-issue' };
+  return { personalAvailable: true, personalBlocked: null };
+}
+
 function personalView(state) {
   return state ? { status: state.status, imageUrl: personalImageUrl(state.id) } : null;
 }
@@ -135,6 +147,8 @@ router.post(
         imageUrl: imageUrlFor(imageId),
         stats: { happiness: career.happiness, salary: career.salary, outlook: career.outlook },
         evidence: career.evidence,
+        personal: null,
+        ...personalAvailability(career.title),
       });
     },
     { label: 'POST /api/user/onboarding', message: 'Could not save your result. Please try again.' },
@@ -178,9 +192,7 @@ router.get(
         // Results saved before the quiz redesign have no evidence.
         evidence: Array.isArray(parsed.evidence) ? parsed.evidence : [],
         personal: personalView(await personalState(row)),
-        // Whether this result can get a personal portrait (configured, and
-        // the career still has an identity-neutral scene).
-        personalAvailable: getPersonalPortraitService().available && Boolean(personalSceneFor(parsed.title)),
+        ...personalAvailability(parsed.title),
       });
     },
     { label: 'GET /api/user/result', message: 'Could not load your result. Please try again.' },
@@ -190,9 +202,10 @@ router.get(
 /**
  * The shared portrait for a saved career: the career's current scene (kicked
  * off, idempotent) so an archived cover never points at a lost or outdated
- * image, or the stored id for a career that has left the table.
+ * image, or the stored id for a career that has left the table, or, for a
+ * result older than image ids, its legacy image URL (as /result does).
  */
-function portraitUrlFor(title, portraitSubject, storedImageId) {
+function portraitUrlFor(title, portraitSubject, storedImageId, legacyImageUrl) {
   const career = careerForTitle(title);
   if (career) {
     const { id } = getImageService().kickoff({
@@ -201,7 +214,8 @@ function portraitUrlFor(title, portraitSubject, storedImageId) {
     });
     return imageUrlFor(id);
   }
-  return storedImageId ? imageUrlFor(storedImageId) : null;
+  if (storedImageId) return imageUrlFor(storedImageId);
+  return legacyImageUrl || null;
 }
 
 // GET /api/user/covers - "Your back issues": every cover the user has been
@@ -220,7 +234,7 @@ router.get(
           title: parsed.title,
           caption: parsed.caption || null,
           happiness: parsed.happiness ?? null,
-          imageUrl: portraitUrlFor(parsed.title, row.portrait_subject, row.image_id),
+          imageUrl: portraitUrlFor(parsed.title, row.portrait_subject, row.image_id, row.image_url),
           filedAt: row.created_at,
           current: i === 0,
         };
