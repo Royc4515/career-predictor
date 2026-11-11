@@ -143,6 +143,43 @@ export async function makeCoverCurrent(id) {
   if (!res.ok) throw new ApiError(res.status, 'Could not switch to that issue. Try again.');
 }
 
+/**
+ * Create (or reuse) a public link to the current issue. withFace puts the
+ * reader's own portrait on the shared page; lang picks the preview's
+ * language. Returns { url, token, withFace }.
+ */
+export async function createShare({ withFace = false, lang = 'en' } = {}) {
+  const data = await request('/api/user/share', { method: 'POST', body: { withFace, lang } });
+  return data;
+}
+
+/** End a public link. */
+export async function stopShare(token) {
+  let res;
+  try {
+    res = await fetch(`${API_URL}/api/user/share/${encodeURIComponent(token)}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+  } catch {
+    throw new ApiError(0, 'Could not reach the newsroom. Check your connection and try again.');
+  }
+  if (!res.ok && res.status !== 404) throw new ApiError(res.status, 'Could not stop sharing. Try again.');
+}
+
+/** A shared issue (public, no sign-in), or null when the link is unknown or ended. */
+export async function fetchShare(token) {
+  let res;
+  try {
+    res = await fetch(`${API_URL}/api/share/${encodeURIComponent(token)}`);
+  } catch {
+    throw new ApiError(0, 'Could not reach the newsroom. Check your connection and try again.');
+  }
+  if (res.status === 404) return null;
+  if (!res.ok) throw new ApiError(res.status, `The newsroom returned an error (${res.status}). Try again in a moment.`);
+  return res.json();
+}
+
 /** What this deployment supports. Never throws: unknown means "off". */
 export async function fetchFeatures() {
   try {

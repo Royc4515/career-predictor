@@ -64,6 +64,7 @@ initDB().then(() => {
   const { createSampleRouter } = require('./routes/sampleRoutes');
   const { createRefRouter } = require('./routes/refRoutes');
   const { createFeatureRouter } = require('./routes/featureRoutes');
+  const { createShareRouter } = require('./routes/shareRoutes');
   const { getImageService, getPersonalPortraitService, getReferencePhotos } = require('./services/image/instance');
   app.use('/auth', authRoutes);
   app.use('/api/user', userRoutes);
@@ -71,6 +72,9 @@ initDB().then(() => {
   app.use(createSampleRouter(getImageService()));
   app.use(createRefRouter(getReferencePhotos()));
   app.use(createFeatureRouter({ personalPortraits: getPersonalPortraitService }));
+  // Before the static files and the SPA catch-all: /s/:token is the app's
+  // page with link-preview tags written in by the server.
+  app.use(createShareRouter({ imageService: getImageService(), clientDist: path.join(__dirname, '../client/dist') }));
   getPersonalPortraitService(); // logs at startup whether personal portraits are on
   console.log('[SERVER] Auth routes mounted at /auth');
   console.log('[SERVER] User routes mounted at /api/user');

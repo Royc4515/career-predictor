@@ -87,6 +87,28 @@ async function initDB(config = connectionConfig()) {
     )
   `);
   await client.execute('CREATE INDEX IF NOT EXISTS covers_user_created ON covers (user_id, id DESC)');
+
+  // Public share links (/s/:token). A snapshot of the issue when it was
+  // shared, so a retake doesn't change what a shared link shows. The
+  // reader's face is on it only when they ticked the box (personal_image_id),
+  // and "Remove my photo" clears it here too. revoked_at ends the link.
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS shares (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      token TEXT NOT NULL UNIQUE,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      career_result TEXT NOT NULL,
+      image_id TEXT,
+      image_url TEXT,
+      portrait_subject TEXT,
+      personal_image_id TEXT,
+      person_name TEXT,
+      lang TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      revoked_at DATETIME
+    )
+  `);
+  await client.execute('CREATE INDEX IF NOT EXISTS shares_user ON shares (user_id)');
   // A result from before image_id has only the legacy image_url (a
   // Pollinations CDN link). If its career has also left the table, that URL is
   // the only portrait it has, so the archive keeps it like /result does.
@@ -287,6 +309,52 @@ async function makeCoverCurrent(userId, coverId) {
   return true;
 }
 
+// --- Public share links ---
+
+async function createShare(s) {
+  await client.execute({
+    sql: `INSERT INTO shares (token, user_id, career_result, image_id, image_url, portrait_subject, personal_image_id, person_name, lang)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [s.token, s.userId, s.careerResult, s.imageId ?? null, s.imageUrl ?? null, s.portraitSubject ?? null, s.personalImageId ?? null, s.personName ?? null, s.lang ?? null],
+  });
+}
+
+/** The user's live link for this exact snapshot, so sharing twice reuses it. */
+async function findLiveShare(userId, careerResult, personalImageId) {
+  const result = await client.execute({
+    sql: `SELECT * FROM shares WHERE user_id = ? AND career_result = ? AND revoked_at IS NULL
+          AND (personal_image_id IS ? OR personal_image_id = ?) ORDER BY id DESC LIMIT 1`,
+    args: [userId, careerResult, personalImageId ?? null, personalImageId ?? null],
+  });
+  return plain(result.rows[0]);
+}
+
+/** A live share by token, or null (unknown or revoked). */
+async function getShare(token) {
+  const result = await client.execute({
+    sql: 'SELECT * FROM shares WHERE token = ? AND revoked_at IS NULL',
+    args: [token],
+  });
+  return plain(result.rows[0]);
+}
+
+/** End a link. True if it was the user's and still live. */
+async function revokeShare(userId, token) {
+  const result = await client.execute({
+    sql: 'UPDATE shares SET revoked_at = CURRENT_TIMESTAMP WHERE token = ? AND user_id = ? AND revoked_at IS NULL',
+    args: [token, userId],
+  });
+  return result.rowsAffected > 0;
+}
+
+/** A deleted personal portrait leaves every shared page it was on. */
+async function unlinkSharedPortrait(personalImageId) {
+  await client.execute({
+    sql: 'UPDATE shares SET personal_image_id = NULL WHERE personal_image_id = ?',
+    args: [personalImageId],
+  });
+}
+
 /** Point a saved result at its current shared portrait id. */
 async function updateImageId(userId, imageId) {
   await client.execute({ sql: 'UPDATE onboarding SET image_id = ? WHERE user_id = ?', args: [imageId, userId] });
@@ -395,5 +463,10 @@ module.exports = {
   unarchivePersonalPortrait,
   isPersonalPortraitArchived,
   allPersonalPortraitIds,
+  createShare,
+  findLiveShare,
+  getShare,
+  revokeShare,
+  unlinkSharedPortrait,
   unarchiveAllPersonalPortraits,
 };

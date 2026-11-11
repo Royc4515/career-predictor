@@ -14,6 +14,7 @@ const {
   isPersonalPortraitArchived,
   allPersonalPortraitIds,
   unarchiveAllPersonalPortraits,
+  unlinkSharedPortrait,
 } = require('../db');
 const { getImageService, getPersonalPortraitService } = require('../services/image/instance');
 const { normalizePhoto, PhotoError, MAX_UPLOAD_BYTES } = require('../photoUpload');
@@ -21,6 +22,7 @@ const { SlidingWindowLimiter } = require('../rateLimit');
 const { validateOnboardingAnswers } = require('../userData');
 const { asyncRoute } = require('../asyncRoute');
 const { imageUrlFor } = require('../imageUrl');
+const { portraitUrlFor } = require('../portraitUrl');
 const router = express.Router();
 
 // --- Auth guard ---
@@ -90,6 +92,7 @@ async function deletePersonalImage(id) {
   if (!id) return;
   getPersonalPortraitService().cancel(id);
   try {
+    await unlinkSharedPortrait(id);
     await getImageService().blobStore.delete(id);
   } catch (err) {
     console.error('[PORTRAIT] delete failed', id, err.message);
@@ -219,25 +222,6 @@ router.get(
     { label: 'GET /api/user/result', message: 'Could not load your result. Please try again.' },
   ),
 );
-
-/**
- * The shared portrait for a saved career: the career's current scene (kicked
- * off, idempotent) so an archived cover never points at a lost or outdated
- * image, or the stored id for a career that has left the table, or, for a
- * result older than image ids, its legacy image URL (as /result does).
- */
-function portraitUrlFor(title, portraitSubject, storedImageId, legacyImageUrl) {
-  const career = careerForTitle(title);
-  if (career) {
-    const { id } = getImageService().kickoff({
-      scenePrompt: promptFor(career, portraitSubject || 'surprise'),
-      title: career.title,
-    });
-    return imageUrlFor(id);
-  }
-  if (storedImageId) return imageUrlFor(storedImageId);
-  return legacyImageUrl || null;
-}
 
 // GET /api/user/covers - "Your back issues": every cover the user has been
 // given, newest first (the first is the current result). imageUrl is the
