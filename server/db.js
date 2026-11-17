@@ -117,6 +117,11 @@ async function initDB(config = connectionConfig()) {
   // consent wording that says it is kept in the archive (consent v2). Older
   // uploads were promised deletion on a retake and are never linked here.
   await addColumnIfMissing('covers', 'personal_image_id', 'TEXT');
+  // The back issue a link was made from (null: the current issue), so the
+  // face box on that issue's page can reach its portrait. Advisory: making
+  // an issue current re-files it under a new id, and the snapshot in the
+  // row itself is what the link shows.
+  await addColumnIfMissing('shares', 'cover_id', 'INTEGER');
   // One-time import: users whose result predates the archive start with it as
   // their first back issue. Idempotent (only users with no archived cover).
   const imported = await client.execute(`
@@ -340,9 +345,9 @@ async function makeCoverCurrent(userId, coverId) {
 
 async function createShare(s) {
   await client.execute({
-    sql: `INSERT INTO shares (token, user_id, career_result, image_id, image_url, portrait_subject, personal_image_id, person_name, lang)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [s.token, s.userId, s.careerResult, s.imageId ?? null, s.imageUrl ?? null, s.portraitSubject ?? null, s.personalImageId ?? null, s.personName ?? null, s.lang ?? null],
+    sql: `INSERT INTO shares (token, user_id, career_result, image_id, image_url, portrait_subject, personal_image_id, person_name, lang, cover_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [s.token, s.userId, s.careerResult, s.imageId ?? null, s.imageUrl ?? null, s.portraitSubject ?? null, s.personalImageId ?? null, s.personName ?? null, s.lang ?? null, s.coverId ?? null],
   });
 }
 

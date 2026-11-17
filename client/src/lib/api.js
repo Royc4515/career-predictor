@@ -201,8 +201,8 @@ export async function deleteCoverPortrait(id) {
  * on the shared page; lang picks the preview's language.
  * Returns { url, token, withFace }.
  */
-export async function createShare({ token, withFace = false, lang = 'en', keepalive = false }) {
-  return request('/api/user/share', { method: 'POST', body: { token, withFace, lang }, keepalive });
+export async function createShare({ token, withFace = false, lang = 'en', coverId = null, keepalive = false }) {
+  return request('/api/user/share', { method: 'POST', body: { token, withFace, lang, coverId }, keepalive });
 }
 
 /** Show or hide the reader's own portrait on a link already sent. */

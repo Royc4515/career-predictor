@@ -20,11 +20,12 @@ import { shareLinks } from '../lib/storage';
  *
  * key: the issue's English title (one live link per issue this session).
  * text: the line the share sheet sends with the link.
+ * coverId: a back issue's id (its page shares it); null for the current one.
  * hasFace: the cover has the reader's own portrait. A new link then shows
  *   it by default (the cover they are sharing is the one with their face);
  *   the box in the strip takes it off the same link.
  */
-export function useShareLink({ key, text, lang, hasFace = false }) {
+export function useShareLink({ key, text, lang, hasFace = false, coverId = null }) {
   const [link, setLink] = useState(() => shareLinks.get(key)); // { token, url, withFace, state }
   const [note, setNote] = useState(null);
   const [error, setError] = useState(null);
@@ -50,7 +51,7 @@ export function useShareLink({ key, text, lang, hasFace = false }) {
 
   const file = useCallback(
     (draft) =>
-      createShare({ token: draft.token, withFace: draft.withFace, lang, keepalive: true })
+      createShare({ token: draft.token, withFace: draft.withFace, lang, coverId, keepalive: true })
         .then((made) => {
           update({ ...draft, url: made.url || draft.url, withFace: made.withFace, state: 'live' });
           return true;
@@ -64,7 +65,7 @@ export function useShareLink({ key, text, lang, hasFace = false }) {
           setError(localizeError(lang, err.message));
           return false;
         }),
-    [lang, update],
+    [lang, coverId, update],
   );
 
   const copyLink = useCallback(async (url) => {
