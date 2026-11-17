@@ -15,15 +15,16 @@ import { shareLinks } from '../lib/storage';
  * files it in parallel. Safari refuses a share that starts after a network
  * wait; this used to cost a second tap.
  *
- * WhatsApp gets its own link (wa.me with the text and the link), so the
- * most used chat is one tap from the result page, not two. Its href needs
- * the token before the tap: `spare` is one made ahead, and nothing is
- * public until a tap files it.
+ * `spare` is the token the next new link will use, made ahead so the tap
+ * itself never waits; nothing is public until a tap files it.
  *
  * key: the issue's English title (one live link per issue this session).
  * text: the line the share sheet sends with the link.
+ * hasFace: the cover has the reader's own portrait. A new link then shows
+ *   it by default (the cover they are sharing is the one with their face);
+ *   the box in the strip takes it off the same link.
  */
-export function useShareLink({ key, text, lang }) {
+export function useShareLink({ key, text, lang, hasFace = false }) {
   const [link, setLink] = useState(() => shareLinks.get(key)); // { token, url, withFace, state }
   const [note, setNote] = useState(null);
   const [error, setError] = useState(null);
@@ -55,6 +56,10 @@ export function useShareLink({ key, text, lang }) {
           return true;
         })
         .catch((err) => {
+          // The photo went away between the tap and the request (removed in
+          // another tab, or it failed): the link the sheet already sent
+          // still goes live, with the desk's portrait.
+          if (draft.withFace && err?.status === 409) return file({ ...draft, withFace: false });
           setLink({ ...draft, state: 'failed' });
           setError(localizeError(lang, err.message));
           return false;
@@ -79,10 +84,10 @@ export function useShareLink({ key, text, lang }) {
     setError(null);
     setNote(null);
     const reused = link?.state === 'live';
-    const draft = { token, url, withFace: Boolean(link?.withFace) };
+    const draft = { token, url, withFace: reused ? Boolean(link.withFace) : hasFace };
     if (!reused) setLink({ ...draft, state: 'filing' });
     return { reused, draft, filed: reused ? Promise.resolve(true) : file(draft) };
-  }, [link, token, url, file]);
+  }, [link, token, url, file, hasFace]);
 
   // don't touch / Nothing may be awaited before navigator.share or the
   // clipboard write below: either one has to start inside the tap.
@@ -105,14 +110,6 @@ export function useShareLink({ key, text, lang }) {
       copyLink(draft.url);
     }
   }, [begin, text, token, copyLink, update]);
-
-  // The anchor itself opens WhatsApp (app on a phone, WhatsApp Web on a
-  // computer); this only files the link, with keepalive so the request
-  // survives the page going to the background.
-  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`;
-  const toWhatsApp = useCallback(() => {
-    begin();
-  }, [begin]);
 
   const retry = useCallback(() => {
     if (!link) return;
@@ -163,8 +160,6 @@ export function useShareLink({ key, text, lang }) {
     error,
     busy,
     share,
-    whatsappHref,
-    toWhatsApp,
     retry,
     stop,
     setFace,

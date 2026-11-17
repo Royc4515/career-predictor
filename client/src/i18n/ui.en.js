@@ -152,8 +152,6 @@ export const UI_EN = {
     developing: 'Developing…',
     preparing: 'Preparing…',
     share: 'Share',
-    whatsapp: 'WhatsApp',
-    whatsappLabel: 'Share on WhatsApp',
     shareText: (title) => `The forecast desk has spoken: I am “${title}”. The full report:`,
     retake: 'Retake the questionnaire',
     backIssues: 'Your back issues',

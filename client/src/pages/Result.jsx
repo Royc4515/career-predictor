@@ -114,10 +114,14 @@ export default function Result() {
 
   // One tap: the share sheet opens with the issue's public link already in
   // it (SharePanel). Hooks run before the early returns below.
+  // A new link shows the reader's own face whenever the cover has one; the
+  // desk's portrait only when it doesn't.
+  const hasFace = Boolean(personal && personal.status !== 'failed');
   const shareLink = useShareLink({
     key: result?.careerTitle ?? '',
     text: career ? t.shareText(career.title) : '',
     lang,
+    hasFace,
   });
 
   // A cover without a portrait is still finished, so it gets its stamp too.
@@ -289,17 +293,7 @@ export default function Result() {
                 >
                   <SwapLabel text={downloadLabel} />
                 </button>
-                <a
-                  href={shareLink.whatsappHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={shareLink.toWhatsApp}
-                  aria-label={t.whatsappLabel}
-                  className="btn btn-secondary max-sm:px-4"
-                >
-                  {t.whatsapp}
-                </a>
-                {/* Three buttons on one line on a 360px phone: the padding
+                {/* Download and Share on one line on a 360px phone: the padding
                     narrows there so the row doesn't wrap under the fold. */}
                 <button type="button" onClick={shareLink.share} className="btn btn-secondary max-sm:px-4">
                   {t.share}
@@ -318,7 +312,7 @@ export default function Result() {
               </section>
             </div>
 
-            <ShareStrip share={shareLink} hasFace={personal?.status === 'ready'} />
+            <ShareStrip share={shareLink} hasFace={hasFace} />
 
             {imageStatus === 'failed' && (
               <p className="text-body mt-5" role="status">
