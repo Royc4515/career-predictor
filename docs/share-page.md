@@ -22,7 +22,7 @@ The Share button used to send the cover PNG and a link to the home page. Whoever
 Result page, Share: one tap. The browser names the token (`lib/shareLink.js`, 9 random bytes, the server's format), so the native share sheet opens inside the tap with the link already in it while `POST /api/user/share { token }` files it in parallel (idempotent, so a retry is safe). Safari refuses a share that starts after a network wait; this used to need a second tap. Without a share sheet (most desktop browsers) the same tap copies the link. A strip then opens under the buttons and scrolls itself into view: what is public, the link, Copy link, Stop sharing, and the face box when the cover has the owner's portrait. Dismissing the share sheet without sending ends the link made for that tap, so nothing is left public that nobody chose to share. Sharing again in the same session reuses the live link (`shareLinks` in `lib/storage.js`).
 
 ## API
-- `POST /api/user/share` `{ withFace, lang }` -> `{ url, token, withFace }` (reuses a live link for the same snapshot).
+- `POST /api/user/share` `{ withFace, lang, token?, coverId? }` -> `{ url, token, withFace }` (reuses a live link for the same snapshot). `coverId` shares a back issue (its page, `IssuePage.jsx`, has its own Share button and strip): the snapshot and the face come from that cover, and the share row keeps `cover_id` so `PATCH` can reach the issue's portrait. Making that issue current re-files it under a new id, so `PATCH` also tries the current result when its snapshot matches.
 - `DELETE /api/user/share/:token` -> 204.
 - `GET /api/share/:token` (public) -> the page's data; 404 when unknown or ended.
 - `GET /api/share/:token/image` (public) -> the owner's portrait, only on a link shared with it.

@@ -12,6 +12,7 @@ const {
   revokeShare,
   setSharePortrait,
   getOnboardingByUserId,
+  getCover,
 } = require('../db');
 const { coverGenderFor } = require('../careers');
 const { portraitUrlFor, sharedPortraitId } = require('../portraitUrl');
@@ -152,9 +153,29 @@ function createShareRouter({ imageService, indexHtml = null, clientDist = null }
   // issue; null when there is none (or it failed).
   const facePortrait = (row) => (row.personal_image_id && row.personal_status !== 'failed' ? row.personal_image_id : null);
   const owned = (share, userId) => share && share.user_id === userId && !share.revoked_at;
+
+  // What a link of this issue shows: the current issue (no coverId) or one
+  // back issue. face is the reader's own portrait on it, or null. A back
+  // issue has no status row, so a failed portrait there is only caught by
+  // the client, which stops offering the face once its poll says failed.
+  // null: no such issue (the caller answers 404, or 409 with no result).
+  async function issueFor(userId, coverId) {
+    const row = await getOnboardingByUserId(userId);
+    if (coverId == null) {
+      return row && { careerResult: row.career_result, imageId: row.image_id, imageUrl: row.image_url, portraitSubject: row.portrait_subject, face: facePortrait(row), coverId: null };
+    }
+    const cover = await getCover(userId, coverId);
+    if (!cover) return null;
+    // The newest cover is the current result itself; its row knows whether
+    // the portrait failed.
+    const face = cover.current && row && row.career_result === cover.career_result ? facePortrait(row) : cover.personal_image_id || null;
+    return { careerResult: cover.career_result, imageId: cover.image_id, imageUrl: cover.image_url, portraitSubject: cover.portrait_subject, face, coverId: cover.current ? null : cover.id };
+  }
+  const parseCoverId = (raw) => (Number.isInteger(raw) && raw > 0 ? raw : null);
   const linkBody = (share) => ({ url: shareUrl(share.token), token: share.token, withFace: Boolean(share.personal_image_id) });
 
-  // POST /api/user/share { withFace, lang, token? } -> { url, token, withFace }
+  // POST /api/user/share { withFace, lang, token?, coverId? } -> { url, token, withFace }
+  // coverId shares a back issue instead of the current one.
   // With a token (named by the browser, already in the share sheet) the call
   // is idempotent: a retry of the same token returns the same link.
   router.post(
@@ -162,10 +183,17 @@ function createShareRouter({ imageService, indexHtml = null, clientDist = null }
     requireAuth,
     asyncRoute(
       async (req, res) => {
-        const row = await getOnboardingByUserId(req.user.id);
-        if (!row) return res.status(409).json({ error: 'Take the questionnaire first.' });
+        const rawCover = req.body?.coverId;
+        const coverId = rawCover === undefined || rawCover === null ? null : parseCoverId(rawCover);
+        if (rawCover != null && !coverId) return res.status(400).json({ error: 'Invalid cover id' });
+        const issue = await issueFor(req.user.id, coverId);
+        if (!issue) {
+          return coverId
+            ? res.status(404).json({ error: 'Not found' })
+            : res.status(409).json({ error: 'Take the questionnaire first.' });
+        }
         const wantFace = req.body?.withFace === true;
-        const personalImageId = wantFace ? facePortrait(row) : null;
+        const personalImageId = wantFace ? issue.face : null;
         if (wantFace && !personalImageId) {
           return res.status(409).json({ error: 'There is no photo of you on this cover to share.' });
         }
@@ -181,7 +209,7 @@ function createShareRouter({ imageService, indexHtml = null, clientDist = null }
             return res.status(409).json({ error: 'Could not create a share link. Please try again.' });
           }
         } else {
-          const existing = await findLiveShare(req.user.id, row.career_result, personalImageId);
+          const existing = await findLiveShare(req.user.id, issue.careerResult, personalImageId);
           if (existing) return res.json(linkBody(existing));
         }
 
@@ -193,11 +221,12 @@ function createShareRouter({ imageService, indexHtml = null, clientDist = null }
           await createShare({
             token,
           userId: req.user.id,
-          careerResult: row.career_result,
-          imageId: row.image_id,
-          imageUrl: row.image_url,
-          portraitSubject: row.portrait_subject,
+          careerResult: issue.careerResult,
+          imageId: issue.imageId,
+          imageUrl: issue.imageUrl,
+          portraitSubject: issue.portraitSubject,
           personalImageId,
+          coverId: issue.coverId,
             personName: firstName(req.user.name),
             lang,
           });
@@ -226,10 +255,14 @@ function createShareRouter({ imageService, indexHtml = null, clientDist = null }
         if (!owned(share, req.user.id)) return res.status(404).json({ error: 'Not found' });
         let personalImageId = null;
         if (req.body?.withFace === true) {
-          const row = await getOnboardingByUserId(req.user.id);
           // Only the portrait of the issue this link shows: after a retake
-          // the current photo belongs to a different cover.
-          personalImageId = row && row.career_result === share.career_result ? facePortrait(row) : null;
+          // the current photo belongs to a different cover. A back issue's
+          // link looks there first; if that issue has since been made current
+          // (re-filed under a new id), the current result is the same issue.
+          const fromCover = share.cover_id ? await issueFor(req.user.id, share.cover_id) : null;
+          const current = await issueFor(req.user.id, null);
+          const match = [fromCover, current].find((i) => i && i.careerResult === share.career_result && i.face);
+          personalImageId = match ? match.face : null;
           if (!personalImageId) return res.status(409).json({ error: 'There is no photo of you on this cover to share.' });
         }
         await setSharePortrait(req.user.id, share.token, personalImageId);

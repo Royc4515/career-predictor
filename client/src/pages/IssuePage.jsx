@@ -6,6 +6,7 @@ import Cover from '../components/Cover';
 import TiltCard from '../components/effects/TiltCard';
 import PersonalPortrait from '../components/PersonalPortrait';
 import Report from '../components/Report';
+import ShareStrip, { useShareLink } from '../components/SharePanel';
 import Footer from '../components/Footer';
 import { useAuth } from '../app/AuthContext';
 import { useImageReady } from '../hooks/useImageReady';
@@ -77,6 +78,18 @@ export default function IssuePage() {
         issue.coverGender,
       )
     : null;
+
+  // As on the result page: a new link shows the reader's own face whenever
+  // this issue has one. Its own key, so it never reuses the current issue's
+  // link (two issues can share a title).
+  const hasFace = Boolean(personal && personal.status !== 'failed');
+  const shareLink = useShareLink({
+    key: issue ? `cover:${issue.id}` : '',
+    text: career ? copy.result.shareText(career.title) : '',
+    lang,
+    hasFace,
+    coverId: issue?.id ?? null,
+  });
 
   // Polling the reader's portrait settles its status, as on the result page:
   // a failed one hands the cover back to the desk's portrait.
@@ -205,7 +218,11 @@ export default function IssuePage() {
               >
                 {blob ? t.download : t.preparing}
               </button>
+              <button type="button" onClick={shareLink.share} className="btn btn-secondary">
+                {copy.result.share}
+              </button>
             </div>
+            <ShareStrip share={shareLink} hasFace={hasFace} />
             {actionError && (
               <p className="text-body mt-3" role="alert">
                 {actionError}

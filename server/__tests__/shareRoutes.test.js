@@ -33,7 +33,7 @@ before(async () => {
   process.env.TURSO_DATABASE_URL = `file:${path.join(dir, 'app.db')}`;
   const db = require('../db');
   await db.initDB({ url: process.env.TURSO_DATABASE_URL });
-  for (const googleId of ['s1', 's2']) await db.upsertUser({ googleId, email: `${googleId}@x`, name: googleId === 's1' ? 'Roy Carmelli' : 'Other' });
+  for (const googleId of ['s1', 's2', 's3']) await db.upsertUser({ googleId, email: `${googleId}@x`, name: googleId === 's1' ? 'Roy Carmelli' : 'Other' });
   const instance = require('../services/image/instance');
   instance._resetForTests();
   images = instance.getImageService();
@@ -216,4 +216,54 @@ test('a link named by the browser: idempotent, the face switched on the same lin
   assert.equal((await fetch(`${base}/api/share/${other.token}`)).status, 404, 'stopping ends every link of the issue');
   currentUser = 2;
   assert.equal((await json('POST', '/api/user/share', { token })).status, 409, 'an ended token is not reused');
+});
+
+test('a back issue shares its own snapshot and its own portrait, and the face follows it when made current', async () => {
+  currentUser = 3;
+  assert.equal((await json('POST', '/api/user/onboarding', ANSWERS)).status, 200);
+  const later = { ...ANSWERS, desired_field: 'A spreadsheet tracking my other spreadsheets' };
+  assert.equal((await json('POST', '/api/user/onboarding', later)).status, 200);
+  const covers = (await (await fetch(`${base}/api/user/covers`)).json()).covers;
+  const back = covers.find((c) => !c.current);
+  const now = covers.find((c) => c.current);
+  assert.ok(back && now && back.title !== now.title, 'two different issues');
+
+  assert.equal((await json('POST', '/api/user/share', { coverId: 'x' })).status, 400);
+  assert.equal((await json('POST', '/api/user/share', { coverId: -1 })).status, 400);
+  assert.equal((await json('POST', '/api/user/share', { coverId: 999999 })).status, 404);
+  assert.equal((await json('POST', '/api/user/share', { coverId: back.id, withFace: true })).status, 409, 'no photo on it yet');
+
+  const up = await fetch(`${base}/api/user/covers/${back.id}/portrait`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'image/jpeg', 'X-Portrait-Consent': 'v2' },
+    body: await sharp({ create: { width: 800, height: 1000, channels: 3, background: '#a07050' } }).jpeg().toBuffer(),
+  });
+  assert.equal(up.status, 202);
+  releaseRender();
+  await settle();
+
+  const token = 'Back_issue01';
+  const made = await json('POST', '/api/user/share', { token, coverId: back.id, withFace: true });
+  assert.equal(made.status, 201);
+  assert.equal((await made.json()).withFace, true);
+  currentUser = null;
+  let body = await (await fetch(`${base}/api/share/${token}`)).json();
+  assert.equal(body.title, back.title, 'the back issue, not the current one');
+  assert.equal(body.withFace, true);
+  assert.equal((await fetch(`${base}/api/share/${token}/image`)).status, 200);
+
+  currentUser = 1;
+  assert.equal((await json('POST', '/api/user/share', { coverId: back.id })).status, 404, "someone else's issue");
+  currentUser = 3;
+  assert.equal((await (await json('PATCH', `/api/user/share/${token}`, { withFace: false })).json()).withFace, false);
+  assert.equal((await (await json('PATCH', `/api/user/share/${token}`, { withFace: true })).json()).withFace, true, "the back issue's own portrait goes back on");
+
+  // Made current, the issue is re-filed under a new id; the link still
+  // reaches its portrait through the current result.
+  assert.equal((await json('POST', `/api/user/covers/${back.id}/current`)).status, 204);
+  assert.equal((await (await json('PATCH', `/api/user/share/${token}`, { withFace: false })).json()).withFace, false);
+  assert.equal((await (await json('PATCH', `/api/user/share/${token}`, { withFace: true })).json()).withFace, true);
+  currentUser = null;
+  body = await (await fetch(`${base}/api/share/${token}`)).json();
+  assert.equal(body.title, back.title);
 });
