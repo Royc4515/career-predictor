@@ -114,10 +114,14 @@ export default function Result() {
 
   // One tap: the share sheet opens with the issue's public link already in
   // it (SharePanel). Hooks run before the early returns below.
+  // A new link shows the reader's own face whenever the cover has one; the
+  // desk's portrait only when it doesn't.
+  const hasFace = Boolean(personal && personal.status !== 'failed');
   const shareLink = useShareLink({
     key: result?.careerTitle ?? '',
     text: career ? t.shareText(career.title) : '',
     lang,
+    hasFace,
   });
 
   // A cover without a portrait is still finished, so it gets its stamp too.
@@ -308,7 +312,7 @@ export default function Result() {
               </section>
             </div>
 
-            <ShareStrip share={shareLink} hasFace={personal?.status === 'ready'} />
+            <ShareStrip share={shareLink} hasFace={hasFace} />
 
             {imageStatus === 'failed' && (
               <p className="text-body mt-5" role="status">

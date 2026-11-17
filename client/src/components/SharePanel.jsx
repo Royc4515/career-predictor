@@ -20,8 +20,11 @@ import { shareLinks } from '../lib/storage';
  *
  * key: the issue's English title (one live link per issue this session).
  * text: the line the share sheet sends with the link.
+ * hasFace: the cover has the reader's own portrait. A new link then shows
+ *   it by default (the cover they are sharing is the one with their face);
+ *   the box in the strip takes it off the same link.
  */
-export function useShareLink({ key, text, lang }) {
+export function useShareLink({ key, text, lang, hasFace = false }) {
   const [link, setLink] = useState(() => shareLinks.get(key)); // { token, url, withFace, state }
   const [note, setNote] = useState(null);
   const [error, setError] = useState(null);
@@ -53,6 +56,10 @@ export function useShareLink({ key, text, lang }) {
           return true;
         })
         .catch((err) => {
+          // The photo went away between the tap and the request (removed in
+          // another tab, or it failed): the link the sheet already sent
+          // still goes live, with the desk's portrait.
+          if (draft.withFace && err?.status === 409) return file({ ...draft, withFace: false });
           setLink({ ...draft, state: 'failed' });
           setError(localizeError(lang, err.message));
           return false;
@@ -77,10 +84,10 @@ export function useShareLink({ key, text, lang }) {
     setError(null);
     setNote(null);
     const reused = link?.state === 'live';
-    const draft = { token, url, withFace: Boolean(link?.withFace) };
+    const draft = { token, url, withFace: reused ? Boolean(link.withFace) : hasFace };
     if (!reused) setLink({ ...draft, state: 'filing' });
     return { reused, draft, filed: reused ? Promise.resolve(true) : file(draft) };
-  }, [link, token, url, file]);
+  }, [link, token, url, file, hasFace]);
 
   // don't touch / Nothing may be awaited before navigator.share or the
   // clipboard write below: either one has to start inside the tap.
