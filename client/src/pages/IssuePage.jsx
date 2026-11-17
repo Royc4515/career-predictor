@@ -206,19 +206,21 @@ export default function IssuePage() {
                 {career.caption}
               </p>
             )}
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              <button type="button" onClick={makeCurrent} disabled={switching} className="btn btn-primary">
+            {/* Three buttons on one line on a 360px phone: narrower padding and
+                short labels there. */}
+            <div className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-2 sm:gap-3">
+              <button type="button" onClick={makeCurrent} disabled={switching} className="btn btn-primary max-sm:px-4">
                 {switching ? t.switching : t.makeCurrent}
               </button>
               <button
                 type="button"
                 onClick={() => downloadBlob(blob, coverFileName(issue.title))}
                 disabled={!blob}
-                className="btn btn-secondary"
+                className="btn btn-secondary max-sm:px-4"
               >
                 {blob ? t.download : t.preparing}
               </button>
-              <button type="button" onClick={shareLink.share} className="btn btn-secondary">
+              <button type="button" onClick={shareLink.share} className="btn btn-secondary max-sm:px-4">
                 {copy.result.share}
               </button>
             </div>
