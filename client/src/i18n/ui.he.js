@@ -206,7 +206,7 @@ export const UI_HE = {
     keep: 'להשאיר',
     filed: (date) => `הוגש ב-${date}.`,
     fromArchive: 'מהארכיון.',
-    makeCurrent: 'הגדרה כגיליון הנוכחי',
+    makeCurrent: 'לגיליון הנוכחי',
     switching: 'מחליפים…',
     download: 'הורדה',
     preparing: 'מכינים…',

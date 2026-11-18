@@ -208,7 +208,7 @@ export const UI_EN = {
     keep: 'Keep it',
     filed: (date) => `Filed ${date}.`,
     fromArchive: 'From the archive.',
-    makeCurrent: 'Make this my current issue',
+    makeCurrent: 'Make current',
     switching: 'Switching…',
     download: 'Download',
     preparing: 'Preparing…',
