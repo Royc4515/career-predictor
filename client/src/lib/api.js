@@ -102,10 +102,10 @@ export async function uploadPortrait(photo) {
   return data.personal;
 }
 
-export async function deletePortrait() {
+export async function deletePortrait({ keepalive = false } = {}) {
   let res;
   try {
-    res = await fetch(`${API_URL}/api/user/portrait`, { method: 'DELETE', credentials: 'include' });
+    res = await fetch(`${API_URL}/api/user/portrait`, { method: 'DELETE', credentials: 'include', keepalive });
   } catch {
     throw new ApiError(0, 'Could not reach the newsroom. Check your connection and try again.');
   }
@@ -118,12 +118,13 @@ export async function fetchCovers() {
   return Array.isArray(data?.covers) ? data.covers : [];
 }
 
-export async function deleteCover(id) {
+export async function deleteCover(id, { keepalive = false } = {}) {
   let res;
   try {
     res = await fetch(`${API_URL}/api/user/covers/${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'include',
+      keepalive,
     });
   } catch {
     throw new ApiError(0, 'Could not reach the newsroom. Check your connection and try again.');
@@ -182,12 +183,13 @@ export async function uploadCoverPortrait(id, photo) {
 }
 
 /** Take the reader's face off one back issue. */
-export async function deleteCoverPortrait(id) {
+export async function deleteCoverPortrait(id, { keepalive = false } = {}) {
   let res;
   try {
     res = await fetch(`${API_URL}/api/user/covers/${encodeURIComponent(id)}/portrait`, {
       method: 'DELETE',
       credentials: 'include',
+      keepalive,
     });
   } catch {
     throw new ApiError(0, 'Could not reach the newsroom. Check your connection and try again.');

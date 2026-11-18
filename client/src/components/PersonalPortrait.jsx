@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { deletePortrait, uploadPortrait } from '../lib/api';
+import { pendingDeletes } from '../lib/pendingDeletes';
+import { useUndoableRemove } from './UndoToast';
 import PhotoConsent from './PhotoConsent';
 import { useLang } from '../i18n/LangContext';
 import { localizeError } from '../lib/errors';
@@ -17,6 +19,8 @@ import { localizeError } from '../lib/errors';
  * from the questionnaire (a selfie that couldn't be sent).
  * upload / remove: where the photo goes; the current issue by default, a
  * back issue's own routes on its page (removeLabel then says "this issue").
+ * remove(opts) is sent a few seconds after the tap, so "Undo" can take it
+ * back (UndoToast); undoKey names that delete.
  */
 export default function PersonalPortrait({
   personal,
@@ -29,19 +33,27 @@ export default function PersonalPortrait({
   upload = uploadPortrait,
   remove: removeIt = deletePortrait,
   removeLabel = null,
+  undoKey = 'portrait:current',
 }) {
   const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(null); // 'uploading' | 'removing'
+  const [busy, setBusy] = useState(null); // 'uploading'
   const [error, setError] = useState(null);
   const { lang, copy } = useLang();
   const t = copy.personal;
+  const undoable = useUndoableRemove();
 
-  if (!available && !personal && blocked !== 'old-issue') return null;
+  // The bar stays even when the panel itself has nothing left to show, or
+  // its Undo would go with it.
+  if (!available && !personal && blocked !== 'old-issue') return undoable.toast;
 
   async function send(photo) {
     setError(null);
     setBusy('uploading');
     try {
+      // A removal still waiting goes first: sent after the upload, it
+      // would delete the new photo instead of the old one.
+      undoable.dismiss();
+      await pendingDeletes.flush();
       const next = await upload(photo);
       setOpen(false);
       onChange(next);
@@ -51,18 +63,21 @@ export default function PersonalPortrait({
     }
   }
 
-  async function remove() {
+  function remove() {
     setError(null);
-    setBusy('removing');
-    try {
-      await removeIt();
-      onChange(null);
-      onShow('desk');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(null);
-    }
+    const before = personal;
+    const wasShowing = showing;
+    onChange(null);
+    onShow('desk');
+    undoable.remove(undoKey, {
+      message: t.removed,
+      commit: (opts) => removeIt(opts),
+      restore: () => {
+        onChange(before);
+        onShow(wasShowing);
+      },
+      onError: (err) => setError(err.message),
+    });
   }
 
   const status = personal?.status;
@@ -118,7 +133,7 @@ export default function PersonalPortrait({
             ))}
           </div>
           <button type="button" className="link-ink tap meta min-h-[44px] text-ink" onClick={remove} disabled={!!busy}>
-            {busy === 'removing' ? t.removing : removeLabel || t.remove}
+            {removeLabel || t.remove}
           </button>
         </div>
       )}
@@ -156,6 +171,7 @@ export default function PersonalPortrait({
           {localizeError(lang, error)}
         </p>
       )}
+      {undoable.toast}
     </section>
   );
 }

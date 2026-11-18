@@ -18,6 +18,7 @@ import { firstName, formatDate } from '../lib/issue';
 import { EASE_OUT, rise } from '../lib/motion';
 import { setNavDirection } from '../lib/navDirection';
 import { localizeError } from '../lib/errors';
+import { pendingDeletes } from '../lib/pendingDeletes';
 import { useLang } from '../i18n/LangContext';
 import { careerCopy } from '../i18n/content';
 
@@ -124,6 +125,9 @@ export default function IssuePage() {
     setSwitching(true);
     setActionError(null);
     try {
+      // A photo removal still waiting is sent first: once the issue is
+      // re-filed as current, its old id no longer reaches the photo.
+      await pendingDeletes.flush();
       await makeCoverCurrent(issue.id);
       setNavDirection('forward');
       navigate('/result', { viewTransition: true });
@@ -240,7 +244,8 @@ export default function IssuePage() {
               onShow={setShowing}
               onChange={setPersonal}
               upload={(photo) => uploadCoverPortrait(issue.id, photo)}
-              remove={() => deleteCoverPortrait(issue.id)}
+              remove={(opts) => deleteCoverPortrait(issue.id, opts)}
+              undoKey={`portrait:cover:${issue.id}`}
               removeLabel={copy.personal.removeFromIssue}
             />
 
