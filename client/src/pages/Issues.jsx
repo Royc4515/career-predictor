@@ -4,6 +4,7 @@ import { m } from 'motion/react';
 import Masthead from '../components/Masthead';
 import Cover from '../components/Cover';
 import Footer from '../components/Footer';
+import { useUndoableRemove } from '../components/UndoToast';
 import { useImageReady } from '../hooks/useImageReady';
 import { deleteCover, fetchCovers } from '../lib/api';
 import { formatDate } from '../lib/issue';
@@ -19,7 +20,7 @@ function filedOn(value, lang) {
   return Number.isNaN(date.getTime()) ? null : formatDate(date, lang);
 }
 
-function BackIssue({ cover, number, onRemove, removing }) {
+function BackIssue({ cover, number, onRemove }) {
   // The reader's own portrait when they shot one for this issue; the desk's
   // shared portrait otherwise, or if theirs could not be made. The shared one
   // is only polled when it is needed.
@@ -32,16 +33,6 @@ function BackIssue({ cover, number, onRemove, removing }) {
   const t = copy.issues;
   const filed = filedOn(cover.filedAt, lang);
   const title = careerTitle(lang, cover.title, cover.coverGender);
-  // Removing an issue with the reader's own face deletes that portrait for
-  // good, so it asks first; a desk portrait can always be shot again.
-  const [confirming, setConfirming] = useState(false);
-  const removeRef = useRef(null);
-  // "Keep it" unmounts the button that had focus: hand focus back to Remove
-  // instead of letting it fall to <body>.
-  function keep() {
-    setConfirming(false);
-    requestAnimationFrame(() => removeRef.current?.focus());
-  }
   return (
     <li>
       <div className="relative">
@@ -72,38 +63,17 @@ function BackIssue({ cover, number, onRemove, removing }) {
         {cover.current ? (
           <span className="meta bg-mark px-1.5 text-ink">{copy.common.currentIssue}</span>
         ) : (
-          !confirming && (
-            <button
-              ref={removeRef}
-              type="button"
-              onClick={() => (mine ? setConfirming(true) : onRemove(cover.id))}
-              disabled={removing}
-              className="link-ink tap meta text-ink disabled:opacity-50"
-            >
-              {removing ? t.removing : t.remove}
-            </button>
-          )
+          // No "are you sure": the issue goes at once and the bar under the
+          // page offers Undo until the delete is actually sent.
+          <button
+            type="button"
+            onClick={() => onRemove(cover.id, number, mine)}
+            className="link-ink tap meta text-ink"
+          >
+            {t.remove}
+          </button>
         )}
       </div>
-      {confirming && (
-        <div role="group" aria-label={t.removeGroup(number)} className="mt-2 bg-paper-2 p-3">
-          <p className="meta text-ink">{t.deletesPhoto}</p>
-          <div className="mt-1 flex flex-wrap gap-x-4">
-            {/* Focus lands on the safe choice. */}
-            <button type="button" autoFocus onClick={keep} className="link-ink tap meta text-ink">
-              {t.keep}
-            </button>
-            <button
-              type="button"
-              onClick={() => onRemove(cover.id)}
-              disabled={removing}
-              className="link-ink tap meta text-alert disabled:opacity-50"
-            >
-              {removing ? t.removing : t.remove}
-            </button>
-          </div>
-        </div>
-      )}
     </li>
   );
 }
@@ -119,8 +89,8 @@ export default function Issues() {
   const t = copy.issues;
   const [covers, setCovers] = useState(null);
   const [error, setError] = useState(null);
-  const [removing, setRemoving] = useState(null);
   const headingRef = useRef(null);
+  const undoable = useUndoableRemove();
 
   useEffect(() => {
     let cancelled = false;
@@ -132,18 +102,20 @@ export default function Issues() {
     };
   }, []);
 
-  async function remove(id) {
-    setRemoving(id);
-    try {
-      await deleteCover(id);
-      setCovers((list) => list.filter((c) => c.id !== id));
-      // The removed card took focus with it; land on the page heading.
-      requestAnimationFrame(() => headingRef.current?.focus());
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setRemoving(null);
-    }
+  function remove(id, number, withPhoto) {
+    const cover = covers.find((c) => c.id === id);
+    if (!cover) return;
+    setError(null);
+    setCovers((list) => list.filter((c) => c.id !== id));
+    // The removed card took focus with it; land on the page heading.
+    requestAnimationFrame(() => headingRef.current?.focus());
+    undoable.remove(`cover:${id}`, {
+      message: withPhoto ? t.removedWithPhoto(number) : t.removed(number),
+      commit: (opts) => deleteCover(id, opts),
+      // Back in its place: the list is newest first, by id.
+      restore: () => setCovers((list) => (list.some((c) => c.id === id) ? list : [...list, cover].sort((a, b) => b.id - a.id))),
+      onError: (err) => setError(err.message),
+    });
   }
 
   const back = (
@@ -191,7 +163,6 @@ export default function Issues() {
                   cover={cover}
                   number={covers.length - i}
                   onRemove={remove}
-                  removing={removing === cover.id}
                 />
               ))}
             </ol>
@@ -210,6 +181,7 @@ export default function Issues() {
         </div>
       </main>
       <Footer />
+      {undoable.toast}
     </div>
   );
 }
